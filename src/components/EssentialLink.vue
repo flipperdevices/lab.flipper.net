@@ -3,6 +3,7 @@
     clickable
     tag="a"
     :href="link"
+    :class="link === this.$route.path ? 'light-dimmed' : ''"
   >
     <q-item-section
       v-if="icon"

@@ -5,40 +5,48 @@
     <q-btn
       v-if="flags.portSelectRequired || !flags.connected && !flags.portSelectRequired"
       @click="flags.portSelectRequired ? selectPort() : connect()"
+      color="positive"
     >
       {{ flags.portSelectRequired ? 'Select port' : 'Connect' }}
     </q-btn>
 
-    <div v-if="flags.connected">
-      <q-btn
-        @click="flags.rpcActive ? stopRpc() : startRpc()"
-        :loading="flags.rpcToggling"
-        class="q-ma-sm"
-      >
-        {{ flags.rpcActive ? 'Stop rpc' : 'Start rpc' }}
-      </q-btn>
+    <div v-if="flags.connected" class="flex flex-center column">
+      <div>
+        <q-btn
+          @click="flags.rpcActive ? stopRpc() : startRpc()"
+          :loading="flags.rpcToggling"
+          :color="flags.rpcActive ? 'negative' : 'positive'"
+          class="q-ma-sm"
+        >
+          {{ flags.rpcActive ? 'Stop rpc' : 'Start rpc' }}
+        </q-btn>
 
-      <q-btn
-        v-if="flags.rpcActive"
-        @click="readInfo"
-        class="q-ma-sm"
-      >
-        Read info (RPC)
-      </q-btn>
-      <q-btn
-        v-else
-        @click="cliReadInfo"
-        class="q-ma-sm"
-      >
-        Read info (CLI)
-      </q-btn>
+        <q-btn
+          @click="disconnect"
+          color="negative"
+          class="q-ma-sm"
+        >
+          Disconnect
+        </q-btn>
+      </div>
 
-      <q-btn
-        @click="disconnect"
-        class="q-ma-sm"
-      >
-        Disconnect
-      </q-btn>
+      <div v-if="flags.rpcActive">
+        <q-btn
+          v-if="flags.rpcActive"
+          @click="readInfo"
+          class="q-ma-sm"
+        >
+          Read info (RPC)
+        </q-btn>
+      </div>
+      <div v-else>
+        <q-btn
+          @click="cliReadInfo"
+          class="q-ma-sm"
+        >
+          Read info (CLI)
+        </q-btn>
+      </div>
     </div>
 
     <pre
@@ -88,13 +96,13 @@ export default defineComponent({
     async connect () {
       await this.flipper.connect()
         .then(() => {
+          this.flags.portSelectRequired = false
           this.connectionStatus = 'Connected'
           this.flags.connected = true
         })
         .catch((error) => {
           if (error.toString() === 'Error: No known ports') {
             this.flags.portSelectRequired = true
-            console.log('no ports')
           } else {
             this.connectionStatus = error.toString()
           }
