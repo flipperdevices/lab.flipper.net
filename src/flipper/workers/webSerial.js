@@ -34,12 +34,17 @@ async function connect () {
         status: 1
       })
     })
-    .catch(error => {
-      self.postMessage({
-        operation: 'connect',
-        status: 0,
-        error: error
-      })
+    .catch(async error => {
+      if (error.toString().includes('The port is already open')) {
+        await port.close()
+        return connect()
+      } else {
+        self.postMessage({
+          operation: 'connect',
+          status: 0,
+          error: error
+        })
+      }
     })
 }
 

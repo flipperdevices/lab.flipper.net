@@ -60,6 +60,7 @@
 <script>
 import { defineComponent, ref } from 'vue'
 import * as flipper from '../flipper/core'
+import asyncSleep from 'simple-async-sleep'
 
 const filters = [
   { usbVendorId: 0x0483, usbProductId: 0x5740 }
@@ -110,9 +111,21 @@ export default defineComponent({
         .then(() => {
           this.connectionStatus = 'Disconnected'
           this.flags.connected = false
+          this.info = {}
+          this.textInfo = ''
         })
-        .catch((error) => {
-          this.connectionStatus = error.toString()
+        .catch(async error => {
+          if (error.toString().includes('Cannot cancel a locked stream')) {
+            if (this.flags.rpcActive) {
+              await this.stopRpc()
+            } else {
+              this.flipper.closeReader()
+              await asyncSleep(300)
+            }
+            return this.disconnect()
+          } else {
+            this.connectionStatus = error.toString()
+          }
         })
     },
 
@@ -146,7 +159,7 @@ export default defineComponent({
       const unbind = this.flipper.emitter.on('cli output', data => {
         const chunk = new TextDecoder().decode(data)
         this.textInfo += chunk
-        if (chunk.includes('>:')) {
+        if (chunk.includes('\x07')) {
           this.flipper.closeReader()
           unbind()
         }
