@@ -36,6 +36,44 @@ function stopVirtualDisplay () {
   })
 }
 
+function startScreenStreamRequest () {
+  return new Promise((resolve, reject) => {
+    enqueue({
+      requestType: 'guiStartScreenStreamRequest',
+      args: {}
+    })
+    const unbind = emitter.on('response', res => {
+      if (res && res.error) {
+        reject(res.error, res)
+      } else {
+        emitter.emit('screen frame', res.guiScreenFrame.data)
+      }
+      const unbindStop = emitter.on('stop screen streaming', () => {
+        unbind()
+        unbindStop()
+      })
+    })
+  })
+}
+
+function stopScreenStreamRequest () {
+  emitter.emit('stop screen streaming')
+  return new Promise((resolve, reject) => {
+    enqueue({
+      requestType: 'guiStopScreenStreamRequest',
+      args: {}
+    })
+    const unbind = emitter.on('response', res => {
+      if (res && res.error) {
+        reject(res.error, res)
+      } else {
+        resolve(res)
+      }
+      unbind()
+    })
+  })
+}
+
 function screenFrame (data) {
   return new Promise((resolve, reject) => {
     enqueue({
@@ -78,6 +116,8 @@ function sendInputEvent (key, type) {
 export {
   startVirtualDisplay,
   stopVirtualDisplay,
+  startScreenStreamRequest,
+  stopScreenStreamRequest,
   screenFrame,
   sendInputEvent
 }

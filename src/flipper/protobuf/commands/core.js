@@ -26,8 +26,34 @@ async function sendRpcRequest () {
     await flipper.write('raw', req.data)
 
     let res = { commandId: req.commandId }
+    if (c.requestType === 'guiStartScreenStreamRequest') {
+      res = { commandId: 0 }
+      let buffer = new Uint8Array(0)
+      let prevFrame = buffer
+      const unbind = emitter.on('raw output', data => {
+        const newBuffer = new Uint8Array(buffer.length + data.length)
+        newBuffer.set(buffer)
+        newBuffer.set(data, buffer.length)
+        buffer = newBuffer
+      })
 
-    if (!c.hasNext && c.requestType !== 'stopSession') {
+      let streaming = true
+
+      while (streaming) {
+        await asyncSleep(50)
+        if (buffer.length >= 1033 && buffer !== prevFrame) {
+          res = rpc.parseResponse(buffer)
+          prevFrame = buffer
+          buffer = new Uint8Array(0)
+          emitter.emit('response', res)
+        }
+        const unbindStop = emitter.on('stop screen streaming', () => {
+          streaming = false
+          unbind()
+          unbindStop()
+        })
+      }
+    } else if (!c.hasNext && c.requestType !== 'stopSession') {
       let buffer = new Uint8Array(0)
       const unbind = emitter.on('raw output', data => {
         const newBuffer = new Uint8Array(buffer.length + data.length)
@@ -61,10 +87,10 @@ async function sendRpcRequest () {
 
 async function startRpcSession (f) {
   flipper = f
-  await asyncSleep(600)
+  await asyncSleep(500)
   await flipper.write('cli', 'start_rpc_session\r')
   flipper.read('raw')
-  await asyncSleep(600)
+  await asyncSleep(500)
   return system.ping()
 }
 

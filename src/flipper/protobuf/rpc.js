@@ -49,9 +49,14 @@ function parseResponse (data) {
     } else if (res.empty) {
       command.resolved = true
     } else {
+      if (res.commandId === 0) {
+        return res
+      }
+
       if (!res.hasNext) {
         command.resolved = true
       }
+
       const payload = res[Object.keys(res).find(k => k === command.requestType.replace('Request', 'Response'))]
       command.chunks.push(payload)
     }
