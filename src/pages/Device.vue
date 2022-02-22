@@ -6,7 +6,7 @@
       v-if="flags.portSelectRequired || !flags.connected && !flags.portSelectRequired"
       @click="flags.portSelectRequired ? selectPort() : connect()"
     >
-      Connect
+      {{ flags.portSelectRequired ? 'Select port' : 'Connect' }}
     </q-btn>
 
     <div v-if="flags.connected">
@@ -19,10 +19,18 @@
       </q-btn>
 
       <q-btn
+        v-if="flags.rpcActive"
         @click="readInfo"
         class="q-ma-sm"
       >
-        Read info
+        Read info (RPC)
+      </q-btn>
+      <q-btn
+        v-else
+        @click="cliReadInfo"
+        class="q-ma-sm"
+      >
+        Read info (CLI)
       </q-btn>
 
       <q-btn
@@ -32,6 +40,13 @@
         Disconnect
       </q-btn>
     </div>
+
+    <pre
+      v-if="this.textInfo.length"
+      style="white-space: pre-line;"
+    >
+      {{ this.textInfo }}
+    </pre>
 
     <pre
       v-if="this.info.device_info_major"
@@ -57,6 +72,7 @@ export default defineComponent({
     return {
       flipper: ref(flipper),
       info: ref({}),
+      textInfo: ref(''),
       flags: ref({
         portSelectRequired: false,
         connected: false,
@@ -77,6 +93,7 @@ export default defineComponent({
         .catch((error) => {
           if (error.toString() === 'Error: No known ports') {
             this.flags.portSelectRequired = true
+            console.log('no ports')
           } else {
             this.connectionStatus = error.toString()
           }
@@ -121,6 +138,19 @@ export default defineComponent({
       for (const line of res) {
         this.info[line.key] = line.value
       }
+    },
+
+    async cliReadInfo () {
+      await this.flipper.write('cli', '!\r\n')
+      this.flipper.read('cli')
+      const unbind = this.flipper.emitter.on('cli output', data => {
+        const chunk = new TextDecoder().decode(data)
+        this.textInfo += chunk
+        if (chunk.includes('>:')) {
+          this.flipper.closeReader()
+          unbind()
+        }
+      })
     }
   },
 

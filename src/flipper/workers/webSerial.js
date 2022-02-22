@@ -27,9 +27,7 @@ async function connect () {
   ]
   const ports = await navigator.serial.getPorts({ filters })
   port = ports[0]
-  port.open({
-    baudRate: 1
-  })
+  port.open({ baudRate: 1 })
     .then(() => {
       self.postMessage({
         operation: 'connect',

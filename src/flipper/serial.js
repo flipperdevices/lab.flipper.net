@@ -24,7 +24,6 @@ async function connect () {
   if (ports.length === 0) {
     throw new Error('No known ports')
   }
-
   const connect = operation.create(serial, 'connect')
   await connect
 }
