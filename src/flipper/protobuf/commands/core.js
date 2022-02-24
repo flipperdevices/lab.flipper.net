@@ -27,37 +27,27 @@ async function sendRpcRequest () {
 
     let res = { commandId: req.commandId }
     if (c.requestType === 'guiStartScreenStreamRequest') {
-      res = { commandId: 0 }
-      let streaming = true
-      let prevFrame
-      while (streaming) {
-        let buffer = new Uint8Array(0)
-        const unbind = emitter.on('raw output', data => {
-          const newBuffer = new Uint8Array(buffer.length + data.length)
-          newBuffer.set(buffer)
-          newBuffer.set(data, buffer.length)
-          buffer = newBuffer
-        })
-        let oldLength = 0, newLength = 1
-        while (oldLength < newLength) {
-          await asyncSleep(75)
-          oldLength = newLength
-          newLength = buffer.length
-        }
-
-        if (buffer.length && buffer !== prevFrame) {
+      let buffer = new Uint8Array(0)
+      const unbind = emitter.on('raw output', data => {
+        const newBuffer = new Uint8Array(buffer.length + data.length)
+        newBuffer.set(buffer)
+        newBuffer.set(data, buffer.length)
+        buffer = newBuffer
+        try {
           res = rpc.parseResponse(buffer)
+          emitter.emit('response', res)
           buffer = new Uint8Array(0)
+        } catch (error) {
+          if (!(error.toString().includes('index out of range') || error.toString().includes('reading \'data\''))) {
+            throw error
+          }
         }
-        prevFrame = buffer
-
+      })
+      const unbindStop = emitter.on('stop screen streaming', () => {
         unbind()
-        emitter.emit('response', res)
-        const unbindStop = emitter.on('stop screen streaming', () => {
-          streaming = false
-          unbindStop()
-        })
-      }
+        unbindStop()
+      })
+      // }
     } else if (!c.hasNext && c.requestType !== 'stopSession') {
       let buffer = new Uint8Array(0)
       const unbind = emitter.on('raw output', data => {
