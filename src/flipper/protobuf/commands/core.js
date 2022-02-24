@@ -28,28 +28,33 @@ async function sendRpcRequest () {
     let res = { commandId: req.commandId }
     if (c.requestType === 'guiStartScreenStreamRequest') {
       res = { commandId: 0 }
-      let buffer = new Uint8Array(0)
-      let prevFrame = buffer
-      const unbind = emitter.on('raw output', data => {
-        const newBuffer = new Uint8Array(buffer.length + data.length)
-        newBuffer.set(buffer)
-        newBuffer.set(data, buffer.length)
-        buffer = newBuffer
-      })
-
       let streaming = true
-
+      let prevFrame
       while (streaming) {
-        await asyncSleep(50)
-        if (buffer.length >= 1033 && buffer !== prevFrame) {
-          res = rpc.parseResponse(buffer)
-          prevFrame = buffer
-          buffer = new Uint8Array(0)
-          emitter.emit('response', res)
+        let buffer = new Uint8Array(0)
+        const unbind = emitter.on('raw output', data => {
+          const newBuffer = new Uint8Array(buffer.length + data.length)
+          newBuffer.set(buffer)
+          newBuffer.set(data, buffer.length)
+          buffer = newBuffer
+        })
+        let oldLength = 0, newLength = 1
+        while (oldLength < newLength) {
+          await asyncSleep(75)
+          oldLength = newLength
+          newLength = buffer.length
         }
+
+        if (buffer.length && buffer !== prevFrame) {
+          res = rpc.parseResponse(buffer)
+          buffer = new Uint8Array(0)
+        }
+        prevFrame = buffer
+
+        unbind()
+        emitter.emit('response', res)
         const unbindStop = emitter.on('stop screen streaming', () => {
           streaming = false
-          unbind()
           unbindStop()
         })
       }

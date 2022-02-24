@@ -70,10 +70,9 @@
     </pre>
 
     <canvas
-      v-show="flags.screenStream"
       width="128"
       height="64"
-      style="transform: scale(1);image-rendering: pixelated;"
+      style="transform: scale(4);image-rendering: pixelated;position: relative;top: 128px;"
       ref="screenStreamCanvas"
     ></canvas>
   </q-page>
@@ -197,24 +196,25 @@ export default defineComponent({
       const ctx = this.$refs.screenStreamCanvas.getContext('2d')
       ctx.lineWidth = 1
       ctx.lineCap = 'square'
-      ctx.strokeStyle = 'black'
       ctx.imageSmoothingEnabled = false
+      ctx.fillStyle = 'orange'
+      ctx.fillRect(0, 0, 128, 64)
+      ctx.fillStyle = 'black'
 
       const unbind = this.flipper.emitter.on('screen frame', data => {
-        console.log(data)
-        let binary = []
-        for (let i = 0; i < 1024; i++) {
-          binary = binary.concat(data[i].toString(2).padStart(8, '0').split('').reverse().map(e => parseInt(e)))
+        for (let x = 0; x < 128; x++) {
+          for (let y = 0; y < 64; y++) {
+            const i = Math.floor(y / 8) * 128 + x
+            const z = y & 7
+            if (data.at(i) & (1 << z)) {
+              ctx.fillStyle = 'black'
+              ctx.fillRect(x, y, 1, 1)
+            } else {
+              ctx.fillStyle = 'orange'
+              ctx.fillRect(x, y, 1, 1)
+            }
+          }
         }
-        const pixels = new Array(32768)
-        for (let i = 0; i < 8192; i++) {
-          pixels[i * 4] = binary[i]
-          pixels[i * 4 + 1] = binary[i]
-          pixels[i * 4 + 2] = binary[i]
-          pixels[i * 4 + 3] = binary[i] * 255
-        }
-        const imageData = new ImageData(new Uint8ClampedArray(pixels), 128, 64)
-        ctx.putImageData(imageData, 0, 0)
 
         const unbindStop = this.flipper.emitter.on('stop screen streaming', () => {
           unbind()
