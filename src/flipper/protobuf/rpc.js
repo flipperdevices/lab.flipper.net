@@ -38,30 +38,37 @@ function createRequest (requestType, args, hasNext, commandId) {
 function parseResponse (data) {
   const reader = protobuf.Reader.create(data)
   let command
+  const chunks = []
   while (reader.pos < reader.len) {
     const res = PB.Main.decodeDelimited(reader)
-    command = commandQueue.find(c => c.commandId === res.commandId)
+    if (res) {
+      command = commandQueue.find(c => c.commandId === res.commandId)
 
-    if (res.commandStatus && res.commandStatus !== 0 && res.commandStatus !== 6) {
-      command.resolved = true
-      command.error = Object.keys(PB.CommandStatus).find(key => PB.CommandStatus[key] === res.commandStatus)
-      return command
-    } else if (res.empty) {
-      command.resolved = true
-    } else {
-      if (res.commandId === 0) {
-        return res
-      }
-
-      if (!res.hasNext) {
+      if (res.commandStatus && res.commandStatus !== 0 && res.commandStatus !== 6) {
         command.resolved = true
+        command.error = Object.keys(PB.CommandStatus).find(key => PB.CommandStatus[key] === res.commandStatus)
+        return command
+      } else if (res.empty) {
+        command.resolved = true
+        return command
+      } else if (res.commandId === 0) {
+        command.data = res.guiScreenFrame.data
+        return command
       }
 
       const payload = res[Object.keys(res).find(k => k === command.requestType.replace('Request', 'Response'))]
-      command.chunks.push(payload)
+      chunks.push(payload)
+
+      if (!res.hasNext) {
+        command.chunks = chunks
+        command.resolved = true
+        return command
+      }
     }
   }
-  return command
+  if (command.resolved) {
+    return command
+  }
 }
 
 function flushCommandQueue () {

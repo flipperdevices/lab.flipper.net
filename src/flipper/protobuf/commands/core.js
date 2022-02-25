@@ -26,7 +26,7 @@ async function sendRpcRequest () {
     await flipper.write('raw', req.data)
 
     let res = { commandId: req.commandId }
-    if (c.requestType === 'guiStartScreenStreamRequest') {
+    if (!c.hasNext && c.requestType !== 'stopSession') {
       let buffer = new Uint8Array(0)
       const unbind = emitter.on('raw output', data => {
         const newBuffer = new Uint8Array(buffer.length + data.length)
@@ -35,10 +35,16 @@ async function sendRpcRequest () {
         buffer = newBuffer
         try {
           res = rpc.parseResponse(buffer)
-          emitter.emit('response', res)
-          buffer = new Uint8Array(0)
+          if (res && res.resolved !== false) {
+            buffer = new Uint8Array(0)
+            if (res.commandId === 0) {
+              emitter.emit('screen frame', res.data)
+            } else {
+              emitter.emit('response', res)
+            }
+          }
         } catch (error) {
-          if (!(error.toString().includes('index out of range') || error.toString().includes('reading \'data\''))) {
+          if (!(error.toString().includes('index out of range'))) {
             throw error
           }
         }
@@ -47,9 +53,7 @@ async function sendRpcRequest () {
         unbind()
         unbindStop()
       })
-      // }
-    } else if (!c.hasNext && c.requestType !== 'stopSession') {
-      let buffer = new Uint8Array(0)
+      /* let buffer = new Uint8Array(0)
       const unbind = emitter.on('raw output', data => {
         const newBuffer = new Uint8Array(buffer.length + data.length)
         newBuffer.set(buffer)
@@ -67,7 +71,7 @@ async function sendRpcRequest () {
         buffer = new Uint8Array(0)
       }
       unbind()
-      emitter.emit('response', res)
+      emitter.emit('response', res) */
     } else {
       const unbind = emitter.on('write/end', () => {
         emitter.emit('response', res)

@@ -46,12 +46,9 @@ function startScreenStreamRequest () {
       if (res && res.error) {
         reject(res.error, res)
       } else {
-        emitter.emit('screen frame', res.guiScreenFrame.data)
+        resolve(res)
       }
-      const unbindStop = emitter.on('stop screen streaming', () => {
-        unbind()
-        unbindStop()
-      })
+      unbind()
     })
   })
 }

@@ -44,6 +44,12 @@
         >
           {{ flags.screenStream ? 'Stop screen streaming' : 'Start screen streaming' }}
         </q-btn>
+        <q-btn
+          @click="list('/ext')"
+          class="q-ma-sm"
+        >
+          List /ext
+        </q-btn>
       </div>
       <div v-else>
         <q-btn
@@ -190,7 +196,7 @@ export default defineComponent({
     },
 
     async startScreenStream () {
-      this.flipper.commands.gui.startScreenStreamRequest()
+      await this.flipper.commands.gui.startScreenStreamRequest()
       this.flags.screenStream = true
 
       const ctx = this.$refs.screenStreamCanvas.getContext('2d')
@@ -226,6 +232,11 @@ export default defineComponent({
     async stopScreenStream () {
       await this.flipper.commands.gui.stopScreenStreamRequest()
       this.flags.screenStream = false
+    },
+
+    async list (path) {
+      const res = await this.flipper.commands.storage.list(path)
+      console.log(res)
     }
   },
 
