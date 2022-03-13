@@ -1,16 +1,6 @@
 <template>
   <q-page class="flex flex-center column">
-    <p>{{ connectionStatus }}</p>
-
-    <q-btn
-      v-if="flags.portSelectRequired || !flags.connected && !flags.portSelectRequired"
-      @click="flags.portSelectRequired ? selectPort() : connect()"
-      color="positive"
-    >
-      {{ flags.portSelectRequired ? 'Select port' : 'Connect' }}
-    </q-btn>
-
-    <div v-if="flags.connected" class="flex flex-center column">
+    <div class="flex flex-center column">
       <div>
         <q-btn
           @click="flags.rpcActive ? stopRpc() : startRpc()"
@@ -19,14 +9,6 @@
           class="q-ma-sm"
         >
           {{ flags.rpcActive ? 'Stop rpc' : 'Start rpc' }}
-        </q-btn>
-
-        <q-btn
-          @click="disconnect"
-          color="negative"
-          class="q-ma-sm"
-        >
-          Disconnect
         </q-btn>
       </div>
 
@@ -61,6 +43,14 @@
       </div>
     </div>
 
+    <canvas
+      v-show="flags.screenStream"
+      width="128"
+      height="64"
+      style="transform: scale(4);image-rendering: pixelated;position: relative;top: 128px;"
+      ref="screenStreamCanvas"
+    ></canvas>
+
     <pre
       v-if="this.textInfo.length"
       style="white-space: pre-line;"
@@ -74,89 +64,32 @@
     >
       {{ this.info }}
     </pre>
-
-    <canvas
-      width="128"
-      height="64"
-      style="transform: scale(4);image-rendering: pixelated;position: relative;top: 128px;"
-      ref="screenStreamCanvas"
-    ></canvas>
   </q-page>
 </template>
 
 <script>
 import { defineComponent, ref } from 'vue'
-import * as flipper from '../flipper/core'
-import asyncSleep from 'simple-async-sleep'
-
-const filters = [
-  { usbVendorId: 0x0483, usbProductId: 0x5740 }
-]
 
 export default defineComponent({
   name: 'PageDevice',
 
+  props: {
+    flipper: Object
+  },
+
   setup () {
     return {
-      flipper: ref(flipper),
       info: ref({}),
       textInfo: ref(''),
       flags: ref({
-        portSelectRequired: false,
-        connected: false,
         rpcActive: false,
         rpcToggling: false,
         screenStream: false
-      }),
-      connectionStatus: ref('Ready to connect')
+      })
     }
   },
 
   methods: {
-    async connect () {
-      await this.flipper.connect()
-        .then(() => {
-          this.flags.portSelectRequired = false
-          this.connectionStatus = 'Connected'
-          this.flags.connected = true
-        })
-        .catch((error) => {
-          if (error.toString() === 'Error: No known ports') {
-            this.flags.portSelectRequired = true
-          } else {
-            this.connectionStatus = error.toString()
-          }
-        })
-    },
-
-    async selectPort () {
-      await navigator.serial.requestPort({ filters })
-      return this.connect()
-    },
-
-    async disconnect () {
-      await this.flipper.disconnect()
-        .then(() => {
-          this.connectionStatus = 'Disconnected'
-          this.flags.connected = false
-          this.info = {}
-          this.textInfo = ''
-        })
-        .catch(async error => {
-          if (error.toString().includes('Cannot cancel a locked stream')) {
-            if (this.flags.rpcActive) {
-              await this.stopRpc()
-            } else {
-              this.flipper.closeReader()
-              await asyncSleep(300)
-            }
-            return this.disconnect()
-          } else {
-            this.connectionStatus = error.toString()
-          }
-        })
-    },
-
     async startRpc () {
       this.flags.rpcToggling = true
       const ping = await this.flipper.commands.startRpcSession(this.flipper)
@@ -241,11 +174,7 @@ export default defineComponent({
   },
 
   mounted () {
-    this.connect()
-
-    navigator.serial.addEventListener('disconnect', async () => {
-      await this.disconnect()
-    })
+    this.startRpc()
   }
 })
 </script>
