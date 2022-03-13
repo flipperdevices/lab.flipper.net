@@ -3,17 +3,16 @@
     clickable
     tag="a"
     :href="link"
-    :class="link === this.$route.path ? 'light-dimmed' : ''"
   >
     <q-item-section
       v-if="icon"
       avatar
     >
-      <q-icon :name="icon" />
+      <q-icon :name="icon" :color="link === this.$route.path ? 'orange' : ''"/>
     </q-item-section>
 
     <q-item-section>
-      <q-item-label>{{ title }}</q-item-label>
+      <q-item-label :class="link === this.$route.path ? 'text-orange' : ''">{{ title }}</q-item-label>
     </q-item-section>
   </q-item>
 </template>
