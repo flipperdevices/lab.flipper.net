@@ -19,9 +19,9 @@
         <q-item-section
           avatar
         >
-          <q-icon v-if="item.name === '..'" name="arrow-back"/>
+          <q-icon v-if="item.name === '..'" name="arrow_back_ios"/>
           <q-icon v-else-if="item.type === 1" name="folder"/>
-          <q-icon v-else name="text-file"/>
+          <q-icon v-else name="description"/>
         </q-item-section>
 
         <q-item-section>
