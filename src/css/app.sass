@@ -1,1 +1,21 @@
-// app global css in Sass form
+.file-container
+  width: min(800px, 100%)
+  .file-menu
+    border: 1px solid #0000001f
+  .file-grid
+    display: grid
+    grid-gap: 0.75rem
+    min-width: 300px
+    grid-template-columns: repeat(3, auto)
+    margin-top: 1rem
+    @media (max-width: 750px)
+      grid-template-columns: repeat(2, auto)
+    @media (max-width: 500px)
+      grid-template-columns: 1fr
+    .q-item
+      padding: 0.5rem
+      cursor: pointer
+      .q-item__section--avatar
+        min-width: auto
+      span.text-weight-light
+        font-size: 12px

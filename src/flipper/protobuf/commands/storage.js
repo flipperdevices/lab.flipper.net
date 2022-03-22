@@ -132,11 +132,29 @@ function remove (path, isRecursive) {
   })
 }
 
+function rename (path, oldName, newName) {
+  return new Promise((resolve, reject) => {
+    enqueue({
+      requestType: 'storageRenameRequest',
+      args: { oldPath: path + '/' + oldName, newPath: path + '/' + newName }
+    })
+    const unbind = emitter.on('response', res => {
+      if (res && res.error) {
+        reject(res.error, res)
+      } else {
+        resolve(res)
+      }
+      unbind()
+    })
+  })
+}
+
 export {
   info,
   list,
   read,
   write,
   mkdir,
-  remove
+  remove,
+  rename
 }
