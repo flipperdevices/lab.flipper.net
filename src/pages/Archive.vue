@@ -1,5 +1,5 @@
 <template>
-  <q-page class="flex flex-center column q-pa-md">
+  <q-page class="flex items-center column q-pa-md" :class="$q.screen.width > 960 && $q.screen.height > 500 ? 'q-mt-xl' : 'q-mt-xs'">
     <div class="file-container">
       <div class="file-menu flex no-wrap q-pa-xs rounded-borders">
         <q-btn
@@ -22,6 +22,7 @@
           icon="create_new_folder"
           class="q-mx-sm"
           :disabled="path === '/'"
+          @click="flags.mkdirPopup = true; editorText = ''"
         ></q-btn>
         <q-btn
           flat
@@ -87,7 +88,7 @@
               v-model="uploadedFile"
               label="Drop or select file"
               class="q-pt-md"
-              style="width: 300px;"
+              :style="$q.screen.width > 380 ? 'width: 300px;' : ''"
             >
               <template v-slot:prepend>
                 <q-icon name="upload_file"></q-icon>
@@ -117,7 +118,7 @@
             <q-input
               v-model="editorText"
               :label="'Rename ' + oldName"
-              style="width: 300px;"
+              :style="$q.screen.width > 380 ? 'width: 300px;' : ''"
             ></q-input>
           </q-card-section>
 
@@ -127,6 +128,33 @@
               label="Save"
               v-close-popup
               @click="rename(path, oldName, editorText)"
+            ></q-btn>
+            <q-btn
+              flat
+              label="Cancel"
+              color="negative"
+              v-close-popup
+              @click="editorText = ''"
+            ></q-btn>
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
+      <q-dialog v-model="flags.mkdirPopup">
+        <q-card>
+          <q-card-section>
+            <q-input
+              v-model="editorText"
+              label="Folder name"
+              :style="$q.screen.width > 380 ? 'width: 300px;' : ''"
+            ></q-input>
+          </q-card-section>
+
+          <q-card-actions align="right">
+            <q-btn
+              flat
+              label="Create"
+              v-close-popup
+              @click="mkdir(path + '/' + editorText)"
             ></q-btn>
             <q-btn
               flat
@@ -161,7 +189,8 @@ export default defineComponent({
         rpcActive: false,
         rpcToggling: false,
         uploadPopup: false,
-        renamePopup: false
+        renamePopup: false,
+        mkdirPopup: false
       }),
       uploadedFile: ref(null),
       editorText: ref(''),
@@ -205,6 +234,11 @@ export default defineComponent({
 
     async rename (path, oldName, newName) {
       await this.flipper.commands.storage.rename(path, oldName, newName)
+      this.list()
+    },
+
+    async mkdir (path) {
+      await this.flipper.commands.storage.mkdir(path)
       this.list()
     },
 
