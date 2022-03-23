@@ -16,21 +16,28 @@
           class="q-py-xs q-px-sm bg-grey-3 rounded-borders overflow-hidden-y"
         >{{ path }}</code>
         <q-space></q-space>
-        <q-btn
-          flat
-          dense
-          icon="archive:new"
-          class="q-mx-sm"
-          :disabled="path === '/'"
-          @click="flags.mkdirPopup = true; editorText = ''"
-        ></q-btn>
-        <q-btn
-          flat
-          dense
-          icon="upload_file"
-          :disabled="path === '/'"
-          @click="flags.uploadPopup = !flags.uploadPopup"
-        ></q-btn>
+        <q-btn flat dense icon="archive:new" :disabled="path === '/'">
+          <q-menu auto-close self="top middle">
+            <q-list style="min-width: 100px">
+              <q-item clickable @click="flags.uploadPopup = true; uploadedFile = null">
+                <q-item-section avatar>
+                  <q-icon name="archive:file"/>
+                </q-item-section>
+                <q-item-section>
+                  Upload file
+                </q-item-section>
+              </q-item>
+              <q-item clickable @click="flags.mkdirPopup = true; editorText = ''">
+                <q-item-section avatar>
+                  <q-icon name="archive:folder"/>
+                </q-item-section>
+                <q-item-section>
+                  Create folder
+                </q-item-section>
+              </q-item>
+            </q-list>
+          </q-menu>
+        </q-btn>
       </div>
       <q-list class="file-grid">
         <q-item
@@ -272,7 +279,6 @@ export default defineComponent({
     async upload () {
       await this.flipper.commands.storage.write(this.path + '/' + this.uploadedFile.name, await this.uploadedFile.arrayBuffer())
       this.list()
-      this.uploadedFile = null
     },
 
     itemClicked (item) {
