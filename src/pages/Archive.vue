@@ -42,11 +42,7 @@
           style="border-radius: 3px;"
         >
           <q-item-section avatar @click="itemClicked(item)">
-            <q-icon v-if="item.name === '..'" name="arrow_back_ios"/>
-            <q-icon v-else-if="path === '/' && item.name === 'int'" name="archive:internal"/>
-            <q-icon v-else-if="path === '/' && item.name === 'ext'" name="archive:sd_card"/>
-            <q-icon v-else-if="item.type === 1" name="archive:folder"/>
-            <q-icon v-else name="archive:file"/>
+            <q-icon :name="itemIconSwitcher(item)"/>
           </q-item-section>
 
           <q-item-section @click="itemClicked(item)">
@@ -182,10 +178,16 @@ const flipperIcons = {
   'archive:remove': 'img:icons/flipper/action-remove.svg',
   'archive:rename': 'img:icons/flipper/action-rename.svg',
   'archive:save': 'img:icons/flipper/action-save.svg',
-  'archive:sd_card': 'img:icons/flipper/location-sdcard.svg',
+  'archive:sdcard': 'img:icons/flipper/location-sdcard.svg',
   'archive:internal': 'img:icons/flipper/location-internal.svg',
   'archive:file': 'img:icons/flipper/file.svg',
-  'archive:folder': 'img:icons/flipper/folder.svg'
+  'archive:folder': 'img:icons/flipper/folder.svg',
+  'archive:badusb': 'img:icons/flipper/badusb.svg',
+  'archive:ibutton': 'img:icons/flipper/ibutton.svg',
+  'archive:nfc': 'img:icons/flipper/nfc.svg',
+  'archive:rfid': 'img:icons/flipper/rfid.svg',
+  'archive:subghz': 'img:icons/flipper/subghz.svg',
+  'archive:u2f': 'img:icons/flipper/u2f.svg'
 }
 
 export default defineComponent({
@@ -270,6 +272,7 @@ export default defineComponent({
     async upload () {
       await this.flipper.commands.storage.write(this.path + '/' + this.uploadedFile.name, await this.uploadedFile.arrayBuffer())
       this.list()
+      this.uploadedFile = null
     },
 
     itemClicked (item) {
@@ -287,6 +290,30 @@ export default defineComponent({
         this.list()
       } else {
         this.read(this.path + '/' + item.name)
+      }
+    },
+
+    itemIconSwitcher (item) {
+      if (this.path === '/' && item.name === 'int') {
+        return 'archive:internal'
+      } else if (this.path === '/' && item.name === 'ext') {
+        return 'archive:sdcard'
+      } else if (item.type === 1) {
+        return 'archive:folder'
+      } else if (item.name.endsWith('.badusb')) {
+        return 'archive:badusb'
+      } else if (item.name.endsWith('.ibutton')) {
+        return 'archive:ibutton'
+      } else if (item.name.endsWith('.nfc')) {
+        return 'archive:nfc'
+      } else if (item.name.endsWith('.rfid')) {
+        return 'archive:rfid'
+      } else if (item.name.endsWith('.subghz')) {
+        return 'archive:subghz'
+      } else if (item.name.endsWith('.u2f')) {
+        return 'archive:u2f'
+      } else {
+        return 'archive:file'
       }
     }
   },
