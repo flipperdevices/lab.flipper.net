@@ -12,7 +12,6 @@
           @click="itemClicked({ name: '..' })"
         ></q-btn>
         <code
-          v-if="dir.length > 0"
           class="q-py-xs q-px-sm bg-grey-3 rounded-borders overflow-hidden-y"
         >{{ path }}</code>
         <q-space></q-space>
@@ -84,6 +83,17 @@
                 </q-list>
               </q-menu>
             </q-btn>
+          </q-item-section>
+        </q-item>
+        <q-item v-if="dir.length === 0">
+          <q-item-section avatar>
+            <q-icon name="archive:folder"/>
+          </q-item-section>
+
+          <q-item-section>
+            <q-item-label>
+              Empty folder
+            </q-item-label>
           </q-item-section>
         </q-item>
       </q-list>
