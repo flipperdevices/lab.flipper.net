@@ -19,7 +19,7 @@
         <q-btn
           flat
           dense
-          icon="create_new_folder"
+          icon="archive:new"
           class="q-mx-sm"
           :disabled="path === '/'"
           @click="flags.mkdirPopup = true; editorText = ''"
@@ -43,14 +43,18 @@
         >
           <q-item-section avatar @click="itemClicked(item)">
             <q-icon v-if="item.name === '..'" name="arrow_back_ios"/>
-            <q-icon v-else-if="item.type === 1" name="folder"/>
-            <q-icon v-else name="description"/>
+            <q-icon v-else-if="path === '/' && item.name === 'int'" name="archive:internal"/>
+            <q-icon v-else-if="path === '/' && item.name === 'ext'" name="archive:sd_card"/>
+            <q-icon v-else-if="item.type === 1" name="archive:folder"/>
+            <q-icon v-else name="archive:file"/>
           </q-item-section>
 
           <q-item-section @click="itemClicked(item)">
             <q-item-label>
               {{ item.name }}
             </q-item-label>
+            <span v-if="path === '/' && item.name === 'int'">Flipper internal storage</span>
+            <span v-if="path === '/' && item.name === 'ext'">SD card</span>
             <span v-if="item.type !== 1 && item.size" class="text-weight-light">{{ item.size }} bytes</span>
           </q-item-section>
 
@@ -60,7 +64,7 @@
                 <q-list style="min-width: 100px">
                   <q-item clickable @click="editorText = item.name; oldName = item.name; flags.renamePopup = true">
                     <q-item-section avatar>
-                      <q-icon name="edit"/>
+                      <q-icon name="archive:rename"/>
                     </q-item-section>
                     <q-item-section>
                       Rename
@@ -68,7 +72,7 @@
                   </q-item>
                   <q-item clickable class="text-negative" @click="remove(path + '/' + item.name, !!item.type)">
                     <q-item-section avatar>
-                      <q-icon name="delete"/>
+                      <q-icon name="archive:remove"/>
                     </q-item-section>
                     <q-item-section>
                       Delete
@@ -172,7 +176,17 @@
 
 <script>
 import { defineComponent, ref } from 'vue'
-import { exportFile } from 'quasar'
+import { exportFile, useQuasar } from 'quasar'
+const flipperIcons = {
+  'archive:new': 'img:icons/flipper/action-new.svg',
+  'archive:remove': 'img:icons/flipper/action-remove.svg',
+  'archive:rename': 'img:icons/flipper/action-rename.svg',
+  'archive:save': 'img:icons/flipper/action-save.svg',
+  'archive:sd_card': 'img:icons/flipper/location-sdcard.svg',
+  'archive:internal': 'img:icons/flipper/location-internal.svg',
+  'archive:file': 'img:icons/flipper/file.svg',
+  'archive:folder': 'img:icons/flipper/folder.svg'
+}
 
 export default defineComponent({
   name: 'PageArchive',
@@ -182,6 +196,14 @@ export default defineComponent({
   },
 
   setup () {
+    const $q = useQuasar()
+
+    $q.iconMapFn = (iconName) => {
+      const icon = flipperIcons[iconName]
+      if (icon !== void 0) {
+        return { icon: icon }
+      }
+    }
     return {
       path: ref('/'),
       dir: ref([]),
@@ -217,7 +239,10 @@ export default defineComponent({
     },
 
     async list () {
-      const res = await this.flipper.commands.storage.list(this.path)
+      let res = await this.flipper.commands.storage.list(this.path)
+      if (this.path === '/') {
+        res = res.filter(e => e.name !== 'any')
+      }
       this.dir = res.sort((a, b) => { return (b.type || 0) - a.type })
     },
 
