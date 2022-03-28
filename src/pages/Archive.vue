@@ -1,6 +1,10 @@
 <template>
   <q-page class="flex items-center column q-pa-md" :class="$q.screen.width > 960 && $q.screen.height > 500 ? 'q-mt-xl' : 'q-mt-xs'">
-    <div class="file-container">
+    <q-spinner v-if="flags.rpcToggling"
+      color="primary"
+      size="3em"
+    ></q-spinner>
+    <div v-if="flags.rpcActive" class="file-container">
       <div class="file-menu flex no-wrap q-pa-xs rounded-borders">
         <q-btn
           flat
@@ -12,25 +16,31 @@
           @click="itemClicked({ name: '..' })"
         ></q-btn>
         <code
-          v-if="dir.length > 0"
           class="q-py-xs q-px-sm bg-grey-3 rounded-borders overflow-hidden-y"
         >{{ path }}</code>
         <q-space></q-space>
-        <q-btn
-          flat
-          dense
-          icon="create_new_folder"
-          class="q-mx-sm"
-          :disabled="path === '/'"
-          @click="flags.mkdirPopup = true; editorText = ''"
-        ></q-btn>
-        <q-btn
-          flat
-          dense
-          icon="upload_file"
-          :disabled="path === '/'"
-          @click="flags.uploadPopup = !flags.uploadPopup"
-        ></q-btn>
+        <q-btn flat dense icon="archive:new" :disabled="path === '/'">
+          <q-menu auto-close self="top middle">
+            <q-list style="min-width: 100px">
+              <q-item clickable @click="flags.uploadPopup = true; uploadedFiles = null">
+                <q-item-section avatar>
+                  <q-icon name="archive:file"/>
+                </q-item-section>
+                <q-item-section>
+                  Upload file
+                </q-item-section>
+              </q-item>
+              <q-item clickable @click="flags.mkdirPopup = true; editorText = ''">
+                <q-item-section avatar>
+                  <q-icon name="archive:folder"/>
+                </q-item-section>
+                <q-item-section>
+                  Create folder
+                </q-item-section>
+              </q-item>
+            </q-list>
+          </q-menu>
+        </q-btn>
       </div>
       <q-list class="file-grid">
         <q-item
@@ -42,15 +52,15 @@
           style="border-radius: 3px;"
         >
           <q-item-section avatar @click="itemClicked(item)">
-            <q-icon v-if="item.name === '..'" name="arrow_back_ios"/>
-            <q-icon v-else-if="item.type === 1" name="folder"/>
-            <q-icon v-else name="description"/>
+            <q-icon :name="itemIconSwitcher(item)"/>
           </q-item-section>
 
           <q-item-section @click="itemClicked(item)">
             <q-item-label>
               {{ item.name }}
             </q-item-label>
+            <span v-if="path === '/' && item.name === 'int'">Flipper internal storage</span>
+            <span v-if="path === '/' && item.name === 'ext'">SD card</span>
             <span v-if="item.type !== 1 && item.size" class="text-weight-light">{{ item.size }} bytes</span>
           </q-item-section>
 
@@ -60,7 +70,7 @@
                 <q-list style="min-width: 100px">
                   <q-item clickable @click="editorText = item.name; oldName = item.name; flags.renamePopup = true">
                     <q-item-section avatar>
-                      <q-icon name="edit"/>
+                      <q-icon name="archive:rename"/>
                     </q-item-section>
                     <q-item-section>
                       Rename
@@ -68,7 +78,7 @@
                   </q-item>
                   <q-item clickable class="text-negative" @click="remove(path + '/' + item.name, !!item.type)">
                     <q-item-section avatar>
-                      <q-icon name="delete"/>
+                      <q-icon name="archive:remove"/>
                     </q-item-section>
                     <q-item-section>
                       Delete
@@ -79,19 +89,31 @@
             </q-btn>
           </q-item-section>
         </q-item>
+        <q-item v-if="dir.length === 0">
+          <q-item-section avatar class="q-ml-xs">
+            <q-icon name="archive:folder"/>
+          </q-item-section>
+
+          <q-item-section>
+            <q-item-label>
+              Empty folder
+            </q-item-label>
+          </q-item-section>
+        </q-item>
       </q-list>
       <q-dialog v-model="flags.uploadPopup">
         <q-card>
           <q-card-section class="q-pt-none">
             <q-file
               outlined
-              v-model="uploadedFile"
-              label="Drop or select file"
+              multiple
+              v-model="uploadedFiles"
+              label="Drop or select files"
               class="q-pt-md"
               :style="$q.screen.width > 380 ? 'width: 300px;' : ''"
             >
               <template v-slot:prepend>
-                <q-icon name="upload_file"></q-icon>
+                <q-icon name="archive:file"></q-icon>
               </template>
             </q-file>
           </q-card-section>
@@ -172,7 +194,24 @@
 
 <script>
 import { defineComponent, ref } from 'vue'
-import { exportFile } from 'quasar'
+import { exportFile, useQuasar } from 'quasar'
+const flipperIcons = {
+  'archive:new': 'img:icons/flipper/action-new.svg',
+  'archive:remove': 'img:icons/flipper/action-remove.svg',
+  'archive:rename': 'img:icons/flipper/action-rename.svg',
+  'archive:save': 'img:icons/flipper/action-save.svg',
+  'archive:sdcard': 'img:icons/flipper/location-sdcard.svg',
+  'archive:internal': 'img:icons/flipper/location-internal.svg',
+  'archive:file': 'img:icons/flipper/file.svg',
+  'archive:folder': 'img:icons/flipper/folder.svg',
+  'archive:badusb': 'img:icons/flipper/badusb.svg',
+  'archive:ibutton': 'img:icons/flipper/ibutton.svg',
+  'archive:infrared': 'img:icons/flipper/infrared.svg',
+  'archive:nfc': 'img:icons/flipper/nfc.svg',
+  'archive:rfid': 'img:icons/flipper/rfid.svg',
+  'archive:subghz': 'img:icons/flipper/subghz.svg',
+  'archive:u2f': 'img:icons/flipper/u2f.svg'
+}
 
 export default defineComponent({
   name: 'PageArchive',
@@ -182,6 +221,14 @@ export default defineComponent({
   },
 
   setup () {
+    const $q = useQuasar()
+
+    $q.iconMapFn = (iconName) => {
+      const icon = flipperIcons[iconName]
+      if (icon !== void 0) {
+        return { icon: icon }
+      }
+    }
     return {
       path: ref('/'),
       dir: ref([]),
@@ -192,7 +239,7 @@ export default defineComponent({
         renamePopup: false,
         mkdirPopup: false
       }),
-      uploadedFile: ref(null),
+      uploadedFiles: ref(null),
       editorText: ref(''),
       oldName: ref('')
     }
@@ -217,7 +264,10 @@ export default defineComponent({
     },
 
     async list () {
-      const res = await this.flipper.commands.storage.list(this.path)
+      let res = await this.flipper.commands.storage.list(this.path)
+      if (this.path === '/') {
+        res = res.filter(e => e.name !== 'any')
+      }
       this.dir = res.sort((a, b) => { return (b.type || 0) - a.type })
     },
 
@@ -243,7 +293,9 @@ export default defineComponent({
     },
 
     async upload () {
-      await this.flipper.commands.storage.write(this.path + '/' + this.uploadedFile.name, await this.uploadedFile.arrayBuffer())
+      for (const file of this.uploadedFiles) {
+        await this.flipper.commands.storage.write(this.path + '/' + file.name, await file.arrayBuffer())
+      }
       this.list()
     },
 
@@ -263,12 +315,48 @@ export default defineComponent({
       } else {
         this.read(this.path + '/' + item.name)
       }
+    },
+
+    itemIconSwitcher (item) {
+      if (this.path === '/' && item.name === 'int') {
+        return 'archive:internal'
+      } else if (this.path === '/' && item.name === 'ext') {
+        return 'archive:sdcard'
+      } else if (item.type === 1) {
+        return 'archive:folder'
+      } else if (item.name.endsWith('.badusb')) {
+        return 'archive:badusb'
+      } else if (item.name.endsWith('.ibtn')) {
+        return 'archive:ibutton'
+      } else if (item.name.endsWith('.ir')) {
+        return 'archive:infrared'
+      } else if (item.name.endsWith('.nfc')) {
+        return 'archive:nfc'
+      } else if (item.name.endsWith('.rfid')) {
+        return 'archive:rfid'
+      } else if (item.name.endsWith('.sub')) {
+        return 'archive:subghz'
+      } else if (item.name.endsWith('.u2f')) {
+        return 'archive:u2f'
+      } else {
+        return 'archive:file'
+      }
     }
   },
 
-  async mounted () {
-    await this.startRpc()
-    this.list()
+  mounted () {
+    this.flags.rpcToggling = true
+    this.startRpc()
+      .then(() => {
+        this.flags.rpcToggling = false
+        this.flags.rpcActive = true
+        this.list()
+      })
+      .catch(e => {
+        this.flags.rpcToggling = false
+        this.flags.rpcActive = false
+        this.error = e.toString()
+      })
   }
 })
 </script>
