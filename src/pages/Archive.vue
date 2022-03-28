@@ -1,6 +1,10 @@
 <template>
   <q-page class="flex items-center column q-pa-md" :class="$q.screen.width > 960 && $q.screen.height > 500 ? 'q-mt-xl' : 'q-mt-xs'">
-    <div class="file-container">
+    <q-spinner v-if="flags.rpcToggling"
+      color="primary"
+      size="3em"
+    ></q-spinner>
+    <div v-if="flags.rpcActive" class="file-container">
       <div class="file-menu flex no-wrap q-pa-xs rounded-borders">
         <q-btn
           flat
@@ -18,7 +22,7 @@
         <q-btn flat dense icon="archive:new" :disabled="path === '/'">
           <q-menu auto-close self="top middle">
             <q-list style="min-width: 100px">
-              <q-item clickable @click="flags.uploadPopup = true; uploadedFile = null">
+              <q-item clickable @click="flags.uploadPopup = true; uploadedFiles = null">
                 <q-item-section avatar>
                   <q-icon name="archive:file"/>
                 </q-item-section>
@@ -86,7 +90,7 @@
           </q-item-section>
         </q-item>
         <q-item v-if="dir.length === 0">
-          <q-item-section avatar>
+          <q-item-section avatar class="q-ml-xs">
             <q-icon name="archive:folder"/>
           </q-item-section>
 
@@ -102,13 +106,14 @@
           <q-card-section class="q-pt-none">
             <q-file
               outlined
-              v-model="uploadedFile"
-              label="Drop or select file"
+              multiple
+              v-model="uploadedFiles"
+              label="Drop or select files"
               class="q-pt-md"
               :style="$q.screen.width > 380 ? 'width: 300px;' : ''"
             >
               <template v-slot:prepend>
-                <q-icon name="upload_file"></q-icon>
+                <q-icon name="archive:file"></q-icon>
               </template>
             </q-file>
           </q-card-section>
@@ -201,6 +206,7 @@ const flipperIcons = {
   'archive:folder': 'img:icons/flipper/folder.svg',
   'archive:badusb': 'img:icons/flipper/badusb.svg',
   'archive:ibutton': 'img:icons/flipper/ibutton.svg',
+  'archive:infrared': 'img:icons/flipper/infrared.svg',
   'archive:nfc': 'img:icons/flipper/nfc.svg',
   'archive:rfid': 'img:icons/flipper/rfid.svg',
   'archive:subghz': 'img:icons/flipper/subghz.svg',
@@ -233,7 +239,7 @@ export default defineComponent({
         renamePopup: false,
         mkdirPopup: false
       }),
-      uploadedFile: ref(null),
+      uploadedFiles: ref(null),
       editorText: ref(''),
       oldName: ref('')
     }
@@ -287,7 +293,9 @@ export default defineComponent({
     },
 
     async upload () {
-      await this.flipper.commands.storage.write(this.path + '/' + this.uploadedFile.name, await this.uploadedFile.arrayBuffer())
+      for (const file of this.uploadedFiles) {
+        await this.flipper.commands.storage.write(this.path + '/' + file.name, await file.arrayBuffer())
+      }
       this.list()
     },
 
@@ -318,13 +326,15 @@ export default defineComponent({
         return 'archive:folder'
       } else if (item.name.endsWith('.badusb')) {
         return 'archive:badusb'
-      } else if (item.name.endsWith('.ibutton')) {
+      } else if (item.name.endsWith('.ibtn')) {
         return 'archive:ibutton'
+      } else if (item.name.endsWith('.ir')) {
+        return 'archive:infrared'
       } else if (item.name.endsWith('.nfc')) {
         return 'archive:nfc'
       } else if (item.name.endsWith('.rfid')) {
         return 'archive:rfid'
-      } else if (item.name.endsWith('.subghz')) {
+      } else if (item.name.endsWith('.sub')) {
         return 'archive:subghz'
       } else if (item.name.endsWith('.u2f')) {
         return 'archive:u2f'
@@ -334,9 +344,19 @@ export default defineComponent({
     }
   },
 
-  async mounted () {
-    await this.startRpc()
-    this.list()
+  mounted () {
+    this.flags.rpcToggling = true
+    this.startRpc()
+      .then(() => {
+        this.flags.rpcToggling = false
+        this.flags.rpcActive = true
+        this.list()
+      })
+      .catch(e => {
+        this.flags.rpcToggling = false
+        this.flags.rpcActive = false
+        this.error = e.toString()
+      })
   }
 })
 </script>
