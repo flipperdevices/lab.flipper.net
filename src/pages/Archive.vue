@@ -219,7 +219,8 @@ export default defineComponent({
   name: 'PageArchive',
 
   props: {
-    flipper: Object
+    flipper: Object,
+    rpcActive: Boolean
   },
 
   setup () {
@@ -256,6 +257,7 @@ export default defineComponent({
       }
       this.flags.rpcActive = true
       this.flags.rpcToggling = false
+      this.$emit('setRpcStatus', true)
     },
 
     async stopRpc () {
@@ -263,6 +265,7 @@ export default defineComponent({
       await this.flipper.commands.stopRpcSession()
       this.flags.rpcActive = false
       this.flags.rpcToggling = false
+      this.$emit('setRpcStatus', false)
     },
 
     async list () {
@@ -347,10 +350,15 @@ export default defineComponent({
   },
 
   mounted () {
-    this.startRpc()
-      .then(() => {
-        this.list()
-      })
+    this.flags.rpcActive = this.rpcActive
+    if (!this.rpcActive) {
+      this.startRpc()
+        .then(() => {
+          this.list()
+        })
+    } else {
+      this.list()
+    }
   }
 })
 </script>

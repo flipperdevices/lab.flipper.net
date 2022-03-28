@@ -15,19 +15,24 @@
 
         <q-space></q-space>
 
-        {{ connectionStatus }}
         <q-btn
           v-if="flags.portSelectRequired || !flags.connected && !flags.portSelectRequired"
           @click="flags.portSelectRequired ? selectPort() : connect()"
-          color="positive"
-          class="q-ml-sm"
+          outline
+          class="q-mx-sm"
         >
-          {{ flags.portSelectRequired ? 'Select port' : 'Connect' }}
+          Connect
         </q-btn>
+        <div v-else style="margin: 0 0.85rem">{{ connectionStatus }}</div>
+        <q-separator dark vertical inset class="q-mx-lg"></q-separator>
 
-        <q-space></q-space>
-
-        <div>Quasar v{{ $q.version }}</div>
+        <div class="nav-links">
+          <a href="https://flipperzero.one/">Home</a>
+          <a href="https://shop.flipperzero.one/">Shop</a>
+          <a href="https://flipperzero.one/faq">FAQ</a>
+          <a href="https://blog.flipperzero.one/">Blog</a>
+          <a href="https://forum.flipperzero.one/">Forum</a>
+        </div>
       </q-toolbar>
     </q-header>
 
@@ -52,7 +57,7 @@
     </q-drawer>
 
     <q-page-container>
-      <router-view :flipper="flipper"/>
+      <router-view :flipper="flipper" :rpcActive="flags.rpcActive" @setRpcStatus="setRpcStatus"/>
     </q-page-container>
   </q-layout>
 </template>
@@ -117,7 +122,8 @@ export default defineComponent({
       flipper: ref(flipper),
       flags: ref({
         portSelectRequired: false,
-        connected: false
+        connected: false,
+        rpcActive: false
       }),
       connectionStatus: ref('Ready to connect')
     }
@@ -128,7 +134,7 @@ export default defineComponent({
       await this.flipper.connect()
         .then(() => {
           this.flags.portSelectRequired = false
-          this.connectionStatus = 'Connected'
+          this.connectionStatus = 'Flipper connected'
           this.flags.connected = true
         })
         .catch((error) => {
@@ -169,6 +175,10 @@ export default defineComponent({
             this.connectionStatus = error.toString()
           }
         })
+    },
+
+    setRpcStatus (s) {
+      this.flags.rpcActive = s
     }
   },
 

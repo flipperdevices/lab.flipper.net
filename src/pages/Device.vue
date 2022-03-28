@@ -64,7 +64,8 @@ export default defineComponent({
   name: 'PageDevice',
 
   props: {
-    flipper: Object
+    flipper: Object,
+    rpcActive: Boolean
   },
 
   setup () {
@@ -89,6 +90,7 @@ export default defineComponent({
       }
       this.flags.rpcActive = true
       this.flags.rpcToggling = false
+      this.$emit('setRpcStatus', true)
     },
 
     async stopRpc () {
@@ -96,6 +98,7 @@ export default defineComponent({
       await this.flipper.commands.stopRpcSession()
       this.flags.rpcActive = false
       this.flags.rpcToggling = false
+      this.$emit('setRpcStatus', false)
     },
 
     async restartRpc () {
@@ -183,11 +186,21 @@ export default defineComponent({
   },
 
   async mounted () {
-    await this.startRpc()
-      .then(async () => {
-        await this.readInfo()
-        this.startScreenStream()
-      })
+    this.flags.rpcActive = this.rpcActive
+    if (!this.rpcActive) {
+      this.startRpc()
+        .then(() => {
+          this.readInfo()
+        })
+        .then(() => {
+          this.startScreenStream()
+        })
+    } else {
+      this.readInfo()
+        .then(() => {
+          this.startScreenStream()
+        })
+    }
   }
 })
 </script>

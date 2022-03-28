@@ -1,8 +1,8 @@
 <template>
   <q-item
     clickable
-    tag="a"
-    :href="link"
+    tag="router-link"
+    :to="link"
   >
     <q-item-section
       v-if="icon"
