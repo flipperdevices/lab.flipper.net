@@ -149,6 +149,23 @@ function rename (path, oldName, newName) {
   })
 }
 
+function stat (path) {
+  return new Promise((resolve, reject) => {
+    enqueue({
+      requestType: 'storageStatRequest',
+      args: { path: path }
+    })
+    const unbind = emitter.on('response', res => {
+      if (res && res.error) {
+        reject(res.error, res)
+      } else {
+        resolve(res.chunks)
+      }
+      unbind()
+    })
+  })
+}
+
 export {
   info,
   list,
@@ -156,5 +173,6 @@ export {
   write,
   mkdir,
   remove,
-  rename
+  rename,
+  stat
 }

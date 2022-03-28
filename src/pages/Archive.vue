@@ -1,6 +1,8 @@
 <template>
   <q-page class="flex items-center column q-pa-md" :class="$q.screen.width > 960 && $q.screen.height > 500 ? 'q-mt-xl' : 'q-mt-xs'">
-    <q-spinner v-if="flags.rpcToggling"
+    <q-spinner
+      v-if="flags.rpcToggling"
+      class="q-my-xl"
       color="primary"
       size="3em"
     ></q-spinner>
@@ -345,17 +347,9 @@ export default defineComponent({
   },
 
   mounted () {
-    this.flags.rpcToggling = true
     this.startRpc()
       .then(() => {
-        this.flags.rpcToggling = false
-        this.flags.rpcActive = true
         this.list()
-      })
-      .catch(e => {
-        this.flags.rpcToggling = false
-        this.flags.rpcActive = false
-        this.error = e.toString()
       })
   }
 })

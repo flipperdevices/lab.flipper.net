@@ -11,7 +11,7 @@
           round
         ></q-btn>
 
-        Flipper
+        <img src="../assets/flipper-logo.svg" />
 
         <q-space></q-space>
 

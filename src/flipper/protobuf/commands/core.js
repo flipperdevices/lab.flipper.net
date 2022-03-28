@@ -45,7 +45,12 @@ async function sendRpcRequest () {
           }
         } catch (error) {
           if (!(error.toString().includes('index out of range'))) {
-            throw error
+            if (error.toString().includes('invalid wire type')) {
+              emitter.emit('restart session')
+              unbind()
+            } else {
+              throw error
+            }
           }
         }
       })
@@ -53,25 +58,6 @@ async function sendRpcRequest () {
         unbind()
         unbindStop()
       })
-      /* let buffer = new Uint8Array(0)
-      const unbind = emitter.on('raw output', data => {
-        const newBuffer = new Uint8Array(buffer.length + data.length)
-        newBuffer.set(buffer)
-        newBuffer.set(data, buffer.length)
-        buffer = newBuffer
-      })
-      let oldLength = 0, newLength = 1
-      while (oldLength < newLength) {
-        await asyncSleep(350)
-        oldLength = newLength
-        newLength = buffer.length
-      }
-      if (buffer.length) {
-        res = rpc.parseResponse(buffer)
-        buffer = new Uint8Array(0)
-      }
-      unbind()
-      emitter.emit('response', res) */
     } else {
       const unbind = emitter.on('write/end', () => {
         emitter.emit('response', res)
