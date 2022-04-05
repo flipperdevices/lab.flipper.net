@@ -3,41 +3,103 @@
     <q-header elevated>
       <q-toolbar>
         <q-btn
-          v-if="$q.screen.width < 500"
-          @click="drawer = !drawer"
+          v-if="$q.screen.width <= 750"
+          @click="leftDrawer = !leftDrawer"
           icon="menu"
           dense
           flat
           round
+          class="q-mr-xs"
         ></q-btn>
 
-        <img src="../assets/flipper-logo.svg" />
+        <img src="../assets/flipper-logo.svg" class="q-ml-sm"/>
 
         <q-space></q-space>
 
-        <q-btn
-          v-if="flags.portSelectRequired || !flags.connected && !flags.portSelectRequired"
-          @click="flags.portSelectRequired ? selectPort() : connect()"
-          outline
-          class="q-mx-sm"
-        >
-          Connect
-        </q-btn>
-        <div v-else style="margin: 0 0.85rem">{{ connectionStatus }}</div>
-        <q-separator dark vertical inset class="q-mx-lg"></q-separator>
+        <template v-if="flags.serialSupported">
+          <q-btn
+            v-if="flags.portSelectRequired || !flags.connected && !flags.portSelectRequired"
+            @click="flags.portSelectRequired ? selectPort() : start()"
+            outline
+            class="q-mx-sm"
+          >
+            Connect
+          </q-btn>
+          <q-btn
+            v-else-if="this.info"
+            outline
+            class="q-mx-sm"
+            :label="info.hardware_name"
+          >
+          <q-menu :offset="[0, 10]">
+            <div class="row no-wrap q-pa-md">
+              <div class="column">
+                <div class="text-h6 q-mb-md">Settings</div>
+                <q-toggle
+                  v-model="flags.connectOnStart"
+                  @click="toggleConnectOnStart"
+                  label="Connect on page load"
+                ></q-toggle>
+              </div>
 
-        <div class="nav-links">
-          <a href="https://flipperzero.one/">Home</a>
-          <a href="https://shop.flipperzero.one/">Shop</a>
-          <a href="https://flipperzero.one/faq">FAQ</a>
-          <a href="https://blog.flipperzero.one/">Blog</a>
-          <a href="https://forum.flipperzero.one/">Forum</a>
-        </div>
+              <q-separator vertical inset class="q-mx-lg"></q-separator>
+
+              <div class="column items-center">
+                <q-avatar size="72px" square>
+                  <img v-if="info.hardware_color === '1'" src="../assets/flipper_black.svg"/>
+                  <img v-else src="../assets/flipper_white.svg"/>
+                </q-avatar>
+
+                <div class="text-subtitle1 q-mb-sm">{{ info.hardware_name }}</div>
+
+                <q-btn
+                  color="primary"
+                  label="Disconnect"
+                  size="sm"
+                  v-close-popup
+                  @click="disconnect"
+                ></q-btn>
+              </div>
+            </div>
+          </q-menu>
+          </q-btn>
+          <div v-else style="margin: 0 0.85rem">{{ connectionStatus }}</div>
+        </template>
+
+        <q-btn
+          v-if="$q.screen.width <= 750"
+          @click="linksMenu = !linksMenu"
+          icon="open_in_new"
+          dense
+          flat
+          round
+          class="q-ml-sm"
+        >
+          <q-menu fit>
+            <q-list class="nav-links">
+              <ExternalLink
+                v-for="link in extLinks"
+                :key="link.title"
+                v-bind="link"
+              />
+            </q-list>
+          </q-menu>
+        </q-btn>
+        <template v-else>
+          <q-separator v-if="flags.serialSupported" dark vertical inset class="q-mx-lg"></q-separator>
+          <div class="nav-links">
+            <a v-for="link in extLinks"
+              :key="link.title"
+              v-bind="link"
+              :href="link.link"
+            >{{ link.title }}</a>
+          </div>
+        </template>
       </q-toolbar>
     </q-header>
 
     <q-drawer
-      v-model="drawer"
+      v-model="leftDrawer"
       show-if-above
       :mini="miniState"
       @mouseover="miniState = false"
@@ -45,11 +107,11 @@
       mini-to-overlay
       bordered
       :width="180"
-      :breakpoint="500"
+      :breakpoint="750"
     >
       <q-list>
-        <EssentialLink
-          v-for="link in essentialLinks"
+        <RouterLink
+          v-for="link in routes"
           :key="link.title"
           v-bind="link"
         />
@@ -57,73 +119,133 @@
     </q-drawer>
 
     <q-page-container>
-      <router-view :flipper="flipper" :rpcActive="flags.rpcActive" @setRpcStatus="setRpcStatus"/>
+      <router-view
+        v-if="flags.serialSupported && info !== null && this.info.storage_databases_present"
+        :flipper="flipper"
+        :rpcActive="flags.rpcActive"
+        :connected="flags.connected"
+        :info="info"
+        @setRpcStatus="setRpcStatus"
+        @setInfo="setInfo"
+      />
+      <q-page v-else class="flex-center column">
+        <div
+          v-if="flags.serialSupported && (!flags.connected || info == null || !flags.rpcActive || flags.rpcToggling)"
+          class="flex-center column q-my-xl"
+        >
+          <q-spinner
+            color="primary"
+            size="3em"
+            class="q-mb-md"
+          ></q-spinner>
+          <p>Waiting for Flipper...</p>
+        </div>
+        <div v-if="!flags.serialSupported" class="column text-center q-px-lg q-py-lg">
+          <h5>Unsupported browser</h5>
+          <p>
+            Your browser doesn't support WebSerial API.
+            For better experience we recommend using Chrome for desktop.<br />
+            <a href="https://caniuse.com/web-serial">Full list of supported browsers</a>
+          </p>
+        </div>
+      </q-page>
     </q-page-container>
   </q-layout>
 </template>
 
 <script>
 import { defineComponent, ref } from 'vue'
-import EssentialLink from 'components/EssentialLink.vue'
+import ExternalLink from 'components/ExternalLink.vue'
+import RouterLink from 'components/RouterLink.vue'
 import * as flipper from '../flipper/core'
 import asyncSleep from 'simple-async-sleep'
-
-const linksList = [
-  {
-    title: 'Device',
-    icon: 'memory',
-    link: '/'
-  },
-  {
-    title: 'Archive',
-    icon: 'inventory',
-    link: '/archive'
-  },
-  {
-    title: 'IDE',
-    icon: 'code',
-    link: '/ide'
-  },
-  {
-    title: 'NFC',
-    icon: 'nfc',
-    link: '/nfc'
-  },
-  {
-    title: 'Sub GHz',
-    icon: 'cell_tower',
-    link: '/subghz'
-  },
-  {
-    title: 'Tools',
-    icon: 'apps',
-    link: '/tools'
-  },
-  {
-    title: 'Settings',
-    icon: 'settings',
-    link: '/settings'
-  }
-]
 
 export default defineComponent({
   name: 'MainLayout',
 
   components: {
-    EssentialLink
+    ExternalLink,
+    RouterLink
   },
 
   setup () {
     return {
-      essentialLinks: linksList,
-      drawer: ref(true),
+      routes: [
+        {
+          title: 'Device',
+          icon: 'memory',
+          link: '/'
+        },
+        {
+          title: 'Archive',
+          icon: 'inventory',
+          link: '/archive'
+        },
+        {
+          title: 'IDE',
+          icon: 'code',
+          link: '/ide'
+        },
+        {
+          title: 'NFC',
+          icon: 'nfc',
+          link: '/nfc'
+        },
+        {
+          title: 'Sub GHz',
+          icon: 'cell_tower',
+          link: '/subghz'
+        },
+        {
+          title: 'Tools',
+          icon: 'apps',
+          link: '/tools'
+        },
+        {
+          title: 'Settings',
+          icon: 'settings',
+          link: '/settings'
+        }
+      ],
+      extLinks: [
+        {
+          title: 'Home',
+          icon: 'open_in_new',
+          link: 'https://flipperzero.one/'
+        },
+        {
+          title: 'Shop',
+          icon: 'open_in_new',
+          link: 'https://shop.flipperzero.one/'
+        },
+        {
+          title: 'FAQ',
+          icon: 'open_in_new',
+          link: 'https://flipperzero.one/faq/'
+        },
+        {
+          title: 'Blog',
+          icon: 'open_in_new',
+          link: 'https://blog.flipperzero.one/'
+        },
+        {
+          title: 'Forum',
+          icon: 'open_in_new',
+          link: 'https://forum.flipperzero.one/'
+        }
+      ],
+      leftDrawer: ref(false),
+      linksMenu: ref(false),
       miniState: ref(true),
 
       flipper: ref(flipper),
+      info: ref(null),
       flags: ref({
+        serialSupported: true,
         portSelectRequired: false,
         connected: false,
-        rpcActive: false
+        rpcActive: false,
+        connectOnStart: true
       }),
       connectionStatus: ref('Ready to connect')
     }
@@ -159,7 +281,7 @@ export default defineComponent({
         .then(() => {
           this.connectionStatus = 'Disconnected'
           this.flags.connected = false
-          this.info = {}
+          this.info = null
           this.textInfo = ''
         })
         .catch(async error => {
@@ -177,17 +299,73 @@ export default defineComponent({
         })
     },
 
+    async startRpc () {
+      this.flags.rpcToggling = true
+      const ping = await this.flipper.commands.startRpcSession(this.flipper)
+      if (!ping.resolved || ping.error) {
+        throw new Error('Couldn\'t start rpc session')
+      }
+      this.flags.rpcActive = true
+      this.flags.rpcToggling = false
+    },
+
+    async stopRpc () {
+      this.flags.rpcToggling = true
+      await this.flipper.commands.stopRpcSession()
+      this.flags.rpcActive = false
+      this.flags.rpcToggling = false
+    },
+
+    async readInfo () {
+      this.info = {}
+      let res = await this.flipper.commands.system.deviceInfo()
+      for (const line of res) {
+        this.info[line.key] = line.value
+      }
+      res = await this.flipper.commands.storage.list('/ext')
+      if (res && typeof (res) === 'object' && res.length) {
+        const manifest = res.find(e => e.name === 'Manifest')
+        if (manifest) {
+          this.info.storage_databases_present = 'installed'
+        } else {
+          this.info.storage_databases_present = 'missing'
+        }
+
+        res = await this.flipper.commands.storage.info('/ext')
+        this.info.storage_sdcard_present = Math.floor(res.freeSpace / (res.totalSpace / 100)) + '% free'
+      } else {
+        this.info.storage_sdcard_present = 'missing'
+        this.info.storage_databases_present = 'missing'
+      }
+    },
+
+    toggleConnectOnStart () {
+      localStorage.setItem('connectOnStart', this.flags.connectOnStart)
+    },
     setRpcStatus (s) {
       this.flags.rpcActive = s
+    },
+    setInfo (info) {
+      this.info = info
+    },
+
+    async start () {
+      await this.connect()
+      await this.startRpc()
+      await this.readInfo()
     }
   },
 
-  mounted () {
-    this.connect()
-
-    navigator.serial.addEventListener('disconnect', async () => {
-      await this.disconnect()
-    })
+  async mounted () {
+    if ('serial' in navigator) {
+      if (localStorage.getItem('connectOnStart') !== 'false') {
+        await this.start()
+      } else {
+        this.flags.connectOnStart = false
+      }
+    } else {
+      this.flags.serialSupported = false
+    }
   }
 })
 </script>

@@ -1,12 +1,17 @@
 <template>
-  <q-page class="flex items-center column q-pa-md" :class="$q.screen.width > 960 && $q.screen.height > 500 ? 'q-mt-xl' : 'q-mt-xs'">
-    <q-spinner
-      v-if="flags.rpcToggling"
-      class="q-my-xl"
-      color="primary"
-      size="3em"
-    ></q-spinner>
-    <div v-if="flags.rpcActive" class="file-container">
+  <q-page class="column items-center q-pa-md" :class="$q.screen.width > 960 && $q.screen.height > 500 ? 'q-mt-xl' : 'q-mt-xs'">
+    <div
+      v-if="!connected || !flags.rpcActive || flags.rpcToggling"
+      class="column flex-center q-my-xl"
+    >
+      <q-spinner
+        color="primary"
+        size="3em"
+        class="q-mb-md"
+      ></q-spinner>
+      <p>Waiting for Flipper...</p>
+    </div>
+    <div v-if="connected && flags.rpcActive" class="file-container">
       <div class="file-menu flex no-wrap q-pa-xs rounded-borders">
         <q-btn
           flat
@@ -220,6 +225,7 @@ export default defineComponent({
 
   props: {
     flipper: Object,
+    connected: Boolean,
     rpcActive: Boolean
   },
 
@@ -245,6 +251,14 @@ export default defineComponent({
       uploadedFiles: ref(null),
       editorText: ref(''),
       oldName: ref('')
+    }
+  },
+
+  watch: {
+    async connected (newStatus, oldStatus) {
+      if (newStatus) {
+        await this.start()
+      }
     }
   },
 
@@ -346,18 +360,20 @@ export default defineComponent({
       } else {
         return 'archive:file'
       }
+    },
+
+    async start () {
+      this.flags.rpcActive = this.rpcActive
+      if (!this.rpcActive) {
+        await this.startRpc()
+      }
+      await this.list()
     }
   },
 
-  mounted () {
-    this.flags.rpcActive = this.rpcActive
-    if (!this.rpcActive) {
-      this.startRpc()
-        .then(() => {
-          this.list()
-        })
-    } else {
-      this.list()
+  async mounted () {
+    if (this.connected) {
+      await this.start()
     }
   }
 })

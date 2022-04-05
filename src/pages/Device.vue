@@ -1,13 +1,18 @@
 <template>
-  <q-page class="flex flex-center column">
-    <div class="flex flex-center column">
-      <q-spinner
-        v-if="flags.rpcToggling"
-        class="q-my-xl"
-        color="primary"
-        size="3em"
-      ></q-spinner>
-      <div v-show="flags.rpcActive && info.hardware_name" class="device-screen flex column">
+  <q-page class="flex-center column">
+    <div class="flex-center column">
+      <div
+        v-if="!connected || info == null || !flags.rpcActive || flags.rpcToggling"
+        class="flex-center column q-my-xl"
+      >
+        <q-spinner
+          color="primary"
+          size="3em"
+          class="q-mb-md"
+        ></q-spinner>
+        <p>Waiting for Flipper...</p>
+      </div>
+      <div v-show="connected && info !== null && this.info.storage_databases_present && flags.rpcActive && info.hardware_name" class="device-screen column">
         <div class="flex">
           <div class="info">
             <p>
@@ -35,7 +40,7 @@
               <span>{{ info.radio_alive !== false ? info.radio_stack_major + '.' + info.radio_stack_minor + '.' + info.radio_stack_sub : 'corrupt' }}</span>
             </p>
           </div>
-          <div class="flex column items-center">
+          <div class="column items-center">
             <h5>{{ info.hardware_name }}</h5>
             <div
               class="flipper"
@@ -65,12 +70,13 @@ export default defineComponent({
 
   props: {
     flipper: Object,
-    rpcActive: Boolean
+    connected: Boolean,
+    rpcActive: Boolean,
+    info: Object
   },
 
   setup () {
     return {
-      info: ref({}),
       flags: ref({
         restarting: false,
         rpcActive: false,
@@ -78,6 +84,14 @@ export default defineComponent({
         screenStream: false
       }),
       screenScale: ref(1)
+    }
+  },
+
+  watch: {
+    async info (newInfo, oldInfo) {
+      if (newInfo !== null && newInfo.storage_databases_present && this.connected) {
+        await this.start()
+      }
     }
   },
 
@@ -102,7 +116,7 @@ export default defineComponent({
     },
 
     async restartRpc () {
-      if (!this.flags.restarting) {
+      if (this.connected && this.rpcActive && !this.flags.restarting) {
         this.flags.restarting = true
         await this.flipper.closeReader()
         await asyncSleep(300)
@@ -113,29 +127,6 @@ export default defineComponent({
         await this.readInfo()
         return this.startScreenStream()
       }
-    },
-
-    async readInfo () {
-      this.info = {}
-      let res = await this.flipper.commands.system.deviceInfo()
-      for (const line of res) {
-        this.info[line.key] = line.value
-      }
-      res = await this.flipper.commands.storage.list('/ext')
-      if (res && typeof (res) === 'object' && res.length) {
-        const manifest = res.find(e => e.name === 'Manifest')
-        if (manifest) {
-          this.info.storage_databases_present = 'installed'
-        } else {
-          this.info.storage_databases_present = 'missing'
-        }
-
-        res = await this.flipper.commands.storage.info('/ext')
-        this.info.storage_sdcard_present = Math.floor(res.freeSpace / (res.totalSpace / 100)) + '% free'
-      } else {
-        this.info.storage_sdcard_present = 'missing'
-      }
-      // console.log(this.info)
     },
 
     async startScreenStream () {
@@ -182,24 +173,20 @@ export default defineComponent({
     async stopScreenStream () {
       await this.flipper.commands.gui.stopScreenStreamRequest()
       this.flags.screenStream = false
+    },
+
+    async start () {
+      this.flags.rpcActive = this.rpcActive
+      if (!this.rpcActive) {
+        await this.startRpc()
+      }
+      await this.startScreenStream()
     }
   },
 
   async mounted () {
-    this.flags.rpcActive = this.rpcActive
-    if (!this.rpcActive) {
-      this.startRpc()
-        .then(() => {
-          this.readInfo()
-        })
-        .then(() => {
-          this.startScreenStream()
-        })
-    } else {
-      this.readInfo()
-        .then(() => {
-          this.startScreenStream()
-        })
+    if (this.connected && this.info !== null && this.info.storage_databases_present) {
+      await this.start()
     }
   }
 })

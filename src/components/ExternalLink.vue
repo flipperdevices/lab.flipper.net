@@ -1,18 +1,18 @@
 <template>
   <q-item
     clickable
-    tag="router-link"
-    :to="link"
+    tag="a"
+    :href="link"
   >
     <q-item-section
       v-if="icon"
       avatar
     >
-      <q-icon :name="icon" :color="link === this.$route.path ? 'orange' : ''"/>
+      <q-icon :name="icon"/>
     </q-item-section>
 
     <q-item-section>
-      <q-item-label :class="link === this.$route.path ? 'text-orange' : ''">{{ title }}</q-item-label>
+      <q-item-label>{{ title }}</q-item-label>
     </q-item-section>
   </q-item>
 </template>
@@ -21,7 +21,7 @@
 import { defineComponent } from 'vue'
 
 export default defineComponent({
-  name: 'EssentialLink',
+  name: 'ExternalLink',
   props: {
     title: {
       type: String,

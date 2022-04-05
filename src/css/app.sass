@@ -1,11 +1,14 @@
+.nav-links a
+  color: #000000 !important
+  text-decoration: none !important
+  &:hover
+    text-decoration: underline
+
 .q-header
   font-size: 16px
   .nav-links a
     margin: 0 0.85rem
-    color: #ffffff
-    text-decoration: none
-    &:hover
-      text-decoration: underline
+    color: #ffffff !important
   
 .device-screen
   .info
@@ -28,7 +31,6 @@
     width: 368px
     height: 165px
     padding: 31px 0 0 97px
-    background-size: cover
     background-size: 360px
     background-repeat: no-repeat
     background-position: center
@@ -36,6 +38,23 @@
       background-image: url(../assets/flipper_black.svg)
     &.body-white
       background-image: url(../assets/flipper_white.svg)
+    canvas
+      transform: scale(1)
+  @media (max-width: 750px)
+    margin-top: 2rem
+    & > .flex
+      flex-direction: column-reverse
+    .info
+      width: 275px
+      margin: 2rem auto 0 auto
+  @media (max-width: 380px)
+    .flipper
+      width: 300px
+      height: 133px
+      padding: 18px 0 0 67px
+      background-size: 300px
+      canvas
+        transform: scale(0.85)
 
 .file-container
   width: min(800px, 100%)
