@@ -284,6 +284,9 @@ export default defineComponent({
 
     async list () {
       let res = await this.flipper.commands.storage.list(this.path)
+      if (res === 'empty response') {
+        return setTimeout(this.list, 300)
+      }
       if (this.path === '/') {
         res = res.filter(e => e.name !== 'any')
       }

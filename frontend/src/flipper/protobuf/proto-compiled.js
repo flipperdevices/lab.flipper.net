@@ -416,6 +416,12 @@ export const PB = $root.PB = (() => {
     Main.prototype.systemGetDatetimeRequest = null
     Main.prototype.systemGetDatetimeResponse = null
     Main.prototype.systemSetDatetimeRequest = null
+    Main.prototype.systemPlayAudiovisualAlertRequest = null
+    Main.prototype.systemProtobufVersionRequest = null
+    Main.prototype.systemProtobufVersionResponse = null
+    Main.prototype.systemUpdateRequest = null
+    Main.prototype.systemPowerInfoRequest = null
+    Main.prototype.systemPowerInfoResponse = null
     Main.prototype.storageInfoRequest = null
     Main.prototype.storageInfoResponse = null
     Main.prototype.storageStatRequest = null
@@ -430,6 +436,8 @@ export const PB = $root.PB = (() => {
     Main.prototype.storageMd5sumRequest = null
     Main.prototype.storageMd5sumResponse = null
     Main.prototype.storageRenameRequest = null
+    Main.prototype.storageBackupCreateRequest = null
+    Main.prototype.storageBackupRestoreRequest = null
     Main.prototype.appStartRequest = null
     Main.prototype.appLockStatusRequest = null
     Main.prototype.appLockStatusResponse = null
@@ -443,7 +451,7 @@ export const PB = $root.PB = (() => {
     let $oneOfFields
 
     Object.defineProperty(Main.prototype, 'content', {
-      get: $util.oneOfGetter($oneOfFields = ['empty', 'stopSession', 'systemPingRequest', 'systemPingResponse', 'systemRebootRequest', 'systemDeviceInfoRequest', 'systemDeviceInfoResponse', 'systemFactoryResetRequest', 'systemGetDatetimeRequest', 'systemGetDatetimeResponse', 'systemSetDatetimeRequest', 'storageInfoRequest', 'storageInfoResponse', 'storageStatRequest', 'storageStatResponse', 'storageListRequest', 'storageListResponse', 'storageReadRequest', 'storageReadResponse', 'storageWriteRequest', 'storageDeleteRequest', 'storageMkdirRequest', 'storageMd5sumRequest', 'storageMd5sumResponse', 'storageRenameRequest', 'appStartRequest', 'appLockStatusRequest', 'appLockStatusResponse', 'guiStartScreenStreamRequest', 'guiStopScreenStreamRequest', 'guiScreenFrame', 'guiSendInputEventRequest', 'guiStartVirtualDisplayRequest', 'guiStopVirtualDisplayRequest']),
+      get: $util.oneOfGetter($oneOfFields = ['empty', 'stopSession', 'systemPingRequest', 'systemPingResponse', 'systemRebootRequest', 'systemDeviceInfoRequest', 'systemDeviceInfoResponse', 'systemFactoryResetRequest', 'systemGetDatetimeRequest', 'systemGetDatetimeResponse', 'systemSetDatetimeRequest', 'systemPlayAudiovisualAlertRequest', 'systemProtobufVersionRequest', 'systemProtobufVersionResponse', 'systemUpdateRequest', 'systemPowerInfoRequest', 'systemPowerInfoResponse', 'storageInfoRequest', 'storageInfoResponse', 'storageStatRequest', 'storageStatResponse', 'storageListRequest', 'storageListResponse', 'storageReadRequest', 'storageReadResponse', 'storageWriteRequest', 'storageDeleteRequest', 'storageMkdirRequest', 'storageMd5sumRequest', 'storageMd5sumResponse', 'storageRenameRequest', 'storageBackupCreateRequest', 'storageBackupRestoreRequest', 'appStartRequest', 'appLockStatusRequest', 'appLockStatusResponse', 'guiStartScreenStreamRequest', 'guiStopScreenStreamRequest', 'guiScreenFrame', 'guiSendInputEventRequest', 'guiStartVirtualDisplayRequest', 'guiStopVirtualDisplayRequest']),
       set: $util.oneOfSetter($oneOfFields)
     })
 
@@ -490,6 +498,14 @@ export const PB = $root.PB = (() => {
       if (message.systemGetDatetimeRequest != null && Object.hasOwnProperty.call(message, 'systemGetDatetimeRequest')) { $root.PB_System.GetDateTimeRequest.encode(message.systemGetDatetimeRequest, writer.uint32(282).fork()).ldelim() }
       if (message.systemGetDatetimeResponse != null && Object.hasOwnProperty.call(message, 'systemGetDatetimeResponse')) { $root.PB_System.GetDateTimeResponse.encode(message.systemGetDatetimeResponse, writer.uint32(290).fork()).ldelim() }
       if (message.systemSetDatetimeRequest != null && Object.hasOwnProperty.call(message, 'systemSetDatetimeRequest')) { $root.PB_System.SetDateTimeRequest.encode(message.systemSetDatetimeRequest, writer.uint32(298).fork()).ldelim() }
+      if (message.systemPlayAudiovisualAlertRequest != null && Object.hasOwnProperty.call(message, 'systemPlayAudiovisualAlertRequest')) { $root.PB_System.PlayAudiovisualAlertRequest.encode(message.systemPlayAudiovisualAlertRequest, writer.uint32(306).fork()).ldelim() }
+      if (message.systemProtobufVersionRequest != null && Object.hasOwnProperty.call(message, 'systemProtobufVersionRequest')) { $root.PB_System.ProtobufVersionRequest.encode(message.systemProtobufVersionRequest, writer.uint32(314).fork()).ldelim() }
+      if (message.systemProtobufVersionResponse != null && Object.hasOwnProperty.call(message, 'systemProtobufVersionResponse')) { $root.PB_System.ProtobufVersionResponse.encode(message.systemProtobufVersionResponse, writer.uint32(322).fork()).ldelim() }
+      if (message.systemUpdateRequest != null && Object.hasOwnProperty.call(message, 'systemUpdateRequest')) { $root.PB_System.UpdateRequest.encode(message.systemUpdateRequest, writer.uint32(330).fork()).ldelim() }
+      if (message.storageBackupCreateRequest != null && Object.hasOwnProperty.call(message, 'storageBackupCreateRequest')) { $root.PB_Storage.BackupCreateRequest.encode(message.storageBackupCreateRequest, writer.uint32(338).fork()).ldelim() }
+      if (message.storageBackupRestoreRequest != null && Object.hasOwnProperty.call(message, 'storageBackupRestoreRequest')) { $root.PB_Storage.BackupRestoreRequest.encode(message.storageBackupRestoreRequest, writer.uint32(346).fork()).ldelim() }
+      if (message.systemPowerInfoRequest != null && Object.hasOwnProperty.call(message, 'systemPowerInfoRequest')) { $root.PB_System.PowerInfoRequest.encode(message.systemPowerInfoRequest, writer.uint32(354).fork()).ldelim() }
+      if (message.systemPowerInfoResponse != null && Object.hasOwnProperty.call(message, 'systemPowerInfoResponse')) { $root.PB_System.PowerInfoResponse.encode(message.systemPowerInfoResponse, writer.uint32(362).fork()).ldelim() }
       return writer
     }
 
@@ -545,6 +561,24 @@ export const PB = $root.PB = (() => {
           case 37:
             message.systemSetDatetimeRequest = $root.PB_System.SetDateTimeRequest.decode(reader, reader.uint32())
             break
+          case 38:
+            message.systemPlayAudiovisualAlertRequest = $root.PB_System.PlayAudiovisualAlertRequest.decode(reader, reader.uint32())
+            break
+          case 39:
+            message.systemProtobufVersionRequest = $root.PB_System.ProtobufVersionRequest.decode(reader, reader.uint32())
+            break
+          case 40:
+            message.systemProtobufVersionResponse = $root.PB_System.ProtobufVersionResponse.decode(reader, reader.uint32())
+            break
+          case 41:
+            message.systemUpdateRequest = $root.PB_System.UpdateRequest.decode(reader, reader.uint32())
+            break
+          case 44:
+            message.systemPowerInfoRequest = $root.PB_System.PowerInfoRequest.decode(reader, reader.uint32())
+            break
+          case 45:
+            message.systemPowerInfoResponse = $root.PB_System.PowerInfoResponse.decode(reader, reader.uint32())
+            break
           case 28:
             message.storageInfoRequest = $root.PB_Storage.InfoRequest.decode(reader, reader.uint32())
             break
@@ -586,6 +620,12 @@ export const PB = $root.PB = (() => {
             break
           case 30:
             message.storageRenameRequest = $root.PB_Storage.RenameRequest.decode(reader, reader.uint32())
+            break
+          case 42:
+            message.storageBackupCreateRequest = $root.PB_Storage.BackupCreateRequest.decode(reader, reader.uint32())
+            break
+          case 43:
+            message.storageBackupRestoreRequest = $root.PB_Storage.BackupRestoreRequest.decode(reader, reader.uint32())
             break
           case 16:
             message.appStartRequest = $root.PB_App.StartRequest.decode(reader, reader.uint32())
@@ -751,6 +791,54 @@ export const PB = $root.PB = (() => {
           if (error) { return 'systemSetDatetimeRequest.' + error }
         }
       }
+      if (message.systemPlayAudiovisualAlertRequest != null && message.hasOwnProperty('systemPlayAudiovisualAlertRequest')) {
+        if (properties.content === 1) { return 'content: multiple values' }
+        properties.content = 1
+        {
+          const error = $root.PB_System.PlayAudiovisualAlertRequest.verify(message.systemPlayAudiovisualAlertRequest)
+          if (error) { return 'systemPlayAudiovisualAlertRequest.' + error }
+        }
+      }
+      if (message.systemProtobufVersionRequest != null && message.hasOwnProperty('systemProtobufVersionRequest')) {
+        if (properties.content === 1) { return 'content: multiple values' }
+        properties.content = 1
+        {
+          const error = $root.PB_System.ProtobufVersionRequest.verify(message.systemProtobufVersionRequest)
+          if (error) { return 'systemProtobufVersionRequest.' + error }
+        }
+      }
+      if (message.systemProtobufVersionResponse != null && message.hasOwnProperty('systemProtobufVersionResponse')) {
+        if (properties.content === 1) { return 'content: multiple values' }
+        properties.content = 1
+        {
+          const error = $root.PB_System.ProtobufVersionResponse.verify(message.systemProtobufVersionResponse)
+          if (error) { return 'systemProtobufVersionResponse.' + error }
+        }
+      }
+      if (message.systemUpdateRequest != null && message.hasOwnProperty('systemUpdateRequest')) {
+        if (properties.content === 1) { return 'content: multiple values' }
+        properties.content = 1
+        {
+          const error = $root.PB_System.UpdateRequest.verify(message.systemUpdateRequest)
+          if (error) { return 'systemUpdateRequest.' + error }
+        }
+      }
+      if (message.systemPowerInfoRequest != null && message.hasOwnProperty('systemPowerInfoRequest')) {
+        if (properties.content === 1) { return 'content: multiple values' }
+        properties.content = 1
+        {
+          const error = $root.PB_System.PowerInfoRequest.verify(message.systemPowerInfoRequest)
+          if (error) { return 'systemPowerInfoRequest.' + error }
+        }
+      }
+      if (message.systemPowerInfoResponse != null && message.hasOwnProperty('systemPowerInfoResponse')) {
+        if (properties.content === 1) { return 'content: multiple values' }
+        properties.content = 1
+        {
+          const error = $root.PB_System.PowerInfoResponse.verify(message.systemPowerInfoResponse)
+          if (error) { return 'systemPowerInfoResponse.' + error }
+        }
+      }
       if (message.storageInfoRequest != null && message.hasOwnProperty('storageInfoRequest')) {
         if (properties.content === 1) { return 'content: multiple values' }
         properties.content = 1
@@ -861,6 +949,22 @@ export const PB = $root.PB = (() => {
         {
           const error = $root.PB_Storage.RenameRequest.verify(message.storageRenameRequest)
           if (error) { return 'storageRenameRequest.' + error }
+        }
+      }
+      if (message.storageBackupCreateRequest != null && message.hasOwnProperty('storageBackupCreateRequest')) {
+        if (properties.content === 1) { return 'content: multiple values' }
+        properties.content = 1
+        {
+          const error = $root.PB_Storage.BackupCreateRequest.verify(message.storageBackupCreateRequest)
+          if (error) { return 'storageBackupCreateRequest.' + error }
+        }
+      }
+      if (message.storageBackupRestoreRequest != null && message.hasOwnProperty('storageBackupRestoreRequest')) {
+        if (properties.content === 1) { return 'content: multiple values' }
+        properties.content = 1
+        {
+          const error = $root.PB_Storage.BackupRestoreRequest.verify(message.storageBackupRestoreRequest)
+          if (error) { return 'storageBackupRestoreRequest.' + error }
         }
       }
       if (message.appStartRequest != null && message.hasOwnProperty('appStartRequest')) {
@@ -1073,6 +1177,30 @@ export const PB = $root.PB = (() => {
         if (typeof object.systemSetDatetimeRequest !== 'object') { throw TypeError('.PB.Main.systemSetDatetimeRequest: object expected') }
         message.systemSetDatetimeRequest = $root.PB_System.SetDateTimeRequest.fromObject(object.systemSetDatetimeRequest)
       }
+      if (object.systemPlayAudiovisualAlertRequest != null) {
+        if (typeof object.systemPlayAudiovisualAlertRequest !== 'object') { throw TypeError('.PB.Main.systemPlayAudiovisualAlertRequest: object expected') }
+        message.systemPlayAudiovisualAlertRequest = $root.PB_System.PlayAudiovisualAlertRequest.fromObject(object.systemPlayAudiovisualAlertRequest)
+      }
+      if (object.systemProtobufVersionRequest != null) {
+        if (typeof object.systemProtobufVersionRequest !== 'object') { throw TypeError('.PB.Main.systemProtobufVersionRequest: object expected') }
+        message.systemProtobufVersionRequest = $root.PB_System.ProtobufVersionRequest.fromObject(object.systemProtobufVersionRequest)
+      }
+      if (object.systemProtobufVersionResponse != null) {
+        if (typeof object.systemProtobufVersionResponse !== 'object') { throw TypeError('.PB.Main.systemProtobufVersionResponse: object expected') }
+        message.systemProtobufVersionResponse = $root.PB_System.ProtobufVersionResponse.fromObject(object.systemProtobufVersionResponse)
+      }
+      if (object.systemUpdateRequest != null) {
+        if (typeof object.systemUpdateRequest !== 'object') { throw TypeError('.PB.Main.systemUpdateRequest: object expected') }
+        message.systemUpdateRequest = $root.PB_System.UpdateRequest.fromObject(object.systemUpdateRequest)
+      }
+      if (object.systemPowerInfoRequest != null) {
+        if (typeof object.systemPowerInfoRequest !== 'object') { throw TypeError('.PB.Main.systemPowerInfoRequest: object expected') }
+        message.systemPowerInfoRequest = $root.PB_System.PowerInfoRequest.fromObject(object.systemPowerInfoRequest)
+      }
+      if (object.systemPowerInfoResponse != null) {
+        if (typeof object.systemPowerInfoResponse !== 'object') { throw TypeError('.PB.Main.systemPowerInfoResponse: object expected') }
+        message.systemPowerInfoResponse = $root.PB_System.PowerInfoResponse.fromObject(object.systemPowerInfoResponse)
+      }
       if (object.storageInfoRequest != null) {
         if (typeof object.storageInfoRequest !== 'object') { throw TypeError('.PB.Main.storageInfoRequest: object expected') }
         message.storageInfoRequest = $root.PB_Storage.InfoRequest.fromObject(object.storageInfoRequest)
@@ -1128,6 +1256,14 @@ export const PB = $root.PB = (() => {
       if (object.storageRenameRequest != null) {
         if (typeof object.storageRenameRequest !== 'object') { throw TypeError('.PB.Main.storageRenameRequest: object expected') }
         message.storageRenameRequest = $root.PB_Storage.RenameRequest.fromObject(object.storageRenameRequest)
+      }
+      if (object.storageBackupCreateRequest != null) {
+        if (typeof object.storageBackupCreateRequest !== 'object') { throw TypeError('.PB.Main.storageBackupCreateRequest: object expected') }
+        message.storageBackupCreateRequest = $root.PB_Storage.BackupCreateRequest.fromObject(object.storageBackupCreateRequest)
+      }
+      if (object.storageBackupRestoreRequest != null) {
+        if (typeof object.storageBackupRestoreRequest !== 'object') { throw TypeError('.PB.Main.storageBackupRestoreRequest: object expected') }
+        message.storageBackupRestoreRequest = $root.PB_Storage.BackupRestoreRequest.fromObject(object.storageBackupRestoreRequest)
       }
       if (object.appStartRequest != null) {
         if (typeof object.appStartRequest !== 'object') { throw TypeError('.PB.Main.appStartRequest: object expected') }
@@ -1314,6 +1450,38 @@ export const PB = $root.PB = (() => {
       if (message.systemSetDatetimeRequest != null && message.hasOwnProperty('systemSetDatetimeRequest')) {
         object.systemSetDatetimeRequest = $root.PB_System.SetDateTimeRequest.toObject(message.systemSetDatetimeRequest, options)
         if (options.oneofs) { object.content = 'systemSetDatetimeRequest' }
+      }
+      if (message.systemPlayAudiovisualAlertRequest != null && message.hasOwnProperty('systemPlayAudiovisualAlertRequest')) {
+        object.systemPlayAudiovisualAlertRequest = $root.PB_System.PlayAudiovisualAlertRequest.toObject(message.systemPlayAudiovisualAlertRequest, options)
+        if (options.oneofs) { object.content = 'systemPlayAudiovisualAlertRequest' }
+      }
+      if (message.systemProtobufVersionRequest != null && message.hasOwnProperty('systemProtobufVersionRequest')) {
+        object.systemProtobufVersionRequest = $root.PB_System.ProtobufVersionRequest.toObject(message.systemProtobufVersionRequest, options)
+        if (options.oneofs) { object.content = 'systemProtobufVersionRequest' }
+      }
+      if (message.systemProtobufVersionResponse != null && message.hasOwnProperty('systemProtobufVersionResponse')) {
+        object.systemProtobufVersionResponse = $root.PB_System.ProtobufVersionResponse.toObject(message.systemProtobufVersionResponse, options)
+        if (options.oneofs) { object.content = 'systemProtobufVersionResponse' }
+      }
+      if (message.systemUpdateRequest != null && message.hasOwnProperty('systemUpdateRequest')) {
+        object.systemUpdateRequest = $root.PB_System.UpdateRequest.toObject(message.systemUpdateRequest, options)
+        if (options.oneofs) { object.content = 'systemUpdateRequest' }
+      }
+      if (message.storageBackupCreateRequest != null && message.hasOwnProperty('storageBackupCreateRequest')) {
+        object.storageBackupCreateRequest = $root.PB_Storage.BackupCreateRequest.toObject(message.storageBackupCreateRequest, options)
+        if (options.oneofs) { object.content = 'storageBackupCreateRequest' }
+      }
+      if (message.storageBackupRestoreRequest != null && message.hasOwnProperty('storageBackupRestoreRequest')) {
+        object.storageBackupRestoreRequest = $root.PB_Storage.BackupRestoreRequest.toObject(message.storageBackupRestoreRequest, options)
+        if (options.oneofs) { object.content = 'storageBackupRestoreRequest' }
+      }
+      if (message.systemPowerInfoRequest != null && message.hasOwnProperty('systemPowerInfoRequest')) {
+        object.systemPowerInfoRequest = $root.PB_System.PowerInfoRequest.toObject(message.systemPowerInfoRequest, options)
+        if (options.oneofs) { object.content = 'systemPowerInfoRequest' }
+      }
+      if (message.systemPowerInfoResponse != null && message.hasOwnProperty('systemPowerInfoResponse')) {
+        object.systemPowerInfoResponse = $root.PB_System.PowerInfoResponse.toObject(message.systemPowerInfoResponse, options)
+        if (options.oneofs) { object.content = 'systemPowerInfoResponse' }
       }
       return object
     }
@@ -2644,6 +2812,160 @@ export const PB_Storage = $root.PB_Storage = (() => {
     return RenameRequest
   })()
 
+  PB_Storage.BackupCreateRequest = (function () {
+    function BackupCreateRequest (properties) {
+      if (properties) {
+        for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i) {
+          if (properties[keys[i]] != null) { this[keys[i]] = properties[keys[i]] }
+        }
+      }
+    }
+
+    BackupCreateRequest.prototype.archivePath = ''
+
+    BackupCreateRequest.create = function create (properties) {
+      return new BackupCreateRequest(properties)
+    }
+
+    BackupCreateRequest.encode = function encode (message, writer) {
+      if (!writer) { writer = $Writer.create() }
+      if (message.archivePath != null && Object.hasOwnProperty.call(message, 'archivePath')) { writer.uint32(10).string(message.archivePath) }
+      return writer
+    }
+
+    BackupCreateRequest.encodeDelimited = function encodeDelimited (message, writer) {
+      return this.encode(message, writer).ldelim()
+    }
+
+    BackupCreateRequest.decode = function decode (reader, length) {
+      if (!(reader instanceof $Reader)) { reader = $Reader.create(reader) }
+      const end = length === undefined ? reader.len : reader.pos + length, message = new $root.PB_Storage.BackupCreateRequest()
+      while (reader.pos < end) {
+        const tag = reader.uint32()
+        switch (tag >>> 3) {
+          case 1:
+            message.archivePath = reader.string()
+            break
+          default:
+            reader.skipType(tag & 7)
+            break
+        }
+      }
+      return message
+    }
+
+    BackupCreateRequest.decodeDelimited = function decodeDelimited (reader) {
+      if (!(reader instanceof $Reader)) { reader = new $Reader(reader) }
+      return this.decode(reader, reader.uint32())
+    }
+
+    BackupCreateRequest.verify = function verify (message) {
+      if (typeof message !== 'object' || message === null) { return 'object expected' }
+      if (message.archivePath != null && message.hasOwnProperty('archivePath')) {
+        if (!$util.isString(message.archivePath)) { return 'archivePath: string expected' }
+      }
+      return null
+    }
+
+    BackupCreateRequest.fromObject = function fromObject (object) {
+      if (object instanceof $root.PB_Storage.BackupCreateRequest) { return object }
+      const message = new $root.PB_Storage.BackupCreateRequest()
+      if (object.archivePath != null) { message.archivePath = String(object.archivePath) }
+      return message
+    }
+
+    BackupCreateRequest.toObject = function toObject (message, options) {
+      if (!options) { options = {} }
+      const object = {}
+      if (options.defaults) { object.archivePath = '' }
+      if (message.archivePath != null && message.hasOwnProperty('archivePath')) { object.archivePath = message.archivePath }
+      return object
+    }
+
+    BackupCreateRequest.prototype.toJSON = function toJSON () {
+      return this.constructor.toObject(this, $protobuf.util.toJSONOptions)
+    }
+
+    return BackupCreateRequest
+  })()
+
+  PB_Storage.BackupRestoreRequest = (function () {
+    function BackupRestoreRequest (properties) {
+      if (properties) {
+        for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i) {
+          if (properties[keys[i]] != null) { this[keys[i]] = properties[keys[i]] }
+        }
+      }
+    }
+
+    BackupRestoreRequest.prototype.archivePath = ''
+
+    BackupRestoreRequest.create = function create (properties) {
+      return new BackupRestoreRequest(properties)
+    }
+
+    BackupRestoreRequest.encode = function encode (message, writer) {
+      if (!writer) { writer = $Writer.create() }
+      if (message.archivePath != null && Object.hasOwnProperty.call(message, 'archivePath')) { writer.uint32(10).string(message.archivePath) }
+      return writer
+    }
+
+    BackupRestoreRequest.encodeDelimited = function encodeDelimited (message, writer) {
+      return this.encode(message, writer).ldelim()
+    }
+
+    BackupRestoreRequest.decode = function decode (reader, length) {
+      if (!(reader instanceof $Reader)) { reader = $Reader.create(reader) }
+      const end = length === undefined ? reader.len : reader.pos + length, message = new $root.PB_Storage.BackupRestoreRequest()
+      while (reader.pos < end) {
+        const tag = reader.uint32()
+        switch (tag >>> 3) {
+          case 1:
+            message.archivePath = reader.string()
+            break
+          default:
+            reader.skipType(tag & 7)
+            break
+        }
+      }
+      return message
+    }
+
+    BackupRestoreRequest.decodeDelimited = function decodeDelimited (reader) {
+      if (!(reader instanceof $Reader)) { reader = new $Reader(reader) }
+      return this.decode(reader, reader.uint32())
+    }
+
+    BackupRestoreRequest.verify = function verify (message) {
+      if (typeof message !== 'object' || message === null) { return 'object expected' }
+      if (message.archivePath != null && message.hasOwnProperty('archivePath')) {
+        if (!$util.isString(message.archivePath)) { return 'archivePath: string expected' }
+      }
+      return null
+    }
+
+    BackupRestoreRequest.fromObject = function fromObject (object) {
+      if (object instanceof $root.PB_Storage.BackupRestoreRequest) { return object }
+      const message = new $root.PB_Storage.BackupRestoreRequest()
+      if (object.archivePath != null) { message.archivePath = String(object.archivePath) }
+      return message
+    }
+
+    BackupRestoreRequest.toObject = function toObject (message, options) {
+      if (!options) { options = {} }
+      const object = {}
+      if (options.defaults) { object.archivePath = '' }
+      if (message.archivePath != null && message.hasOwnProperty('archivePath')) { object.archivePath = message.archivePath }
+      return object
+    }
+
+    BackupRestoreRequest.prototype.toJSON = function toJSON () {
+      return this.constructor.toObject(this, $protobuf.util.toJSONOptions)
+    }
+
+    return BackupRestoreRequest
+  })()
+
   return PB_Storage
 })()
 
@@ -2873,6 +3195,7 @@ export const PB_System = $root.PB_System = (() => {
             return 'mode: enum value expected'
           case 0:
           case 1:
+          case 2:
             break
         }
       }
@@ -2890,6 +3213,10 @@ export const PB_System = $root.PB_System = (() => {
         case 'DFU':
         case 1:
           message.mode = 1
+          break
+        case 'UPDATE':
+        case 2:
+          message.mode = 2
           break
       }
       return message
@@ -2911,6 +3238,7 @@ export const PB_System = $root.PB_System = (() => {
       const valuesById = {}, values = Object.create(valuesById)
       values[valuesById[0] = 'OS'] = 0
       values[valuesById[1] = 'DFU'] = 1
+      values[valuesById[2] = 'UPDATE'] = 2
       return values
     })()
 
@@ -3498,6 +3826,449 @@ export const PB_System = $root.PB_System = (() => {
     }
 
     return DateTime
+  })()
+
+  PB_System.PlayAudiovisualAlertRequest = (function () {
+    function PlayAudiovisualAlertRequest (properties) {
+      if (properties) {
+        for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i) {
+          if (properties[keys[i]] != null) { this[keys[i]] = properties[keys[i]] }
+        }
+      }
+    }
+
+    PlayAudiovisualAlertRequest.create = function create (properties) {
+      return new PlayAudiovisualAlertRequest(properties)
+    }
+
+    PlayAudiovisualAlertRequest.encode = function encode (message, writer) {
+      if (!writer) { writer = $Writer.create() }
+      return writer
+    }
+
+    PlayAudiovisualAlertRequest.encodeDelimited = function encodeDelimited (message, writer) {
+      return this.encode(message, writer).ldelim()
+    }
+
+    PlayAudiovisualAlertRequest.decode = function decode (reader, length) {
+      if (!(reader instanceof $Reader)) { reader = $Reader.create(reader) }
+      const end = length === undefined ? reader.len : reader.pos + length, message = new $root.PB_System.PlayAudiovisualAlertRequest()
+      while (reader.pos < end) {
+        const tag = reader.uint32()
+        switch (tag >>> 3) {
+          default:
+            reader.skipType(tag & 7)
+            break
+        }
+      }
+      return message
+    }
+
+    PlayAudiovisualAlertRequest.decodeDelimited = function decodeDelimited (reader) {
+      if (!(reader instanceof $Reader)) { reader = new $Reader(reader) }
+      return this.decode(reader, reader.uint32())
+    }
+
+    PlayAudiovisualAlertRequest.verify = function verify (message) {
+      if (typeof message !== 'object' || message === null) { return 'object expected' }
+      return null
+    }
+
+    PlayAudiovisualAlertRequest.fromObject = function fromObject (object) {
+      if (object instanceof $root.PB_System.PlayAudiovisualAlertRequest) { return object }
+      return new $root.PB_System.PlayAudiovisualAlertRequest()
+    }
+
+    PlayAudiovisualAlertRequest.toObject = function toObject () {
+      return {}
+    }
+
+    PlayAudiovisualAlertRequest.prototype.toJSON = function toJSON () {
+      return this.constructor.toObject(this, $protobuf.util.toJSONOptions)
+    }
+
+    return PlayAudiovisualAlertRequest
+  })()
+
+  PB_System.ProtobufVersionRequest = (function () {
+    function ProtobufVersionRequest (properties) {
+      if (properties) {
+        for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i) {
+          if (properties[keys[i]] != null) { this[keys[i]] = properties[keys[i]] }
+        }
+      }
+    }
+
+    ProtobufVersionRequest.create = function create (properties) {
+      return new ProtobufVersionRequest(properties)
+    }
+
+    ProtobufVersionRequest.encode = function encode (message, writer) {
+      if (!writer) { writer = $Writer.create() }
+      return writer
+    }
+
+    ProtobufVersionRequest.encodeDelimited = function encodeDelimited (message, writer) {
+      return this.encode(message, writer).ldelim()
+    }
+
+    ProtobufVersionRequest.decode = function decode (reader, length) {
+      if (!(reader instanceof $Reader)) { reader = $Reader.create(reader) }
+      const end = length === undefined ? reader.len : reader.pos + length, message = new $root.PB_System.ProtobufVersionRequest()
+      while (reader.pos < end) {
+        const tag = reader.uint32()
+        switch (tag >>> 3) {
+          default:
+            reader.skipType(tag & 7)
+            break
+        }
+      }
+      return message
+    }
+
+    ProtobufVersionRequest.decodeDelimited = function decodeDelimited (reader) {
+      if (!(reader instanceof $Reader)) { reader = new $Reader(reader) }
+      return this.decode(reader, reader.uint32())
+    }
+
+    ProtobufVersionRequest.verify = function verify (message) {
+      if (typeof message !== 'object' || message === null) { return 'object expected' }
+      return null
+    }
+
+    ProtobufVersionRequest.fromObject = function fromObject (object) {
+      if (object instanceof $root.PB_System.ProtobufVersionRequest) { return object }
+      return new $root.PB_System.ProtobufVersionRequest()
+    }
+
+    ProtobufVersionRequest.toObject = function toObject () {
+      return {}
+    }
+
+    ProtobufVersionRequest.prototype.toJSON = function toJSON () {
+      return this.constructor.toObject(this, $protobuf.util.toJSONOptions)
+    }
+
+    return ProtobufVersionRequest
+  })()
+
+  PB_System.ProtobufVersionResponse = (function () {
+    function ProtobufVersionResponse (properties) {
+      if (properties) {
+        for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i) {
+          if (properties[keys[i]] != null) { this[keys[i]] = properties[keys[i]] }
+        }
+      }
+    }
+
+    ProtobufVersionResponse.prototype.major = 0
+    ProtobufVersionResponse.prototype.minor = 0
+
+    ProtobufVersionResponse.create = function create (properties) {
+      return new ProtobufVersionResponse(properties)
+    }
+
+    ProtobufVersionResponse.encode = function encode (message, writer) {
+      if (!writer) { writer = $Writer.create() }
+      if (message.major != null && Object.hasOwnProperty.call(message, 'major')) { writer.uint32(8).uint32(message.major) }
+      if (message.minor != null && Object.hasOwnProperty.call(message, 'minor')) { writer.uint32(16).uint32(message.minor) }
+      return writer
+    }
+
+    ProtobufVersionResponse.encodeDelimited = function encodeDelimited (message, writer) {
+      return this.encode(message, writer).ldelim()
+    }
+
+    ProtobufVersionResponse.decode = function decode (reader, length) {
+      if (!(reader instanceof $Reader)) { reader = $Reader.create(reader) }
+      const end = length === undefined ? reader.len : reader.pos + length, message = new $root.PB_System.ProtobufVersionResponse()
+      while (reader.pos < end) {
+        const tag = reader.uint32()
+        switch (tag >>> 3) {
+          case 1:
+            message.major = reader.uint32()
+            break
+          case 2:
+            message.minor = reader.uint32()
+            break
+          default:
+            reader.skipType(tag & 7)
+            break
+        }
+      }
+      return message
+    }
+
+    ProtobufVersionResponse.decodeDelimited = function decodeDelimited (reader) {
+      if (!(reader instanceof $Reader)) { reader = new $Reader(reader) }
+      return this.decode(reader, reader.uint32())
+    }
+
+    ProtobufVersionResponse.verify = function verify (message) {
+      if (typeof message !== 'object' || message === null) { return 'object expected' }
+      if (message.major != null && message.hasOwnProperty('major')) {
+        if (!$util.isInteger(message.major)) { return 'major: integer expected' }
+      }
+      if (message.minor != null && message.hasOwnProperty('minor')) {
+        if (!$util.isInteger(message.minor)) { return 'minor: integer expected' }
+      }
+      return null
+    }
+
+    ProtobufVersionResponse.fromObject = function fromObject (object) {
+      if (object instanceof $root.PB_System.ProtobufVersionResponse) { return object }
+      const message = new $root.PB_System.ProtobufVersionResponse()
+      if (object.major != null) { message.major = object.major >>> 0 }
+      if (object.minor != null) { message.minor = object.minor >>> 0 }
+      return message
+    }
+
+    ProtobufVersionResponse.toObject = function toObject (message, options) {
+      if (!options) { options = {} }
+      const object = {}
+      if (options.defaults) {
+        object.major = 0
+        object.minor = 0
+      }
+      if (message.major != null && message.hasOwnProperty('major')) { object.major = message.major }
+      if (message.minor != null && message.hasOwnProperty('minor')) { object.minor = message.minor }
+      return object
+    }
+
+    ProtobufVersionResponse.prototype.toJSON = function toJSON () {
+      return this.constructor.toObject(this, $protobuf.util.toJSONOptions)
+    }
+
+    return ProtobufVersionResponse
+  })()
+
+  PB_System.UpdateRequest = (function () {
+    function UpdateRequest (properties) {
+      if (properties) {
+        for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i) {
+          if (properties[keys[i]] != null) { this[keys[i]] = properties[keys[i]] }
+        }
+      }
+    }
+
+    UpdateRequest.prototype.updateManifest = ''
+
+    UpdateRequest.create = function create (properties) {
+      return new UpdateRequest(properties)
+    }
+
+    UpdateRequest.encode = function encode (message, writer) {
+      if (!writer) { writer = $Writer.create() }
+      if (message.updateManifest != null && Object.hasOwnProperty.call(message, 'updateManifest')) { writer.uint32(10).string(message.updateManifest) }
+      return writer
+    }
+
+    UpdateRequest.encodeDelimited = function encodeDelimited (message, writer) {
+      return this.encode(message, writer).ldelim()
+    }
+
+    UpdateRequest.decode = function decode (reader, length) {
+      if (!(reader instanceof $Reader)) { reader = $Reader.create(reader) }
+      const end = length === undefined ? reader.len : reader.pos + length, message = new $root.PB_System.UpdateRequest()
+      while (reader.pos < end) {
+        const tag = reader.uint32()
+        switch (tag >>> 3) {
+          case 1:
+            message.updateManifest = reader.string()
+            break
+          default:
+            reader.skipType(tag & 7)
+            break
+        }
+      }
+      return message
+    }
+
+    UpdateRequest.decodeDelimited = function decodeDelimited (reader) {
+      if (!(reader instanceof $Reader)) { reader = new $Reader(reader) }
+      return this.decode(reader, reader.uint32())
+    }
+
+    UpdateRequest.verify = function verify (message) {
+      if (typeof message !== 'object' || message === null) { return 'object expected' }
+      if (message.updateManifest != null && message.hasOwnProperty('updateManifest')) {
+        if (!$util.isString(message.updateManifest)) { return 'updateManifest: string expected' }
+      }
+      return null
+    }
+
+    UpdateRequest.fromObject = function fromObject (object) {
+      if (object instanceof $root.PB_System.UpdateRequest) { return object }
+      const message = new $root.PB_System.UpdateRequest()
+      if (object.updateManifest != null) { message.updateManifest = String(object.updateManifest) }
+      return message
+    }
+
+    UpdateRequest.toObject = function toObject (message, options) {
+      if (!options) { options = {} }
+      const object = {}
+      if (options.defaults) { object.updateManifest = '' }
+      if (message.updateManifest != null && message.hasOwnProperty('updateManifest')) { object.updateManifest = message.updateManifest }
+      return object
+    }
+
+    UpdateRequest.prototype.toJSON = function toJSON () {
+      return this.constructor.toObject(this, $protobuf.util.toJSONOptions)
+    }
+
+    return UpdateRequest
+  })()
+
+  PB_System.PowerInfoRequest = (function () {
+    function PowerInfoRequest (properties) {
+      if (properties) {
+        for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i) {
+          if (properties[keys[i]] != null) { this[keys[i]] = properties[keys[i]] }
+        }
+      }
+    }
+
+    PowerInfoRequest.create = function create (properties) {
+      return new PowerInfoRequest(properties)
+    }
+
+    PowerInfoRequest.encode = function encode (message, writer) {
+      if (!writer) { writer = $Writer.create() }
+      return writer
+    }
+
+    PowerInfoRequest.encodeDelimited = function encodeDelimited (message, writer) {
+      return this.encode(message, writer).ldelim()
+    }
+
+    PowerInfoRequest.decode = function decode (reader, length) {
+      if (!(reader instanceof $Reader)) { reader = $Reader.create(reader) }
+      const end = length === undefined ? reader.len : reader.pos + length, message = new $root.PB_System.PowerInfoRequest()
+      while (reader.pos < end) {
+        const tag = reader.uint32()
+        switch (tag >>> 3) {
+          default:
+            reader.skipType(tag & 7)
+            break
+        }
+      }
+      return message
+    }
+
+    PowerInfoRequest.decodeDelimited = function decodeDelimited (reader) {
+      if (!(reader instanceof $Reader)) { reader = new $Reader(reader) }
+      return this.decode(reader, reader.uint32())
+    }
+
+    PowerInfoRequest.verify = function verify (message) {
+      if (typeof message !== 'object' || message === null) { return 'object expected' }
+      return null
+    }
+
+    PowerInfoRequest.fromObject = function fromObject (object) {
+      if (object instanceof $root.PB_System.PowerInfoRequest) { return object }
+      return new $root.PB_System.PowerInfoRequest()
+    }
+
+    PowerInfoRequest.toObject = function toObject () {
+      return {}
+    }
+
+    PowerInfoRequest.prototype.toJSON = function toJSON () {
+      return this.constructor.toObject(this, $protobuf.util.toJSONOptions)
+    }
+
+    return PowerInfoRequest
+  })()
+
+  PB_System.PowerInfoResponse = (function () {
+    function PowerInfoResponse (properties) {
+      if (properties) {
+        for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i) {
+          if (properties[keys[i]] != null) { this[keys[i]] = properties[keys[i]] }
+        }
+      }
+    }
+
+    PowerInfoResponse.prototype.key = ''
+    PowerInfoResponse.prototype.value = ''
+
+    PowerInfoResponse.create = function create (properties) {
+      return new PowerInfoResponse(properties)
+    }
+
+    PowerInfoResponse.encode = function encode (message, writer) {
+      if (!writer) { writer = $Writer.create() }
+      if (message.key != null && Object.hasOwnProperty.call(message, 'key')) { writer.uint32(10).string(message.key) }
+      if (message.value != null && Object.hasOwnProperty.call(message, 'value')) { writer.uint32(18).string(message.value) }
+      return writer
+    }
+
+    PowerInfoResponse.encodeDelimited = function encodeDelimited (message, writer) {
+      return this.encode(message, writer).ldelim()
+    }
+
+    PowerInfoResponse.decode = function decode (reader, length) {
+      if (!(reader instanceof $Reader)) { reader = $Reader.create(reader) }
+      const end = length === undefined ? reader.len : reader.pos + length, message = new $root.PB_System.PowerInfoResponse()
+      while (reader.pos < end) {
+        const tag = reader.uint32()
+        switch (tag >>> 3) {
+          case 1:
+            message.key = reader.string()
+            break
+          case 2:
+            message.value = reader.string()
+            break
+          default:
+            reader.skipType(tag & 7)
+            break
+        }
+      }
+      return message
+    }
+
+    PowerInfoResponse.decodeDelimited = function decodeDelimited (reader) {
+      if (!(reader instanceof $Reader)) { reader = new $Reader(reader) }
+      return this.decode(reader, reader.uint32())
+    }
+
+    PowerInfoResponse.verify = function verify (message) {
+      if (typeof message !== 'object' || message === null) { return 'object expected' }
+      if (message.key != null && message.hasOwnProperty('key')) {
+        if (!$util.isString(message.key)) { return 'key: string expected' }
+      }
+      if (message.value != null && message.hasOwnProperty('value')) {
+        if (!$util.isString(message.value)) { return 'value: string expected' }
+      }
+      return null
+    }
+
+    PowerInfoResponse.fromObject = function fromObject (object) {
+      if (object instanceof $root.PB_System.PowerInfoResponse) { return object }
+      const message = new $root.PB_System.PowerInfoResponse()
+      if (object.key != null) { message.key = String(object.key) }
+      if (object.value != null) { message.value = String(object.value) }
+      return message
+    }
+
+    PowerInfoResponse.toObject = function toObject (message, options) {
+      if (!options) { options = {} }
+      const object = {}
+      if (options.defaults) {
+        object.key = ''
+        object.value = ''
+      }
+      if (message.key != null && message.hasOwnProperty('key')) { object.key = message.key }
+      if (message.value != null && message.hasOwnProperty('value')) { object.value = message.value }
+      return object
+    }
+
+    PowerInfoResponse.prototype.toJSON = function toJSON () {
+      return this.constructor.toObject(this, $protobuf.util.toJSONOptions)
+    }
+
+    return PowerInfoResponse
   })()
 
   return PB_System

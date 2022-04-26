@@ -1,6 +1,6 @@
 <template>
   <q-layout view="hhh LpR fff">
-    <q-header elevated>
+    <q-header>
       <q-toolbar>
         <q-btn
           v-if="$q.screen.width <= 750"
@@ -12,14 +12,18 @@
           class="q-mr-xs"
         ></q-btn>
 
-        <img src="../assets/flipper-logo.svg" class="q-ml-sm"/>
+        <img
+          v-show="!$q.screen.xs"
+          src="../assets/flipper-logo.svg"
+          class="q-ml-sm"
+        />
 
         <q-space></q-space>
 
         <template v-if="flags.serialSupported">
           <q-btn
             v-if="flags.portSelectRequired || !flags.connected && !flags.portSelectRequired"
-            @click="flags.portSelectRequired ? selectPort() : start()"
+            @click="flags.portSelectRequired ? selectPort() : start(true)"
             outline
             class="q-mx-sm"
           >
@@ -39,6 +43,11 @@
                   v-model="flags.connectOnStart"
                   @click="toggleConnectOnStart"
                   label="Connect on page load"
+                ></q-toggle>
+                <q-toggle
+                  v-model="flags.autoReconnect"
+                  @click="toggleAutoReconnect"
+                  label="Auto-reconnect"
                 ></q-toggle>
               </div>
 
@@ -120,13 +129,14 @@
 
     <q-page-container>
       <router-view
-        v-if="flags.serialSupported && info !== null && this.info.storage_databases_present"
+        v-if="flags.updateInProgress || (flags.serialSupported && info !== null && this.info.storage_databases_present)"
         :flipper="flipper"
         :rpcActive="flags.rpcActive"
         :connected="flags.connected"
         :info="info"
         @setRpcStatus="setRpcStatus"
         @setInfo="setInfo"
+        @update="onUpdateStage"
       />
       <q-page v-else class="flex-center column">
         <div
@@ -245,8 +255,11 @@ export default defineComponent({
         portSelectRequired: false,
         connected: false,
         rpcActive: false,
-        connectOnStart: true
+        connectOnStart: true,
+        autoReconnect: false,
+        updateInProgress: false
       }),
+      reconnectLoop: ref(null),
       connectionStatus: ref('Ready to connect')
     }
   },
@@ -273,7 +286,7 @@ export default defineComponent({
         { usbVendorId: 0x0483, usbProductId: 0x5740 }
       ]
       await navigator.serial.requestPort({ filters })
-      return this.connect()
+      return this.start(true)
     },
 
     async disconnect () {
@@ -322,6 +335,7 @@ export default defineComponent({
       for (const line of res) {
         this.info[line.key] = line.value
       }
+      await asyncSleep(300)
       res = await this.flipper.commands.storage.list('/ext')
       if (res && typeof (res) === 'object' && res.length) {
         const manifest = res.find(e => e.name === 'Manifest')
@@ -339,8 +353,40 @@ export default defineComponent({
       }
     },
 
+    findKnownDevices () {
+      const filters = [
+        { usbVendorId: 0x0483, usbProductId: 0x5740 }
+      ]
+      return navigator.serial.getPorts({ filters })
+    },
+
+    autoReconnect () {
+      if (this.reconnectLoop) {
+        clearInterval(this.reconnectLoop)
+        this.reconnectLoop = null
+      }
+      if (this.flags.autoReconnect) {
+        this.reconnectLoop = setInterval(async () => {
+          if (this.flags.autoReconnect) {
+            const ports = await this.findKnownDevices()
+            if (ports && ports.length > 0) {
+              clearInterval(this.reconnectLoop)
+              this.reconnectLoop = null
+              return await this.start()
+            }
+          } else {
+            clearInterval(this.reconnectLoop)
+            this.reconnectLoop = null
+          }
+        }, 3000)
+      }
+    },
+
     toggleConnectOnStart () {
       localStorage.setItem('connectOnStart', this.flags.connectOnStart)
+    },
+    toggleAutoReconnect () {
+      localStorage.setItem('autoReconnect', this.flags.autoReconnect)
     },
     setRpcStatus (s) {
       this.flags.rpcActive = s
@@ -348,11 +394,26 @@ export default defineComponent({
     setInfo (info) {
       this.info = info
     },
+    onUpdateStage (stage) {
+      if (stage === 'start') {
+        this.flags.updateInProgress = true
+      } else if (stage === 'success') {
+        this.flags.updateInProgress = false
+      }
+    },
 
-    async start () {
-      await this.connect()
-      await this.startRpc()
-      await this.readInfo()
+    async start (manual) {
+      const ports = await this.findKnownDevices()
+      if (ports && ports.length > 0) {
+        await this.connect()
+        await this.startRpc()
+        await this.readInfo()
+      } else {
+        this.flags.portSelectRequired = true
+        if (manual) {
+          return this.selectPort()
+        }
+      }
     }
   },
 
@@ -363,6 +424,12 @@ export default defineComponent({
       } else {
         this.flags.connectOnStart = false
       }
+      if (localStorage.getItem('autoReconnect') !== 'false') {
+        this.flags.autoReconnect = true
+      }
+      navigator.serial.addEventListener('disconnect', e => {
+        this.autoReconnect()
+      })
     } else {
       this.flags.serialSupported = false
     }

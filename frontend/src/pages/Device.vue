@@ -1,18 +1,7 @@
 <template>
   <q-page class="flex-center column">
     <div class="flex-center column">
-      <div
-        v-if="!connected || info == null || !flags.rpcActive || flags.rpcToggling"
-        class="flex-center column q-my-xl"
-      >
-        <q-spinner
-          color="primary"
-          size="3em"
-          class="q-mb-md"
-        ></q-spinner>
-        <p>Waiting for Flipper...</p>
-      </div>
-      <div v-show="connected && info !== null && this.info.storage_databases_present && flags.rpcActive && info.hardware_name" class="device-screen column">
+      <div v-show="flags.updateInProgress || (connected && info !== null && this.info.storage_databases_present && flags.rpcActive && info.hardware_name)" class="device-screen column">
         <div class="flex">
           <div class="info">
             <p>
@@ -53,9 +42,28 @@
                 style="image-rendering: pixelated;"
                 ref="screenStreamCanvas"
               ></canvas>
+              <img v-if="flags.updateInProgress" src="../assets/flipper-screen-updating.png"/>
             </div>
           </div>
         </div>
+        <Updater
+          :flipper="flipper"
+          :rpcActive="rpcActive"
+          :info="info"
+          @update="onUpdateStage"
+        />
+      </div>
+      <div
+        v-if="!connected || info == null || !flags.rpcActive || flags.rpcToggling"
+        class="flex-center column"
+        :class="flags.updateInProgress ? 'q-mt-sm' : 'q-my-xl'"
+      >
+        <q-spinner
+          color="primary"
+          size="3em"
+          class="q-mb-md"
+        ></q-spinner>
+        <p>Waiting for Flipper...</p>
       </div>
     </div>
   </q-page>
@@ -63,6 +71,7 @@
 
 <script>
 import { defineComponent, ref } from 'vue'
+import Updater from 'components/Updater.vue'
 import asyncSleep from 'simple-async-sleep'
 
 export default defineComponent({
@@ -75,15 +84,21 @@ export default defineComponent({
     info: Object
   },
 
+  components: {
+    Updater
+  },
+
   setup () {
     return {
       flags: ref({
         restarting: false,
         rpcActive: false,
         rpcToggling: false,
-        screenStream: false
+        screenStream: false,
+        updateInProgress: false
       }),
-      screenScale: ref(1)
+      screenScale: ref(1),
+      channels: ref({})
     }
   },
 
@@ -175,6 +190,17 @@ export default defineComponent({
       this.flags.screenStream = false
     },
 
+    onUpdateStage (stage) {
+      this.$emit(stage)
+      if (stage === 'start') {
+        this.flags.updateInProgress = true
+        this.stopScreenStream()
+      } else if (stage === 'success') {
+        this.flags.updateInProgress = false
+        this.startScreenStream()
+      }
+    },
+
     async start () {
       this.flags.rpcActive = this.rpcActive
       if (!this.rpcActive) {
@@ -188,6 +214,17 @@ export default defineComponent({
     if (this.connected && this.info !== null && this.info.storage_databases_present) {
       await this.start()
     }
+    navigator.serial.addEventListener('disconnect', e => {
+      this.flags.rpcActive = false
+      this.flags.rpcToggling = false
+      this.$emit('setRpcStatus', false)
+      this.flags.screenStream = false
+    })
+  },
+
+  async beforeUnmount () {
+    await this.stopScreenStream()
+    await asyncSleep(3000)
   }
 })
 </script>

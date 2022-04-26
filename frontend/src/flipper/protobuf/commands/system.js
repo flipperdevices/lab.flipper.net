@@ -102,10 +102,30 @@ function deviceInfo () {
   })
 }
 
+function update (manifest) {
+  return new Promise((resolve, reject) => {
+    enqueue({
+      requestType: 'systemUpdateRequest',
+      args: {
+        updateManifest: manifest
+      }
+    })
+    const unbind = emitter.on('response', res => {
+      if (res && res.error) {
+        reject(res.error, res)
+      } else {
+        resolve(res)
+      }
+      unbind()
+    })
+  })
+}
+
 export {
   ping,
   getDatetime,
   setDatetime,
   reboot,
-  deviceInfo
+  deviceInfo,
+  update
 }

@@ -71,7 +71,7 @@ function read (path) {
 async function write (path, buffer) {
   let commandId, lastRes
   const file = new Uint8Array(buffer)
-  for (let i = 0; i < file.byteLength; i += 512) {
+  for (let i = 0; i <= file.byteLength; i += 512) {
     const chunk = file.slice(i, i + 512)
     const write = new Promise((resolve, reject) => {
       enqueue({
@@ -81,16 +81,20 @@ async function write (path, buffer) {
         commandId: commandId
       })
       const unbind = emitter.on('response', res => {
+        unbind()
         if (res && res.error) {
           reject(res.error, res)
         } else {
           resolve(res)
         }
-        unbind()
       })
     })
     await write
       .then(res => {
+        emitter.emit('storageWriteRequest/progress', {
+          progress: Math.min(file.byteLength, (i + 512 - 1)),
+          total: file.byteLength
+        })
         lastRes = res
         commandId = res.commandId
       })

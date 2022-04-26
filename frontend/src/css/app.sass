@@ -1,8 +1,10 @@
 .nav-links a
   color: #000000 !important
   text-decoration: none !important
+  font-size: 15px
+  font-weight: 500
   &:hover
-    text-decoration: underline
+    text-decoration: underline !important
 
 .q-header
   font-size: 16px
@@ -25,6 +27,7 @@
         margin-right: 1.5rem
         font-weight: 600
   h5
+    text-align: center
     margin: 0 0 1rem 0
     font-weight: 600
   .flipper
@@ -40,6 +43,13 @@
       background-image: url(../assets/flipper_white.svg)
     canvas
       transform: scale(1)
+  .updater
+    margin: 1.5rem 0
+    p
+      margin: 0 0 8px
+    div.flex
+      flex-direction: row
+
   @media (max-width: 750px)
     margin-top: 2rem
     & > .flex
@@ -47,6 +57,9 @@
     .info
       width: 275px
       margin: 2rem auto 0 auto
+  @media (max-width: 599px)
+    .updater div.flex
+      flex-direction: column
   @media (max-width: 380px)
     .flipper
       width: 300px
@@ -55,6 +68,20 @@
       background-size: 300px
       canvas
         transform: scale(0.85)
+
+.fw-option-label
+  width: fit-content
+  padding: 0.2rem 0.4rem
+  color: #fff
+  border-radius: 5px
+  &.custom
+    background-color: $dark
+  &.release 
+    background-color: $positive
+  &.rc
+    background-color: $accent
+  &.dev
+    background-color: $negative
 
 .file-container
   width: min(800px, 100%)
