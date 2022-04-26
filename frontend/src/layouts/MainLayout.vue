@@ -190,7 +190,7 @@ export default defineComponent({
           title: 'Archive',
           icon: 'inventory',
           link: '/archive'
-        },
+        }/* ,
         {
           title: 'IDE',
           icon: 'code',
@@ -215,7 +215,7 @@ export default defineComponent({
           title: 'Settings',
           icon: 'settings',
           link: '/settings'
-        }
+        } */
       ],
       extLinks: [
         {

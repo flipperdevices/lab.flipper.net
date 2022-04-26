@@ -1,5 +1,6 @@
 import { PB } from './proto-compiled'
 import * as protobuf from 'protobufjs/minimal'
+import { emitter } from '../core'
 
 const commandQueue = [
   {
@@ -58,6 +59,9 @@ function parseResponse (data) {
 
       const payload = res[Object.keys(res).find(k => k === command.requestType.replace('Request', 'Response'))]
       chunks.push(payload)
+      if (command.requestType === 'storageReadRequest') {
+        emitter.emit('storageReadRequest/progress', chunks.length)
+      }
 
       if (!res.hasNext) {
         command.chunks = chunks

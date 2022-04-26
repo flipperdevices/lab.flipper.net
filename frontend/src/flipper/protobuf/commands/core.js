@@ -35,7 +35,7 @@ async function sendRpcRequest () {
         buffer = newBuffer
         try {
           res = rpc.parseResponse(buffer)
-          if (res && res.resolved !== false) {
+          if (res) {
             buffer = new Uint8Array(0)
             if (res.commandId === 0) {
               emitter.emit('screen frame', res.data)

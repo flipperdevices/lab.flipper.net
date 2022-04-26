@@ -96,7 +96,7 @@
             </q-btn>
           </q-item-section>
         </q-item>
-        <q-item v-if="dir.length === 0">
+        <q-item v-if="dir.length === 0 && path !== '/'">
           <q-item-section avatar class="q-ml-xs">
             <q-icon name="archive:folder"/>
           </q-item-section>
@@ -195,6 +195,19 @@
           </q-card-actions>
         </q-card>
       </q-dialog>
+      <q-dialog v-model="flags.blockingOperationPopup" persistent>
+        <q-card>
+          <q-card-section>
+            <div class="text-h6">File operation in progress</div>
+          </q-card-section>
+          <q-card-section v-if="file.name.length > 0">
+            <ProgressBar
+              :title="file.name"
+              :progress="file.progress"
+            />
+          </q-card-section>
+        </q-card>
+      </q-dialog>
     </div>
   </q-page>
 </template>
@@ -202,6 +215,7 @@
 <script>
 import { defineComponent, ref } from 'vue'
 import { exportFile, useQuasar } from 'quasar'
+import ProgressBar from 'components/ProgressBar.vue'
 const flipperIcons = {
   'archive:new': 'img:icons/flipper/action-new.svg',
   'archive:remove': 'img:icons/flipper/action-remove.svg',
@@ -222,6 +236,10 @@ const flipperIcons = {
 
 export default defineComponent({
   name: 'PageArchive',
+
+  components: {
+    ProgressBar
+  },
 
   props: {
     flipper: Object,
@@ -246,11 +264,16 @@ export default defineComponent({
         rpcToggling: false,
         uploadPopup: false,
         renamePopup: false,
-        mkdirPopup: false
+        mkdirPopup: false,
+        blockingOperationPopup: false
       }),
       uploadedFiles: ref(null),
       editorText: ref(''),
-      oldName: ref('')
+      oldName: ref(''),
+      file: ref({
+        name: '',
+        progress: 0
+      })
     }
   },
 
@@ -284,7 +307,7 @@ export default defineComponent({
 
     async list () {
       let res = await this.flipper.commands.storage.list(this.path)
-      if (res === 'empty response') {
+      if (res === 'empty response' || res[0] === undefined) {
         return setTimeout(this.list, 300)
       }
       if (this.path === '/') {
@@ -294,9 +317,22 @@ export default defineComponent({
     },
 
     async read (path) {
+      this.flags.blockingOperationPopup = true
+      this.file.name = path.slice(path.lastIndexOf('/') + 1)
+      const file = this.dir.find(e => e.name === this.file.name && !e.type)
+      const total = file.size
+      let maxChunks = 0
+      const unbind = this.flipper.emitter.on('storageReadRequest/progress', chunks => {
+        if (maxChunks < chunks) {
+          maxChunks = chunks
+          this.file.progress = Math.min(maxChunks * 512, total) / total
+        }
+      })
       const res = await this.flipper.commands.storage.read(path)
       const s = path.split('/')
       exportFile(s[s.length - 1], res)
+      unbind()
+      this.flags.blockingOperationPopup = false
     },
 
     async remove (path, isRecursive) {
@@ -315,10 +351,18 @@ export default defineComponent({
     },
 
     async upload () {
+      this.flags.blockingOperationPopup = true
       for (const file of this.uploadedFiles) {
+        this.file.name = file.name
+        const unbind = this.flipper.emitter.on('storageWriteRequest/progress', e => {
+          this.file.progress = e.progress / e.total
+        })
         await this.flipper.commands.storage.write(this.path + '/' + file.name, await file.arrayBuffer())
+        unbind()
       }
+      this.file.name = ''
       this.list()
+      this.flags.blockingOperationPopup = false
     },
 
     itemClicked (item) {
