@@ -54,9 +54,8 @@
         />
       </div>
       <div
-        v-if="!connected || info == null || !flags.rpcActive || flags.rpcToggling"
-        class="flex-center column"
-        :class="flags.updateInProgress ? 'q-mt-xs' : 'q-my-xl'"
+        v-if="!flags.updateInProgress && (!connected || info == null || !flags.rpcActive || flags.rpcToggling)"
+        class="flex-center column q-my-xl"
       >
         <q-spinner
           color="primary"

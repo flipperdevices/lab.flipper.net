@@ -108,6 +108,12 @@ export default defineComponent({
     }
   },
 
+  watch: {
+    async fwModel (newModel, oldModel) {
+      localStorage.setItem('selectedFwChannel', newModel.value)
+    }
+  },
+
   methods: {
     async update () {
       this.flags.updateInProgress = true
@@ -185,7 +191,13 @@ export default defineComponent({
         label: this.channels.custom.channel || 'Custom', value: 'custom', version: this.channels.custom.version || 'unknown'
       })
     }
-    this.fwModel = this.fwOptions[0]
+
+    const selectedBefore = this.fwOptions.find(e => e.value === localStorage.getItem('selectedFwChannel'))
+    if (selectedBefore && !this.channels.custom) {
+      this.fwModel = selectedBefore
+    } else {
+      this.fwModel = this.fwOptions[0]
+    }
   }
 })
 </script>
