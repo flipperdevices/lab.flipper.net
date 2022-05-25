@@ -216,6 +216,7 @@
 import { defineComponent, ref } from 'vue'
 import { exportFile, useQuasar } from 'quasar'
 import ProgressBar from 'components/ProgressBar.vue'
+import asyncSleep from 'simple-async-sleep'
 const flipperIcons = {
   'archive:new': 'img:icons/flipper/action-new.svg',
   'archive:remove': 'img:icons/flipper/action-remove.svg',
@@ -296,13 +297,23 @@ export default defineComponent({
       this.flags.rpcToggling = false
       this.$emit('setRpcStatus', true)
     },
-
     async stopRpc () {
       this.flags.rpcToggling = true
       await this.flipper.commands.stopRpcSession()
       this.flags.rpcActive = false
       this.flags.rpcToggling = false
       this.$emit('setRpcStatus', false)
+    },
+    async restartRpc (force) {
+      if (this.connected && (this.rpcActive || force)) {
+        this.flags.restarting = true
+        await this.flipper.closeReader()
+        await asyncSleep(300)
+        await this.flipper.disconnect()
+        await asyncSleep(300)
+        await this.flipper.connect()
+        await this.startRpc()
+      }
     },
 
     async list () {
@@ -412,6 +423,11 @@ export default defineComponent({
     async start () {
       this.flags.rpcActive = this.rpcActive
       if (!this.rpcActive) {
+        setTimeout(() => {
+          if (!this.rpcActive) {
+            return this.restartRpc(true)
+          }
+        }, 1000)
         await this.startRpc()
       }
       await this.list()

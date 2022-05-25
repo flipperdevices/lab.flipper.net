@@ -15,6 +15,13 @@ const routes = [
     ]
   },
   {
+    path: '/cli',
+    component: () => import('layouts/MainLayout.vue'),
+    children: [
+      { path: '/cli', component: () => import('pages/Cli.vue') }
+    ]
+  },
+  {
     path: '/:catchAll(.*)*',
     component: () => import('pages/Error404.vue')
   }

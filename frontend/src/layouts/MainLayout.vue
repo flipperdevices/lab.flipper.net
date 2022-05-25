@@ -190,6 +190,11 @@ export default defineComponent({
           title: 'Archive',
           icon: 'inventory',
           link: '/archive'
+        },
+        {
+          title: 'CLI',
+          icon: 'terminal',
+          link: '/cli'
         }/* ,
         {
           title: 'IDE',

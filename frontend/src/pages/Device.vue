@@ -129,8 +129,8 @@ export default defineComponent({
       this.$emit('setRpcStatus', false)
     },
 
-    async restartRpc () {
-      if (this.connected && this.rpcActive && !this.flags.restarting) {
+    async restartRpc (force) {
+      if (this.connected && ((this.rpcActive && !this.flags.restarting) || force)) {
         this.flags.restarting = true
         await this.flipper.closeReader()
         await asyncSleep(300)
@@ -138,7 +138,6 @@ export default defineComponent({
         await asyncSleep(300)
         await this.flipper.connect()
         await this.startRpc()
-        await this.readInfo()
         return this.startScreenStream()
       }
     },
@@ -203,6 +202,11 @@ export default defineComponent({
     async start () {
       this.flags.rpcActive = this.rpcActive
       if (!this.rpcActive) {
+        setTimeout(() => {
+          if (!this.rpcActive) {
+            return this.restartRpc(true)
+          }
+        }, 1000)
         await this.startRpc()
       }
       await this.startScreenStream()
