@@ -1,5 +1,5 @@
 import semver from 'semver'
-import untar from 'js-untar'
+import { untar } from './untar/untar.js'
 import pako from 'pako'
 
 function fetchChannels (target) {
@@ -81,9 +81,7 @@ async function fetchFirmware (url) {
 }
 
 function unpack (buffer) {
-  const inflate = new pako.Inflate()
-  inflate.push(new Uint8Array(buffer))
-  const ungzipped = inflate.result
+  const ungzipped = pako.ungzip(new Uint8Array(buffer))
   return untar(ungzipped.buffer)
 }
 
