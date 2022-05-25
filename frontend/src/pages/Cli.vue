@@ -12,7 +12,7 @@
       <p class="text-white">Waiting for Flipper...</p>
     </div>
     <div v-if="connected && !flags.rpcActive" class="full-width" style="height: calc(100vh - 50px)">
-      <div id="terminal-container" class="fit bg-black"></div>
+      <div id="terminal-container" class="fit bg-black q-pl-sm"></div>
     </div>
   </q-page>
 </template>

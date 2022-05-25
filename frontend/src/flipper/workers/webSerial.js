@@ -123,7 +123,18 @@ async function write () {
 }
 
 async function read (mode) {
-  reader = port.readable.getReader()
+  try {
+    reader = port.readable.getReader()
+  } catch (error) {
+    self.postMessage({
+      operation: 'read',
+      status: 0,
+      error: error
+    })
+    if (!error.toString().includes('locked to a reader')) {
+      throw error
+    }
+  }
   const decoder = new TextDecoder()
   let buffer = new Uint8Array(0)
   readComplete = false
