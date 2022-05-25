@@ -14,13 +14,12 @@
     "compile-protofiles": "npx pbjs -t static-module -w es6 --no-comments --lint \"eslint-disable block-scoped-var, id-length, no-control-regex, no-magic-numbers, no-prototype-builtins, no-redeclare, no-shadow, no-var, sort-vars, camelcase, default-case-last, no-mixed-operators\" -o src/flipper/protobuf/proto-compiled.js ./flipperzero-protobuf/*.proto && eslint --fix src/flipper/protobuf/proto-compiled.js"
   },
   "dependencies": {
-    "@quasar/extras": "^1.0.0",
+    "@quasar/extras": "^1.14.0",
     "core-js": "^3.6.5",
-    "js-untar": "^2.0.0",
     "nanoevents": "^6.0.2",
     "pako": "^2.0.4",
     "protobufjs": "~6.11.2",
-    "quasar": "^2.0.0",
+    "quasar": "^2.7.1",
     "semver": "^7.3.6",
     "serialport": "^10.3.0",
     "sha.js": "^2.4.11",
@@ -30,7 +29,7 @@
   },
   "devDependencies": {
     "@babel/eslint-parser": "^7.13.14",
-    "@quasar/app": "^3.0.0",
+    "@quasar/app-webpack": "^3.5.3",
     "electron": "^17.0.1",
     "electron-packager": "^15.4.0",
     "eslint": "^7.14.0",
