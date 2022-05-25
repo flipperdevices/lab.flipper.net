@@ -1,4 +1,4 @@
-import { untar } from './untar/untar.js'
+import { untar } from '../untar/untar.js'
 import pako from 'pako'
 
 class Operation {
