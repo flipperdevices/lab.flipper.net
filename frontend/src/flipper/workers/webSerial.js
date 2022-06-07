@@ -80,6 +80,14 @@ async function write () {
   writerIdle = false
   while (writeQueue.length) {
     const entry = writeQueue[0]
+    if (!port.writable) {
+      self.postMessage({
+        operation: 'write',
+        status: 0,
+        error: 'Writable stream closed'
+      })
+      return
+    }
     const writer = port.writable.getWriter()
 
     if (entry.mode.startsWith('cli')) {

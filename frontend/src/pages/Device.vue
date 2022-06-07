@@ -195,7 +195,7 @@ export default defineComponent({
     },
 
     async restartRpc (force) {
-      if (this.connected && ((this.rpcActive && !this.flags.restarting) || force)) {
+      if ((this.connected && this.flags.rpcActive && !this.flags.restarting) || force) {
         this.flags.restarting = true
         await this.flipper.closeReader()
         await asyncSleep(300)
@@ -241,9 +241,9 @@ export default defineComponent({
         })
       })
 
-      const unbindRestart = this.flipper.emitter.on('restart session', () => {
+      this.unbindRestart = this.flipper.emitter.on('restart session', () => {
         this.flags.screenStream = false
-        unbindRestart()
+        this.unbindRestart()
         return this.restartRpc()
       })
     },
@@ -274,7 +274,9 @@ export default defineComponent({
         }, 1000)
         await this.startRpc()
       }
-      await this.startScreenStream()
+      if (!this.flags.screenStream) {
+        await this.startScreenStream()
+      }
     }
   },
 
@@ -291,6 +293,7 @@ export default defineComponent({
   },
 
   async beforeUnmount () {
+    this.unbindRestart()
     await this.stopScreenStream()
     await asyncSleep(3000)
   }
