@@ -149,6 +149,14 @@
             class="q-mb-md"
           ></q-spinner>
           <p>Waiting for Flipper...</p>
+          <q-btn
+            v-if="flags.portSelectRequired || !flags.connected && !flags.portSelectRequired"
+            @click="flags.portSelectRequired ? selectPort() : start(true)"
+            outline
+            class="q-mt-md"
+          >
+            Connect
+          </q-btn>
         </div>
         <div v-if="!flags.serialSupported" class="column text-center q-px-lg q-py-lg">
           <h5>Unsupported browser</h5>
