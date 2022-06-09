@@ -8,7 +8,7 @@
       v-if="icon"
       avatar
     >
-      <q-icon :name="icon" :color="link === this.$route.path ? 'orange' : ''"/>
+      <q-icon :name="icon" :color="link === this.$route.path ? '#ff8200' : ''"/>
     </q-item-section>
 
     <q-item-section>
