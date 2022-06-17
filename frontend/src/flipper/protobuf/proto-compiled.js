@@ -420,6 +420,7 @@ export const PB = $root.PB = (() => {
     Main.prototype.systemProtobufVersionRequest = null
     Main.prototype.systemProtobufVersionResponse = null
     Main.prototype.systemUpdateRequest = null
+    Main.prototype.systemUpdateResponse = null
     Main.prototype.systemPowerInfoRequest = null
     Main.prototype.systemPowerInfoResponse = null
     Main.prototype.storageInfoRequest = null
@@ -451,7 +452,7 @@ export const PB = $root.PB = (() => {
     let $oneOfFields
 
     Object.defineProperty(Main.prototype, 'content', {
-      get: $util.oneOfGetter($oneOfFields = ['empty', 'stopSession', 'systemPingRequest', 'systemPingResponse', 'systemRebootRequest', 'systemDeviceInfoRequest', 'systemDeviceInfoResponse', 'systemFactoryResetRequest', 'systemGetDatetimeRequest', 'systemGetDatetimeResponse', 'systemSetDatetimeRequest', 'systemPlayAudiovisualAlertRequest', 'systemProtobufVersionRequest', 'systemProtobufVersionResponse', 'systemUpdateRequest', 'systemPowerInfoRequest', 'systemPowerInfoResponse', 'storageInfoRequest', 'storageInfoResponse', 'storageStatRequest', 'storageStatResponse', 'storageListRequest', 'storageListResponse', 'storageReadRequest', 'storageReadResponse', 'storageWriteRequest', 'storageDeleteRequest', 'storageMkdirRequest', 'storageMd5sumRequest', 'storageMd5sumResponse', 'storageRenameRequest', 'storageBackupCreateRequest', 'storageBackupRestoreRequest', 'appStartRequest', 'appLockStatusRequest', 'appLockStatusResponse', 'guiStartScreenStreamRequest', 'guiStopScreenStreamRequest', 'guiScreenFrame', 'guiSendInputEventRequest', 'guiStartVirtualDisplayRequest', 'guiStopVirtualDisplayRequest']),
+      get: $util.oneOfGetter($oneOfFields = ['empty', 'stopSession', 'systemPingRequest', 'systemPingResponse', 'systemRebootRequest', 'systemDeviceInfoRequest', 'systemDeviceInfoResponse', 'systemFactoryResetRequest', 'systemGetDatetimeRequest', 'systemGetDatetimeResponse', 'systemSetDatetimeRequest', 'systemPlayAudiovisualAlertRequest', 'systemProtobufVersionRequest', 'systemProtobufVersionResponse', 'systemUpdateRequest', 'systemUpdateResponse', 'systemPowerInfoRequest', 'systemPowerInfoResponse', 'storageInfoRequest', 'storageInfoResponse', 'storageStatRequest', 'storageStatResponse', 'storageListRequest', 'storageListResponse', 'storageReadRequest', 'storageReadResponse', 'storageWriteRequest', 'storageDeleteRequest', 'storageMkdirRequest', 'storageMd5sumRequest', 'storageMd5sumResponse', 'storageRenameRequest', 'storageBackupCreateRequest', 'storageBackupRestoreRequest', 'appStartRequest', 'appLockStatusRequest', 'appLockStatusResponse', 'guiStartScreenStreamRequest', 'guiStopScreenStreamRequest', 'guiScreenFrame', 'guiSendInputEventRequest', 'guiStartVirtualDisplayRequest', 'guiStopVirtualDisplayRequest']),
       set: $util.oneOfSetter($oneOfFields)
     })
 
@@ -506,6 +507,7 @@ export const PB = $root.PB = (() => {
       if (message.storageBackupRestoreRequest != null && Object.hasOwnProperty.call(message, 'storageBackupRestoreRequest')) { $root.PB_Storage.BackupRestoreRequest.encode(message.storageBackupRestoreRequest, writer.uint32(346).fork()).ldelim() }
       if (message.systemPowerInfoRequest != null && Object.hasOwnProperty.call(message, 'systemPowerInfoRequest')) { $root.PB_System.PowerInfoRequest.encode(message.systemPowerInfoRequest, writer.uint32(354).fork()).ldelim() }
       if (message.systemPowerInfoResponse != null && Object.hasOwnProperty.call(message, 'systemPowerInfoResponse')) { $root.PB_System.PowerInfoResponse.encode(message.systemPowerInfoResponse, writer.uint32(362).fork()).ldelim() }
+      if (message.systemUpdateResponse != null && Object.hasOwnProperty.call(message, 'systemUpdateResponse')) { $root.PB_System.UpdateResponse.encode(message.systemUpdateResponse, writer.uint32(370).fork()).ldelim() }
       return writer
     }
 
@@ -572,6 +574,9 @@ export const PB = $root.PB = (() => {
             break
           case 41:
             message.systemUpdateRequest = $root.PB_System.UpdateRequest.decode(reader, reader.uint32())
+            break
+          case 46:
+            message.systemUpdateResponse = $root.PB_System.UpdateResponse.decode(reader, reader.uint32())
             break
           case 44:
             message.systemPowerInfoRequest = $root.PB_System.PowerInfoRequest.decode(reader, reader.uint32())
@@ -821,6 +826,14 @@ export const PB = $root.PB = (() => {
         {
           const error = $root.PB_System.UpdateRequest.verify(message.systemUpdateRequest)
           if (error) { return 'systemUpdateRequest.' + error }
+        }
+      }
+      if (message.systemUpdateResponse != null && message.hasOwnProperty('systemUpdateResponse')) {
+        if (properties.content === 1) { return 'content: multiple values' }
+        properties.content = 1
+        {
+          const error = $root.PB_System.UpdateResponse.verify(message.systemUpdateResponse)
+          if (error) { return 'systemUpdateResponse.' + error }
         }
       }
       if (message.systemPowerInfoRequest != null && message.hasOwnProperty('systemPowerInfoRequest')) {
@@ -1193,6 +1206,10 @@ export const PB = $root.PB = (() => {
         if (typeof object.systemUpdateRequest !== 'object') { throw TypeError('.PB.Main.systemUpdateRequest: object expected') }
         message.systemUpdateRequest = $root.PB_System.UpdateRequest.fromObject(object.systemUpdateRequest)
       }
+      if (object.systemUpdateResponse != null) {
+        if (typeof object.systemUpdateResponse !== 'object') { throw TypeError('.PB.Main.systemUpdateResponse: object expected') }
+        message.systemUpdateResponse = $root.PB_System.UpdateResponse.fromObject(object.systemUpdateResponse)
+      }
       if (object.systemPowerInfoRequest != null) {
         if (typeof object.systemPowerInfoRequest !== 'object') { throw TypeError('.PB.Main.systemPowerInfoRequest: object expected') }
         message.systemPowerInfoRequest = $root.PB_System.PowerInfoRequest.fromObject(object.systemPowerInfoRequest)
@@ -1482,6 +1499,10 @@ export const PB = $root.PB = (() => {
       if (message.systemPowerInfoResponse != null && message.hasOwnProperty('systemPowerInfoResponse')) {
         object.systemPowerInfoResponse = $root.PB_System.PowerInfoResponse.toObject(message.systemPowerInfoResponse, options)
         if (options.oneofs) { object.content = 'systemPowerInfoResponse' }
+      }
+      if (message.systemUpdateResponse != null && message.hasOwnProperty('systemUpdateResponse')) {
+        object.systemUpdateResponse = $root.PB_System.UpdateResponse.toObject(message.systemUpdateResponse, options)
+        if (options.oneofs) { object.content = 'systemUpdateResponse' }
       }
       return object
     }
@@ -4117,6 +4138,141 @@ export const PB_System = $root.PB_System = (() => {
     }
 
     return UpdateRequest
+  })()
+
+  PB_System.UpdateResponse = (function () {
+    function UpdateResponse (properties) {
+      if (properties) {
+        for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i) {
+          if (properties[keys[i]] != null) { this[keys[i]] = properties[keys[i]] }
+        }
+      }
+    }
+
+    UpdateResponse.prototype.code = 0
+
+    UpdateResponse.create = function create (properties) {
+      return new UpdateResponse(properties)
+    }
+
+    UpdateResponse.encode = function encode (message, writer) {
+      if (!writer) { writer = $Writer.create() }
+      if (message.code != null && Object.hasOwnProperty.call(message, 'code')) { writer.uint32(8).int32(message.code) }
+      return writer
+    }
+
+    UpdateResponse.encodeDelimited = function encodeDelimited (message, writer) {
+      return this.encode(message, writer).ldelim()
+    }
+
+    UpdateResponse.decode = function decode (reader, length) {
+      if (!(reader instanceof $Reader)) { reader = $Reader.create(reader) }
+      const end = length === undefined ? reader.len : reader.pos + length, message = new $root.PB_System.UpdateResponse()
+      while (reader.pos < end) {
+        const tag = reader.uint32()
+        switch (tag >>> 3) {
+          case 1:
+            message.code = reader.int32()
+            break
+          default:
+            reader.skipType(tag & 7)
+            break
+        }
+      }
+      return message
+    }
+
+    UpdateResponse.decodeDelimited = function decodeDelimited (reader) {
+      if (!(reader instanceof $Reader)) { reader = new $Reader(reader) }
+      return this.decode(reader, reader.uint32())
+    }
+
+    UpdateResponse.verify = function verify (message) {
+      if (typeof message !== 'object' || message === null) { return 'object expected' }
+      if (message.code != null && message.hasOwnProperty('code')) {
+        switch (message.code) {
+          default:
+            return 'code: enum value expected'
+          case 0:
+          case 1:
+          case 2:
+          case 3:
+          case 4:
+          case 5:
+          case 6:
+          case 7:
+            break
+        }
+      }
+      return null
+    }
+
+    UpdateResponse.fromObject = function fromObject (object) {
+      if (object instanceof $root.PB_System.UpdateResponse) { return object }
+      const message = new $root.PB_System.UpdateResponse()
+      switch (object.code) {
+        case 'OK':
+        case 0:
+          message.code = 0
+          break
+        case 'ManifestPathInvalid':
+        case 1:
+          message.code = 1
+          break
+        case 'ManifestFolderNotFound':
+        case 2:
+          message.code = 2
+          break
+        case 'ManifestInvalid':
+        case 3:
+          message.code = 3
+          break
+        case 'StageMissing':
+        case 4:
+          message.code = 4
+          break
+        case 'StageIntegrityError':
+        case 5:
+          message.code = 5
+          break
+        case 'ManifestPointerError':
+        case 6:
+          message.code = 6
+          break
+        case 'TargetMismatch':
+        case 7:
+          message.code = 7
+          break
+      }
+      return message
+    }
+
+    UpdateResponse.toObject = function toObject (message, options) {
+      if (!options) { options = {} }
+      const object = {}
+      if (options.defaults) { object.code = options.enums === String ? 'OK' : 0 }
+      if (message.code != null && message.hasOwnProperty('code')) { object.code = options.enums === String ? $root.PB_System.UpdateResponse.UpdateResultCode[message.code] : message.code }
+      return object
+    }
+
+    UpdateResponse.prototype.toJSON = function toJSON () {
+      return this.constructor.toObject(this, $protobuf.util.toJSONOptions)
+    }
+
+    UpdateResponse.UpdateResultCode = (function () {
+      const valuesById = {}, values = Object.create(valuesById)
+      values[valuesById[0] = 'OK'] = 0
+      values[valuesById[1] = 'ManifestPathInvalid'] = 1
+      values[valuesById[2] = 'ManifestFolderNotFound'] = 2
+      values[valuesById[3] = 'ManifestInvalid'] = 3
+      values[valuesById[4] = 'StageMissing'] = 4
+      values[valuesById[5] = 'StageIntegrityError'] = 5
+      values[valuesById[6] = 'ManifestPointerError'] = 6
+      values[valuesById[7] = 'TargetMismatch'] = 7
+      return values
+    })()
+
+    return UpdateResponse
   })()
 
   PB_System.PowerInfoRequest = (function () {
