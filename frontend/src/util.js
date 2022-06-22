@@ -71,7 +71,7 @@ async function fetchFirmware (url) {
   const buffer = await fetch(url)
     .then(async response => {
       if (response.status >= 400) {
-        throw new Error('Failed to fetch resources: ' + response.status)
+        throw new Error('Failed to fetch resources (' + response.status + ')')
       }
       const buffer = await response.arrayBuffer()
       return unpack(buffer)

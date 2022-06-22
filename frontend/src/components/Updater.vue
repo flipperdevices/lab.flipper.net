@@ -45,6 +45,12 @@
     </template>
     <template v-else>
       <p>{{ updateStage }}</p>
+      <q-btn
+        v-if="flags.updateError"
+        outline
+        class="q-mt-md"
+        @click="flags.updateInProgress = false; flags.updateError = false"
+      >Cancel</q-btn>
       <ProgressBar
         v-if="write.filename.length > 0"
         :title="write.filename"
@@ -83,7 +89,8 @@ export default defineComponent({
         outdated: undefined,
         aheadOfRelease: false,
         ableToUpdate: true,
-        updateInProgress: false
+        updateInProgress: false,
+        updateError: false
       }),
       channels: ref({}),
       fwModel: ref({
@@ -126,6 +133,11 @@ export default defineComponent({
       this.updateStage = 'Downloading firmware...'
       if (this.channels[this.fwModel.value].url) {
         const files = await fetchFirmware(this.channels[this.fwModel.value].url)
+          .catch(error => {
+            this.flags.updateError = true
+            this.updateStage = error
+            throw error
+          })
         this.updateStage = 'Loading firmware files'
         let path = '/ext/update/'
         await this.flipper.commands.storage.mkdir('/ext/update')
@@ -155,6 +167,8 @@ export default defineComponent({
         this.updateStage = 'Update in progress, pay attention to your Flipper'
         await this.flipper.commands.system.reboot(2)
       } else {
+        this.flags.updateError = true
+        this.updateStage = 'No channel url'
         throw new Error('No channel url')
       }
     },

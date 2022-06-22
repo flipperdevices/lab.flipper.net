@@ -143,12 +143,6 @@
           v-if="flags.serialSupported && (!flags.connected || info == null || !flags.rpcActive || flags.rpcToggling)"
           class="flex-center column q-my-xl"
         >
-          <q-spinner
-            color="primary"
-            size="3em"
-            class="q-mb-md"
-          ></q-spinner>
-          <p>Waiting for Flipper...</p>
           <q-btn
             v-if="flags.portSelectRequired || !flags.connected && !flags.portSelectRequired"
             @click="flags.portSelectRequired ? selectPort() : start(true)"
@@ -157,6 +151,14 @@
           >
             Connect
           </q-btn>
+          <template v-else>
+            <q-spinner
+              color="primary"
+              size="3em"
+              class="q-mb-md"
+            ></q-spinner>
+            <p>Waiting for Flipper...</p>
+          </template>
         </div>
         <div v-if="!flags.serialSupported" class="column text-center q-px-lg q-py-lg">
           <h5>Unsupported browser</h5>
