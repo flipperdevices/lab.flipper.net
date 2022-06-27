@@ -17,6 +17,7 @@
     "@quasar/extras": "^1.14.0",
     "core-js": "^3.6.5",
     "nanoevents": "^6.0.2",
+    "p2pt": "^1.5.1",
     "pako": "^2.0.4",
     "protobufjs": "~6.11.2",
     "quasar": "^2.7.1",
@@ -40,7 +41,8 @@
     "eslint-plugin-node": "^11.0.0",
     "eslint-plugin-promise": "^5.1.0",
     "eslint-plugin-vue": "^7.0.0",
-    "eslint-webpack-plugin": "^2.4.0"
+    "eslint-webpack-plugin": "^2.4.0",
+    "node-polyfill-webpack-plugin": "^2.0.0"
   },
   "browserslist": [
     "last 10 Chrome versions",

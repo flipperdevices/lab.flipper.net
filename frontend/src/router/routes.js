@@ -22,6 +22,13 @@ const routes = [
     ]
   },
   {
+    path: '/remote-cli',
+    component: () => import('layouts/MainLayout.vue'),
+    children: [
+      { path: '/remote-cli', component: () => import('pages/RemoteCli.vue') }
+    ]
+  },
+  {
     path: '/:catchAll(.*)*',
     component: () => import('pages/Error404.vue')
   }
