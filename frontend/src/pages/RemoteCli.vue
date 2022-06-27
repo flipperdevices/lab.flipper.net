@@ -134,6 +134,7 @@ export default defineComponent({
 
   mounted () {
     this.init()
+    this.p2pt.destroy()
   }
 })
 </script>
