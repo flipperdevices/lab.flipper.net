@@ -129,7 +129,7 @@
 
     <q-page-container>
       <router-view
-        v-if="flags.updateInProgress || (flags.serialSupported && info !== null && this.info.storage_databases_present)"
+        v-if="!flags.connectionRequired || flags.updateInProgress || (flags.serialSupported && info !== null && this.info.storage_databases_present)"
         :flipper="flipper"
         :rpcActive="flags.rpcActive"
         :connected="flags.connected"
@@ -267,6 +267,7 @@ export default defineComponent({
       info: ref(null),
       flags: ref({
         serialSupported: true,
+        connectionRequired: true,
         portSelectRequired: false,
         connected: false,
         rpcActive: false,
@@ -433,8 +434,11 @@ export default defineComponent({
   },
 
   async mounted () {
+    if (location.pathname.includes('remote-cli')) {
+      this.flags.connectionRequired = false
+    }
     if ('serial' in navigator) {
-      if (localStorage.getItem('connectOnStart') !== 'false') {
+      if (localStorage.getItem('connectOnStart') !== 'false' && this.flags.connectionRequired) {
         await this.start()
       } else {
         this.flags.connectOnStart = false
