@@ -172,7 +172,7 @@ export default defineComponent({
 
       this.p2pt.on('peerclose', (peer) => {
         this.peers = this.peers.filter(p => p.id !== peer.id)
-        console.log(`Peer left: ${peer.id}, current peers count: ${this.peers}`)
+        console.log(`Peer left: ${peer.id}, current peers count: ${this.peers.length}`)
       })
 
       this.p2pt.on('msg', (peer, msg) => {
