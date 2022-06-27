@@ -49,8 +49,7 @@ const trackersAnnounceURLs = [
   'wss://tracker.btorrent.xyz:443/announce',
   'wss://tracker.files.fm:7073/announce',
   'wss://tracker.btorrent.xyz',
-  'wss://spacetradersapi-chatbox.herokuapp.com:443/announce',
-  'ws://tracker.files.fm:7072/announce'
+  'wss://spacetradersapi-chatbox.herokuapp.com:443/announce'
 ]
 
 export default defineComponent({
