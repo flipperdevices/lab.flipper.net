@@ -134,6 +134,9 @@ export default defineComponent({
 
   mounted () {
     this.init()
+  },
+
+  async beforeUnmount () {
     this.p2pt.destroy()
   }
 })
