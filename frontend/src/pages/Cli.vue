@@ -22,12 +22,14 @@ import { defineComponent, ref } from 'vue'
 import { Terminal } from 'xterm'
 import 'xterm/css/xterm.css'
 import { FitAddon } from 'xterm-addon-fit'
+import P2PT from 'p2pt'
 
 export default defineComponent({
   name: 'PageCli',
 
   props: {
     flipper: Object,
+    info: Object,
     connected: Boolean,
     rpcActive: Boolean
   },
@@ -41,7 +43,9 @@ export default defineComponent({
       terminal: ref(undefined),
       readInterval: undefined,
       input: ref(''),
-      unbind: ref(undefined)
+      unbind: ref(undefined),
+      p2pt: ref(null),
+      peers: ref([])
     }
   },
 
@@ -63,6 +67,38 @@ export default defineComponent({
       this.terminal.onData(async data => {
         this.write(data)
       })
+
+      // p2pt part
+      const trackersAnnounceURLs = [
+        'wss://tracker.openwebtorrent.com',
+        'wss://tracker.sloppyta.co:443/announce',
+        'wss://tracker.novage.com.ua:443/announce',
+        'wss://tracker.btorrent.xyz:443/announce',
+        'wss://tracker.files.fm:7073/announce',
+        'wss://tracker.btorrent.xyz',
+        'wss://spacetradersapi-chatbox.herokuapp.com:443/announce',
+        'ws://tracker.files.fm:7072/announce'
+      ]
+      const roomName = 'flipper-remote-cli-' + (this.info.hardware_name || Math.random().toString(36).substring(2, 15))
+      this.p2pt = new P2PT(trackersAnnounceURLs, roomName)
+
+      this.p2pt.on('trackerconnect', (tracker, stats) => {
+        console.log('Connected to tracker: ' + tracker.announceUrl)
+        console.log('Tracker stats:', stats)
+      })
+
+      this.p2pt.on('peerconnect', (peer) => {
+        this.peers.push(peer)
+        console.log('New peer: ' + peer.id)
+        console.log('Current peers: ', this.peers)
+      })
+
+      this.p2pt.on('msg', (peer, msg) => {
+        console.log(`Message from ${peer.id}: ${msg}`)
+      })
+
+      console.log(`P2PT starting. My peer id: ${this.p2pt._peerId}, room name: ${roomName}`)
+      this.p2pt.start()
     },
 
     write (data) {
@@ -127,6 +163,7 @@ export default defineComponent({
         if (data) {
           const text = new TextDecoder().decode(data).replaceAll('\x7F', '')
           this.terminal.write(text)
+          // this.p2pt.send(receiver, text)
         }
       })
     }
