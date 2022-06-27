@@ -158,12 +158,12 @@ export default defineComponent({
 
       this.p2pt.on('trackerconnect', (tracker, stats) => {
         this.activeTrackers = stats.connected
+        console.log(`Connected to tracker: ${tracker.announceUrl}, total count: ${stats.connected}`)
       })
 
       this.p2pt.on('peerconnect', (peer) => {
         this.peers.push(peer)
-        // console.log('New peer: ' + peer.id)
-        // console.log('Current peers: ', this.peers)
+        console.log(`New peer: ${peer.id}, current peers count: ${this.peers}`)
         this.p2pt.send(peer, { host: true })
         for (let i = this.terminal.buffer.active.baseY; i <= this.terminal.buffer.active.length - 1; i++) {
           this.p2pt.send(peer, this.terminal.buffer.active.getLine(i)?.translateToString() + '\r\n')
@@ -172,8 +172,7 @@ export default defineComponent({
 
       this.p2pt.on('peerclose', (peer) => {
         this.peers = this.peers.filter(p => p.id !== peer.id)
-        // console.log('Peer left: ' + peer.id)
-        // console.log('Current peers: ', this.peers)
+        console.log(`Peer left: ${peer.id}, current peers count: ${this.peers}`)
       })
 
       this.p2pt.on('msg', (peer, msg) => {
@@ -183,7 +182,7 @@ export default defineComponent({
         // console.log(`Message from ${peer.id}:`, msg)
       })
 
-      // console.log(`P2PT starting. My peer id: ${this.p2pt._peerId}, room name: ${this.roomName}`)
+      console.log(`P2PT starting. My peer id: ${this.p2pt._peerId}, room name: ${this.roomName}`)
       this.p2pt.start()
       this.flags.serverToggling = false
       this.flags.serverActive = true

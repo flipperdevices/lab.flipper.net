@@ -101,14 +101,12 @@ export default defineComponent({
       this.p2pt = new P2PT(trackersAnnounceURLs, this.roomName)
 
       this.p2pt.on('trackerconnect', (tracker, stats) => {
-        // console.log('Connected to tracker: ' + tracker.announceUrl)
-        // console.log('Tracker stats:', stats)
+        console.log(`Connected to tracker: ${tracker.announceUrl}, total count: ${stats.connected}`)
       })
 
       this.p2pt.on('peerconnect', (peer) => {
         this.peers.push(peer)
-        // console.log('New peer: ' + peer.id)
-        // console.log('Current peers: ', this.peers)
+        console.log(`New peer: ${peer.id}, current peers count: ${this.peers}`)
       })
 
       this.p2pt.on('peerclose', (peer) => {
@@ -121,13 +119,13 @@ export default defineComponent({
         // console.log(`Message from ${peer.id}:`, msg)
         if (typeof (msg) === 'object' && msg.host) {
           this.hostPeer = this.peers.find(p => p.id === peer.id)
-          // console.log('Connected to host: ' + peer.id)
+          console.log('Connected to host: ' + peer.id)
         } else if (typeof (msg) === 'string') {
           this.terminal.write(msg)
         }
       })
 
-      // console.log(`P2PT starting. My peer id: ${this.p2pt._peerId}, room name: ${this.roomName}`)
+      console.log(`P2PT starting. My peer id: ${this.p2pt._peerId}, room name: ${this.roomName}`)
       this.p2pt.start()
     }
   },
