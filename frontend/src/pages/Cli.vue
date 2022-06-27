@@ -166,7 +166,7 @@ export default defineComponent({
         // console.log('Current peers: ', this.peers)
         this.p2pt.send(peer, { host: true })
         for (let i = this.terminal.buffer.active.baseY; i <= this.terminal.buffer.active.length - 1; i++) {
-          this.p2pt.send(peer, this.terminal.buffer.active.getLine(i)?.translateToString() + '\r')
+          this.p2pt.send(peer, this.terminal.buffer.active.getLine(i)?.translateToString() + '\r\n')
         }
       })
 
