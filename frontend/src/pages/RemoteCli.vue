@@ -106,7 +106,7 @@ export default defineComponent({
 
       this.p2pt.on('peerconnect', (peer) => {
         this.peers.push(peer)
-        console.log(`New peer: ${peer.id}, current peers count: ${this.peers}`)
+        console.log(`New peer: ${peer.id}, current peers count: ${this.peers.length}`)
       })
 
       this.p2pt.on('peerclose', (peer) => {
