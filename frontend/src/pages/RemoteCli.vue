@@ -1,7 +1,24 @@
 <template>
-  <q-page class="column items-center bg-black">
+  <q-page class="column items-center bg-black q-pl-sm">
     <div class="full-width" style="height: calc(100vh - 50px)">
-      <div id="terminal-container" class="fit bg-black q-pl-sm"></div>
+      <q-card
+        class="absolute-top-right z-top"
+        style="margin-right: 25px"
+      >
+        <q-card-section
+          v-if="flags.connected"
+          class="bg-black text-white"
+        >
+          <div class="text-h6">Remote session</div>
+          <p>
+            Room name: {{ roomName }}<br />
+            My id: {{ socket.id }}<br />
+            Host id: {{ hostId }}<br />
+            Clients connected: {{ clientsCount }}
+          </p>
+        </q-card-section>
+      </q-card>
+      <div id="terminal-container" class="fit bg-black"></div>
     </div>
     <q-dialog v-model="flags.roomNameRequired">
       <q-card>
@@ -13,7 +30,6 @@
         <q-card-section>
           <q-input
             v-model="roomName"
-            :label="'frc-xxx-yyy'"
             :style="$q.screen.width > 380 ? 'width: 300px;' : ''"
           >
             <template v-slot:after>
@@ -40,17 +56,7 @@ import { defineComponent, ref } from 'vue'
 import { Terminal } from 'xterm'
 import 'xterm/css/xterm.css'
 import { FitAddon } from 'xterm-addon-fit'
-import P2PT from 'p2pt'
-
-const trackersAnnounceURLs = [
-  'wss://tracker.openwebtorrent.com',
-  'wss://tracker.sloppyta.co:443/announce',
-  'wss://tracker.novage.com.ua:443/announce',
-  'wss://tracker.btorrent.xyz:443/announce',
-  'wss://tracker.files.fm:7073/announce',
-  'wss://tracker.btorrent.xyz',
-  'wss://spacetradersapi-chatbox.herokuapp.com:443/announce'
-]
+import { io } from 'socket.io-client'
 
 export default defineComponent({
   name: 'PageRemoteCli',
@@ -58,6 +64,7 @@ export default defineComponent({
   setup () {
     return {
       flags: ref({
+        connected: false,
         roomNameRequired: false,
         hostDisconnected: false
       }),
@@ -65,10 +72,11 @@ export default defineComponent({
       readInterval: undefined,
       input: ref(''),
       unbind: ref(undefined),
-      p2pt: ref(null),
-      peers: ref([]),
+      socket: ref(null),
       roomName: ref(''),
-      hostPeer: ref(null)
+      hostId: ref(null),
+      clientsCount: ref(0),
+      clientsPollingInterval: ref(null)
     }
   },
 
@@ -85,7 +93,11 @@ export default defineComponent({
       fitAddon.fit()
 
       this.terminal.onData(data => {
-        this.p2pt.send(this.hostPeer, data)
+        this.socket.emit('dmToHost', this.hostId, data, (res) => {
+          if (res.error) {
+            console.error(res.message)
+          }
+        })
       })
 
       this.startClient()
@@ -98,35 +110,48 @@ export default defineComponent({
         return
       }
 
-      this.p2pt = new P2PT(trackersAnnounceURLs, this.roomName)
+      this.socket = io('ws://localhost:3000')
+      this.socket.on('connect', () => {
+        this.flags.connected = true
+        console.log(`Connected to cli server. My id: ${this.socket.id}`)
 
-      this.p2pt.on('trackerconnect', (tracker, stats) => {
-        console.log(`Connected to tracker: ${tracker.announceUrl}, total count: ${stats.connected}`)
+        this.socket.emit('joinRoom', this.roomName, (res) => {
+          if (res.error) {
+            console.error(res.message)
+          } else if (res.hostId) {
+            console.log(`Connected to room ${this.roomName}. Host id: ${res.hostId}`)
+            this.hostId = res.hostId
+
+            this.clientsPollingInterval = setInterval(() => {
+              this.socket.emit('pollClients', this.roomName, (res) => {
+                if (res.clientsCount) {
+                  this.clientsCount = res.clientsCount - 1
+                }
+              })
+            }, 3000)
+          }
+        })
       })
 
-      this.p2pt.on('peerconnect', (peer) => {
-        this.peers.push(peer)
-        console.log(`New peer: ${peer.id}, current peers count: ${this.peers.length}`)
+      this.socket.on('cliText', (text) => {
+        // console.log('cliText:', text)
+        if (typeof (text) === 'string') {
+          this.terminal.write(text)
+        }
       })
 
-      this.p2pt.on('peerclose', (peer) => {
+      this.socket.on('disconnect', () => {
+        console.log('Disconnected from cli server')
+        this.flags.connected = true
+        this.socket.disconnect()
+        clearInterval(this.clientsPollingInterval)
+      })
+
+      /* this.p2pt.on('peerclose', (peer) => {
         if (peer.id === this.hostPeer.id) {
           this.flags.hostDisconnected = true
         }
-      })
-
-      this.p2pt.on('msg', (peer, msg) => {
-        // console.log(`Message from ${peer.id}:`, msg)
-        if (typeof (msg) === 'object' && msg.host) {
-          this.hostPeer = this.peers.find(p => p.id === peer.id)
-          console.log('Connected to host: ' + peer.id)
-        } else if (typeof (msg) === 'string') {
-          this.terminal.write(msg)
-        }
-      })
-
-      console.log(`P2PT starting. My peer id: ${this.p2pt._peerId}, room name: ${this.roomName}`)
-      this.p2pt.start()
+      }) */
     }
   },
 
@@ -135,7 +160,8 @@ export default defineComponent({
   },
 
   async beforeUnmount () {
-    this.p2pt.destroy()
+    this.socket.disconnect()
+    clearInterval(this.clientsPollingInterval)
   }
 })
 </script>
