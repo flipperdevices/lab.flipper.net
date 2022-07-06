@@ -145,7 +145,7 @@ export default defineComponent({
       this.flags.serverToggling = true
       this.roomName = this.info.hardware_name
       if (!this.socket) {
-        this.socket = io('ws://9986-109-170-22-253.eu.ngrok.io')
+        this.socket = io('ws://my.flipp.dev:3000')
       }
 
       this.socket.on('connect', () => {
