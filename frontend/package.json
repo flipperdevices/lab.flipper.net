@@ -17,7 +17,6 @@
     "@quasar/extras": "^1.14.0",
     "core-js": "^3.6.5",
     "nanoevents": "^6.0.2",
-    "p2pt": "^1.5.1",
     "pako": "^2.0.4",
     "protobufjs": "~6.11.2",
     "quasar": "^2.7.1",
@@ -25,6 +24,7 @@
     "serialport": "^10.3.0",
     "sha.js": "^2.4.11",
     "simple-async-sleep": "^1.0.3",
+    "socket.io-client": "^4.5.1",
     "vue": "^3.0.0",
     "vue-router": "^4.0.0",
     "xterm": "^4.18.0",
@@ -41,8 +41,7 @@
     "eslint-plugin-node": "^11.0.0",
     "eslint-plugin-promise": "^5.1.0",
     "eslint-plugin-vue": "^7.0.0",
-    "eslint-webpack-plugin": "^2.4.0",
-    "node-polyfill-webpack-plugin": "^2.0.0"
+    "eslint-webpack-plugin": "^2.4.0"
   },
   "browserslist": [
     "last 10 Chrome versions",

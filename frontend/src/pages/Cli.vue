@@ -1,5 +1,5 @@
 <template>
-  <q-page class="column items-center bg-black">
+  <q-page class="column items-center bg-black q-pl-sm">
     <div
       v-if="!connected"
       class="column flex-center q-my-xl"
@@ -12,17 +12,18 @@
       <p class="text-white">Waiting for Flipper...</p>
     </div>
     <div v-if="connected && !flags.rpcActive" class="full-width" style="height: calc(100vh - 50px)">
-      <div id="terminal-container" class="fit bg-black q-pl-sm"></div>
+      <div id="terminal-container" class="fit bg-black"></div>
       <q-btn
         @click="flags.sharePopup = true"
         outline
         color="white"
-        class="absolute-top-right q-ma-sm z-top"
+        class="absolute-top-right q-ma-sm z-top shadow-2"
+        style="margin-right: 25px"
       >
         {{ flags.serverActive ? 'Session live' : 'Share session' }}
         <q-badge
           v-if="flags.serverActive"
-          :label="peers.length > 0 ? peers.length.toString() : ''"
+          :label="clientsCount > 0 ? clientsCount : ''"
           rounded
           color="green"
           class="q-ml-md"
@@ -44,8 +45,7 @@
             </p>
 
             <p>
-              Active trackers: {{ activeTrackers }}<br/>
-              Peers connected: {{ peers.length }}
+              Clients connected: {{ clientsCount }}
             </p>
 
             <q-toggle v-model="flags.allowPeerInput" label="Allow peer input" />
@@ -72,17 +72,7 @@ import { defineComponent, ref } from 'vue'
 import { Terminal } from 'xterm'
 import 'xterm/css/xterm.css'
 import { FitAddon } from 'xterm-addon-fit'
-import P2PT from 'p2pt'
-
-const trackersAnnounceURLs = [
-  'wss://tracker.openwebtorrent.com',
-  'wss://tracker.sloppyta.co:443/announce',
-  'wss://tracker.novage.com.ua:443/announce',
-  'wss://tracker.btorrent.xyz:443/announce',
-  'wss://tracker.files.fm:7073/announce',
-  'wss://tracker.btorrent.xyz',
-  'wss://spacetradersapi-chatbox.herokuapp.com:443/announce'
-]
+import { io } from 'socket.io-client'
 
 export default defineComponent({
   name: 'PageCli',
@@ -108,10 +98,10 @@ export default defineComponent({
       readInterval: undefined,
       input: ref(''),
       unbind: ref(undefined),
-      p2pt: ref(null),
+      socket: ref(null),
       roomName: ref(''),
-      peers: ref([]),
-      activeTrackers: ref(0)
+      clientsCount: ref(0),
+      clientsPollingInterval: ref(null)
     }
   },
 
@@ -153,46 +143,60 @@ export default defineComponent({
 
     startServer () {
       this.flags.serverToggling = true
-      this.roomName = 'frc-' + this.info.hardware_name + '-' + Math.floor(Date.now() / 3600000)
-      this.p2pt = new P2PT(trackersAnnounceURLs, this.roomName)
+      this.roomName = this.info.hardware_name
+      if (!this.socket) {
+        this.socket = io('ws://localhost:3000')
+      }
 
-      this.p2pt.on('trackerconnect', (tracker, stats) => {
-        this.activeTrackers = stats.connected
-        console.log(`Connected to tracker: ${tracker.announceUrl}, total count: ${stats.connected}`)
+      this.socket.on('connect', () => {
+        console.log(`Connected to cli server. My id: ${this.socket.id}, room name: ${this.roomName}`)
+
+        this.socket.emit('claimRoomName', this.roomName, (res) => {
+          if (res.error) {
+            console.error(res.message)
+          }
+        })
+
+        this.socket.emit('joinRoom', this.roomName, (res) => {
+          if (res.error) {
+            console.error(res.message)
+          } else {
+            console.log(`Hosting room '${this.roomName}'`)
+
+            this.clientsPollingInterval = setInterval(() => {
+              this.socket.emit('pollClients', this.roomName, (res) => {
+                if (res.clientsCount) {
+                  this.clientsCount = res.clientsCount - 1
+                }
+              })
+            }, 3000)
+          }
+        })
       })
 
-      this.p2pt.on('peerconnect', (peer) => {
-        this.peers.push(peer)
-        console.log(`New peer: ${peer.id}, current peers count: ${this.peers}`)
-        this.p2pt.send(peer, { host: true })
-        for (let i = this.terminal.buffer.active.baseY; i <= this.terminal.buffer.active.length - 1; i++) {
-          this.p2pt.send(peer, this.terminal.buffer.active.getLine(i)?.translateToString() + '\r\n')
+      this.socket.on('dm', (id, text) => {
+        // console.log(`Message from ${id}: ${text}`)
+        if (typeof (text) === 'string' && this.flags.allowPeerInput) {
+          this.write(text)
         }
       })
 
-      this.p2pt.on('peerclose', (peer) => {
-        this.peers = this.peers.filter(p => p.id !== peer.id)
-        console.log(`Peer left: ${peer.id}, current peers count: ${this.peers.length}`)
-      })
-
-      this.p2pt.on('msg', (peer, msg) => {
-        if (typeof (msg) === 'string' && this.flags.allowPeerInput) {
-          this.write(msg)
+      this.socket.on('disconnect', () => {
+        console.log('Disconnected from cli server')
+        if (this.flags.serverActive !== false) {
+          this.stopServer()
         }
-        // console.log(`Message from ${peer.id}:`, msg)
       })
 
-      console.log(`P2PT starting. My peer id: ${this.p2pt._peerId}, room name: ${this.roomName}`)
-      this.p2pt.start()
       this.flags.serverToggling = false
       this.flags.serverActive = true
     },
 
     stopServer () {
       this.flags.serverToggling = true
-      this.p2pt.destroy()
-      this.p2pt = null
-      this.peers = []
+      this.socket.disconnect()
+      clearInterval(this.clientsPollingInterval)
+      this.clientsCount = 0
       this.roomName = ''
       this.flags.serverToggling = false
       this.flags.serverActive = false
@@ -200,9 +204,11 @@ export default defineComponent({
     },
 
     broadcast (msg) {
-      for (const peer of this.peers) {
-        this.p2pt.send(peer, msg)
-      }
+      this.socket.emit('broadcast', this.roomName, msg, (res) => {
+        if (res.error) {
+          console.error(res.message)
+        }
+      })
     },
 
     async start () {
