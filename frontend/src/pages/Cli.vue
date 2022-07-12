@@ -273,7 +273,9 @@ export default defineComponent({
 
   async beforeUnmount () {
     this.unbind()
-    this.stopServer()
+    if (this.flags.serverActive) {
+      this.stopServer()
+    }
   }
 })
 </script>

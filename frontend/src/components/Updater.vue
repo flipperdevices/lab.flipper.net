@@ -62,7 +62,7 @@
 
 <script>
 import { defineComponent, ref } from 'vue'
-import { fetchChannels, fetchFirmware } from '../util'
+import { fetchChannels, fetchFirmware } from '../util/util'
 import ProgressBar from './ProgressBar.vue'
 import semver from 'semver'
 import asyncSleep from 'simple-async-sleep'

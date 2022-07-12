@@ -29,6 +29,13 @@ const routes = [
     ]
   },
   {
+    path: '/paint',
+    component: () => import('layouts/MainLayout.vue'),
+    children: [
+      { path: '/paint', component: () => import('pages/Paint.vue') }
+    ]
+  },
+  {
     path: '/:catchAll(.*)*',
     component: () => import('pages/Error404.vue')
   }

@@ -205,32 +205,12 @@ export default defineComponent({
           title: 'CLI',
           icon: 'terminal',
           link: '/cli'
-        }/* ,
-        {
-          title: 'IDE',
-          icon: 'code',
-          link: '/ide'
         },
         {
-          title: 'NFC',
-          icon: 'nfc',
-          link: '/nfc'
-        },
-        {
-          title: 'Sub GHz',
-          icon: 'cell_tower',
-          link: '/subghz'
-        },
-        {
-          title: 'Tools',
-          icon: 'apps',
-          link: '/tools'
-        },
-        {
-          title: 'Settings',
-          icon: 'settings',
-          link: '/settings'
-        } */
+          title: 'Paint',
+          icon: 'draw',
+          link: '/paint'
+        }
       ],
       extLinks: [
         {

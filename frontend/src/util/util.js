@@ -1,5 +1,5 @@
 import semver from 'semver'
-import { untar } from './untar/untar.js'
+import { untar } from '../untar/untar.js'
 import pako from 'pako'
 
 function fetchChannels (target) {
