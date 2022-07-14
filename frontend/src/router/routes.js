@@ -36,6 +36,13 @@ const routes = [
     ]
   },
   {
+    path: '/pulse-plotter',
+    component: () => import('layouts/MainLayout.vue'),
+    children: [
+      { path: '/pulse-plotter', component: () => import('pages/Pulseplot.vue') }
+    ]
+  },
+  {
     path: '/:catchAll(.*)*',
     component: () => import('pages/Error404.vue')
   }

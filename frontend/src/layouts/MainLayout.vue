@@ -210,6 +210,11 @@ export default defineComponent({
           title: 'Paint',
           icon: 'draw',
           link: '/paint'
+        },
+        {
+          title: 'Pulse plotter',
+          icon: 'equalizer',
+          link: '/pulse-plotter'
         }
       ],
       extLinks: [
@@ -238,6 +243,10 @@ export default defineComponent({
           icon: 'open_in_new',
           link: 'https://forum.flipperzero.one/'
         }
+      ],
+      openableWithoutFlipper: [
+        'remote-cli',
+        'pulse-plotter'
       ],
       leftDrawer: ref(false),
       linksMenu: ref(false),
@@ -414,8 +423,11 @@ export default defineComponent({
   },
 
   async mounted () {
-    if (location.pathname.includes('remote-cli')) {
-      this.flags.connectionRequired = false
+    for (const link of this.openableWithoutFlipper) {
+      if (location.pathname.includes(link)) {
+        this.flags.connectionRequired = false
+        break
+      }
     }
     if ('serial' in navigator) {
       if (localStorage.getItem('connectOnStart') !== 'false' && this.flags.connectionRequired) {
