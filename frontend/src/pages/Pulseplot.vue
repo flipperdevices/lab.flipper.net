@@ -59,7 +59,21 @@ export default defineComponent({
         if (line.startsWith('Frequency')) {
           frequency = line.split(' ')[1]
         } else if (line.startsWith('RAW_Data')) {
-          rawData += line.slice(10) + ' '
+          let raw = line.replaceAll('RAW_Data: ', ' ')
+          const deviations = raw.match(/(\s\d+\s\d+)|(\s-\d+\s-\d+)/g)
+          if (deviations) {
+            for (const match of deviations) {
+              const s = match.trim().split(' ')
+              if (s[1].startsWith('-')) {
+                s.splice(1, 0, '1')
+              } else {
+                s.splice(1, 0, '-1')
+              }
+              raw = raw.replace(match, ' ' + s.join(' '))
+              console.log(`Fixed deviation:${match} ->${' ' + s.join(' ')}`)
+            }
+          }
+          rawData += raw
         }
       }
 
@@ -68,6 +82,7 @@ export default defineComponent({
       }
       rawData = rawData.replaceAll('-', '').split(' ')
       rawData = rawData.map(e => Number(e))
+      // console.log(rawData)
 
       this.data = {
         centerfreq_Hz: frequency,
