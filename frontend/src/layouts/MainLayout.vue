@@ -16,6 +16,7 @@
           v-show="!$q.screen.xs"
           src="../assets/flipper-logo.svg"
           class="q-ml-sm"
+          style="height: 18px;"
         />
 
         <q-space></q-space>
