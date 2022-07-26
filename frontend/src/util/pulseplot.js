@@ -2533,11 +2533,17 @@
             // canvas.parentNode.style.width = canvas.width + 'px'
             // canvas.style.height = canvas.height + 'px'
 
-            const ctx = canvas.getContext('2d')
+            const ctx = canvas.getContext('2d', {
+              alpha: false,
+              desynchronized: true
+            })
             const scroll = -this.scroll
             const scale = width * this.zoom / this.data.width
             const yHi = this.yHi + 0.5
             const yLo = this.yLo + 0.5 // time axis
+
+            ctx.fillStyle = "#ffffff"
+            ctx.fillRect(0, 0, canvas.width, canvas.height)
 
             ctx.font = this.theme.font
             const textMeasure = ctx.measureText('8')
@@ -2728,6 +2734,19 @@
 
             ctx.stroke()
             if (!this.data.pulses || !this.data.pulses.length) return // marks
+            // console.log(this.data)
+            let pulses = this.data.pulses, shrinkRate = 1
+            if (this.data.pulses.length > this.width) {
+              pulses = []
+              shrinkRate = Math.ceil(this.data.pulses.length / this.width)
+              for (let i = 0; i < this.width; i++) {
+                pulses.push(this.data.pulses[i * shrinkRate])
+              }
+              // console.log(pulses)
+              // console.log(this.width)
+              // shrinkRate = 1
+              // pulses = this.data.pulses
+            }
 
             let x = scroll
             ctx.lineWidth = this.theme.hiLine
@@ -2736,9 +2755,9 @@
             ctx.fillStyle = this.theme.hiFill
             ctx.beginPath()
 
-            for (let j = 0; j < this.data.pulses.length; j += 2) {
+            for (let j = 0; j < pulses.length; j += 2) {
               const x0 = x
-              x += this.data.pulses[j] * scale // mark
+              x += pulses[j] * scale * shrinkRate // mark
 
               if ((x0 >= 0 && x0 < width) || (x >= 0 && x < width) || (x0 < 0 && x > width)) {
                 ctx.fillRect(~~x0, yHi, ~~(x - x0), yLo - yHi)
@@ -2746,7 +2765,7 @@
                 ctx.lineTo(~~x + 0, yHi)
               }
 
-              x += this.data.pulses[j + 1] * scale // space
+              x += pulses[j + 1] * scale * shrinkRate // space
             }
 
             ctx.stroke() // spaces
@@ -2758,11 +2777,11 @@
             ctx.fillStyle = this.theme.loFill
             ctx.beginPath()
 
-            for (let j = 0; j < this.data.pulses.length; j += 2) {
-              x += this.data.pulses[j] * scale // mark
+            for (let j = 0; j < pulses.length; j += 2) {
+              x += pulses[j] * scale * shrinkRate // mark
 
               const x0 = x
-              x += this.data.pulses[j + 1] * scale // space
+              x += pulses[j + 1] * scale * shrinkRate // space
 
               if ((x0 >= 0 && x0 < width) || (x >= 0 && x < width) || (x0 < 0 && x > width)) {
                 ctx.fillRect(~~x0, yHi, ~~(x - x0), yLo - yHi)
@@ -2779,13 +2798,13 @@
             ctx.setLineDash(this.theme.edgeDash)
             ctx.beginPath()
 
-            for (let j = 0; j < this.data.pulses.length; j += 1) {
+            for (let j = 0; j < pulses.length; j += 1) {
               if (x >= 0 && x < width) {
                 ctx.moveTo(~~x - 0.5, yLo - 0.5)
                 ctx.lineTo(~~x - 0.5, yHi + 0.5)
               }
 
-              x += this.data.pulses[j] * scale // mark or space
+              x += pulses[j] * scale * shrinkRate // mark or space
             }
 
             ctx.stroke() // text
@@ -2794,10 +2813,10 @@
             ctx.fillStyle = this.theme.textFill
             const textY = yHi + (yLo - yHi + fontY) / 2
 
-            for (let j = 0; j < this.data.pulses.length; j += 1) {
-              const p = this.data.pulses[j] // mark or space
+            for (let j = 0; j < pulses.length; j += 1) {
+              const p = pulses[j] // mark or space
 
-              const w = p * scale
+              const w = p * scale * shrinkRate
 
               if (w > 30) {
                 const x0 = x + w / 2

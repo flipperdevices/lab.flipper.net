@@ -13,9 +13,8 @@
       </template>
     </q-file>
     <p v-if="flags.wrongFileType">Wrong file type. Only Flipper SubGhz RAW Files are accepted.</p>
-
     <div class="pulseplot fit">
-      <canvas class="pulseplot-canvas"></canvas>
+      <canvas class="pulseplot-canvas" style="image-rendering: pixelated;"></canvas>
       <div class="pulseplot-timings"></div>
     </div>
   </q-page>
@@ -41,6 +40,9 @@ export default defineComponent({
 
   watch: {
     uploadedFile (newFile, oldFile) {
+      if (this.plot) {
+        this.plot.destroy()
+      }
       this.flags.wrongFileType = false
       this.format(newFile)
     }
@@ -94,7 +96,8 @@ export default defineComponent({
     draw () {
       this.plot = new Pulseplot({
         parent: '.pulseplot',
-        data: this.data
+        data: this.data,
+        height: 300
       })
       this.plot.enableScrollZoom()
     }
