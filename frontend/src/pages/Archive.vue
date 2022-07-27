@@ -37,6 +37,14 @@
                   Upload file
                 </q-item-section>
               </q-item>
+              <q-item clickable @click="flags.uploadFolderPopup = true; uploadedFiles = null">
+                <q-item-section avatar>
+                  <q-icon name="archive:folder"/>
+                </q-item-section>
+                <q-item-section>
+                  Upload folder
+                </q-item-section>
+              </q-item>
               <q-item clickable @click="flags.mkdirPopup = true; editorText = ''">
                 <q-item-section avatar>
                   <q-icon name="archive:folder"/>
@@ -108,6 +116,40 @@
           </q-item-section>
         </q-item>
       </q-list>
+      <q-dialog v-model="flags.uploadFolderPopup">
+        <q-card>
+          <q-card-section class="q-pt-none">
+            <q-file
+              outlined
+              multiple
+              webkitdirectory
+              v-model="uploadedFiles"
+              label="Drop or select folder"
+              class="q-pt-md"
+              :style="$q.screen.width > 380 ? 'width: 300px;' : ''"
+            >
+              <template v-slot:prepend>
+                <q-icon name="archive:file"></q-icon>
+              </template>
+            </q-file>
+          </q-card-section>
+
+          <q-card-actions align="right">
+            <q-btn
+              flat
+              label="Upload"
+              v-close-popup
+              @click="upload"
+            ></q-btn>
+            <q-btn
+              flat
+              label="Cancel"
+              color="negative"
+              v-close-popup
+            ></q-btn>
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
       <q-dialog v-model="flags.uploadPopup">
         <q-card>
           <q-card-section class="q-pt-none">
@@ -264,6 +306,7 @@ export default defineComponent({
         rpcActive: false,
         rpcToggling: false,
         uploadPopup: false,
+        uploadFolderPopup: false,
         renamePopup: false,
         mkdirPopup: false,
         blockingOperationPopup: false
@@ -318,6 +361,10 @@ export default defineComponent({
 
     async list () {
       let res = await this.flipper.commands.storage.list(this.path)
+      if (res.length === 0) {
+        this.dir = res
+        return
+      }
       if (res === 'empty response' || res[0] === undefined) {
         return setTimeout(this.list, 300)
       }
@@ -365,10 +412,27 @@ export default defineComponent({
       this.flags.blockingOperationPopup = true
       for (const file of this.uploadedFiles) {
         this.file.name = file.name
+        let dir = this.path
+
+        if (file.webkitRelativePath?.length > 0) {
+          const path = file.webkitRelativePath.split('/')
+          path.pop()
+          while (path.length > 0) {
+            dir += '/' + path.shift()
+            await this.flipper.commands.storage.stat(dir).catch(async e => {
+              if (e === 'ERROR_STORAGE_NOT_EXIST') {
+                await this.flipper.commands.storage.mkdir(dir)
+              } else {
+                throw e
+              }
+            })
+          }
+        }
+
         const unbind = this.flipper.emitter.on('storageWriteRequest/progress', e => {
           this.file.progress = e.progress / e.total
         })
-        await this.flipper.commands.storage.write(this.path + '/' + file.name, await file.arrayBuffer())
+        await this.flipper.commands.storage.write(dir + '/' + file.name, await file.arrayBuffer())
         unbind()
       }
       this.file.name = ''
