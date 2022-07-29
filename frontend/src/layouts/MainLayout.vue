@@ -245,7 +245,7 @@ export default defineComponent({
           link: 'https://forum.flipperzero.one/'
         }
       ],
-      openableWithoutFlipper: [
+      canLoadWithoutFlipper: [
         'remote-cli',
         'pulse-plotter'
       ],
@@ -267,6 +267,12 @@ export default defineComponent({
       }),
       reconnectLoop: ref(null),
       connectionStatus: ref('Ready to connect')
+    }
+  },
+
+  watch: {
+    $route (to, from) {
+      this.checkConnectionRequirement(to.path)
     }
   },
 
@@ -408,6 +414,16 @@ export default defineComponent({
       }
     },
 
+    checkConnectionRequirement (path) {
+      this.flags.connectionRequired = true
+      for (const link of this.canLoadWithoutFlipper) {
+        if ((path && path.includes(link)) || location.pathname.includes(link)) {
+          this.flags.connectionRequired = false
+          break
+        }
+      }
+    },
+
     async start (manual) {
       const ports = await this.findKnownDevices()
       if (ports && ports.length > 0) {
@@ -424,12 +440,7 @@ export default defineComponent({
   },
 
   async mounted () {
-    for (const link of this.openableWithoutFlipper) {
-      if (location.pathname.includes(link)) {
-        this.flags.connectionRequired = false
-        break
-      }
-    }
+    this.checkConnectionRequirement()
     if ('serial' in navigator) {
       if (localStorage.getItem('connectOnStart') !== 'false' && this.flags.connectionRequired) {
         await this.start()
