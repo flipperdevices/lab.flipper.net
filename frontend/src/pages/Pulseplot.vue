@@ -1,6 +1,6 @@
 <template>
   <q-page class="column items-center q-pa-md">
-    <div class="text-h6">Sub-GHz pulse plotter</div>
+    <div class="text-h6">Sub-GHz/Infrared pulse plotter</div>
     <q-file
       outlined
       v-model="uploadedFile"
@@ -12,8 +12,18 @@
         <q-icon name="file_upload"></q-icon>
       </template>
     </q-file>
-    <p v-if="flags.wrongFileType">Wrong file type. Only Flipper SubGhz RAW Files are accepted.</p>
-    <div class="pulseplot fit">
+    <p v-if="flags.wrongFileType">Wrong file type. Only <b>SubGhz RAW</b> and <b>Infrared RAW</b> files are accepted.</p>
+
+    <q-select
+      v-if="currentSignal"
+      v-model="currentSignal"
+      :options="signals"
+      option-label="name"
+      label="Select signal"
+      style="min-width: 200px;"
+    />
+
+    <div class="pulseplot fit" v-show="!flags.wrongFileType">
       <canvas class="pulseplot-canvas" style="image-rendering: pixelated;"></canvas>
       <div class="pulseplot-timings"></div>
     </div>
@@ -34,7 +44,9 @@ export default defineComponent({
       }),
       uploadedFile: ref(null),
       plot: ref(null),
-      data: ref(null)
+      data: ref(null),
+      signals: ref(null),
+      currentSignal: ref(null)
     }
   },
 
@@ -44,18 +56,40 @@ export default defineComponent({
         this.plot.destroy()
       }
       this.flags.wrongFileType = false
-      this.format(newFile)
+      this.signals = null
+      this.currentSignal = null
+      this.switchFiletype(newFile)
+    },
+    currentSignal (newSignal, oldSignal) {
+      if (newSignal) {
+        if (this.plot) {
+          this.plot.destroy()
+        }
+        this.data = {
+          centerfreq_Hz: newSignal.frequency,
+          pulses: newSignal.data
+        }
+        this.draw()
+      }
     }
   },
 
   methods: {
-    async format (file) {
+    async switchFiletype (file) {
       const text = new TextDecoder().decode(await file.arrayBuffer()).split(/\r?\n/)
-      if (text[0] !== 'Filetype: Flipper SubGhz RAW File') {
-        this.flags.wrongFileType = true
-        return
-      }
 
+      switch (text[0]) {
+        case 'Filetype: Flipper SubGhz RAW File':
+          return this.processSubGhz(text)
+        case 'Filetype: IR signals file':
+          return this.processIr(text)
+        default:
+          this.flags.wrongFileType = true
+          break
+      }
+    },
+
+    processSubGhz (text) {
       let frequency, rawData = ''
       for (const line of text) {
         if (line.startsWith('Frequency')) {
@@ -84,13 +118,44 @@ export default defineComponent({
       }
       rawData = rawData.replaceAll('-', '').split(' ')
       rawData = rawData.map(e => Number(e))
-      // console.log(rawData)
 
       this.data = {
         centerfreq_Hz: frequency,
         pulses: rawData
       }
       this.draw()
+    },
+
+    processIr (text) {
+      let signals = [], i = -1
+      for (const line of text) {
+        if (line.startsWith('#')) {
+          i++
+          signals[i] = {}
+        } else if (line.startsWith('name')) {
+          signals[i].name = line.split(' ')[1]
+        } else if (line.startsWith('type')) {
+          signals[i].type = line.split(' ')[1]
+        } else if (line.startsWith('frequency')) {
+          signals[i].frequency = line.split(' ')[1]
+        } else if (line.startsWith('data')) {
+          signals[i].data = line.split(': ')[1]
+        }
+      }
+
+      signals = signals.filter(e => e.type === 'raw')
+      if (signals.length === 0) {
+        this.flags.wrongFileType = true
+        return
+      }
+
+      for (const signal of signals) {
+        signal.data = signal.data.split(' ')
+        signal.data = signal.data.map(e => Number(e))
+      }
+
+      this.signals = signals
+      this.currentSignal = signals[0]
     },
 
     draw () {
