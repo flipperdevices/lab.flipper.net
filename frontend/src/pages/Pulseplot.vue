@@ -113,6 +113,8 @@ export default defineComponent({
         }
       }
 
+      rawData = rawData.trim()
+
       if (rawData.startsWith('-')) {
         rawData = '0 ' + rawData
       }
