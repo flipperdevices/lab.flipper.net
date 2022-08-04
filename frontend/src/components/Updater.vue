@@ -31,7 +31,7 @@
           </q-select>
           <q-btn
             v-if="fwModel"
-            @click="update"
+            @click="update(false)"
             color="positive"
             padding="12px 30px"
             :class="!$q.screen.xs ? 'q-ml-lg' : 'q-mt-sm'"
