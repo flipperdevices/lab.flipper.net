@@ -37,6 +37,11 @@
             :class="!$q.screen.xs ? 'q-ml-lg' : 'q-mt-sm'"
           >Install</q-btn>
         </div>
+        <q-btn
+          v-if="installFromFile && flags.uploadEnabled"
+          @click="flags.uploadPopup = true; uploadedFile = null"
+          class="q-mt-lg"
+        >Install from file</q-btn>
       </template>
       <template v-else>
         <span v-if="info.storage_sdcard_present">Your firmware doesn't support self-update. Install latest release with <a href="https://update.flipperzero.one">qFlipper desktop tool</a>.</span>
@@ -57,12 +62,44 @@
         :progress="write.progress"
       />
     </template>
+    <q-dialog v-model="flags.uploadPopup">
+      <q-card>
+        <q-card-section class="q-pt-none">
+          <q-file
+            outlined
+            v-model="uploadedFile"
+            label="Drop or select files"
+            class="q-pt-md"
+            :style="$q.screen.width > 380 ? 'width: 300px;' : ''"
+          >
+            <template v-slot:prepend>
+              <q-icon name="file_upload"></q-icon>
+            </template>
+          </q-file>
+        </q-card-section>
+
+        <q-card-actions align="right">
+          <q-btn
+            flat
+            label="Upload"
+            v-close-popup
+            @click="update(true)"
+          ></q-btn>
+          <q-btn
+            flat
+            label="Cancel"
+            color="negative"
+            v-close-popup
+          ></q-btn>
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </div>
 </template>
 
 <script>
 import { defineComponent, ref } from 'vue'
-import { fetchChannels, fetchFirmware } from '../util/util'
+import { fetchChannels, fetchFirmware, unpack } from '../util/util'
 import ProgressBar from './ProgressBar.vue'
 import semver from 'semver'
 import asyncSleep from 'simple-async-sleep'
@@ -77,7 +114,8 @@ export default defineComponent({
   props: {
     flipper: Object,
     rpcActive: Boolean,
-    info: Object
+    info: Object,
+    installFromFile: Boolean
   },
 
   setup () {
@@ -90,7 +128,9 @@ export default defineComponent({
         aheadOfRelease: false,
         ableToUpdate: true,
         updateInProgress: false,
-        updateError: false
+        updateError: false,
+        uploadEnabled: true,
+        uploadPopup: false
       }),
       channels: ref({}),
       fwModel: ref({
@@ -111,7 +151,8 @@ export default defineComponent({
       write: ref({
         filename: '',
         progress: 0
-      })
+      }),
+      uploadedFile: ref(null)
     }
   },
 
@@ -122,22 +163,41 @@ export default defineComponent({
   },
 
   methods: {
-    async update () {
+    async update (fromFile) {
       this.flags.updateInProgress = true
       this.$emit('update', 'start')
-      await this.loadFirmware()
+      if (fromFile) {
+        if (!this.uploadedFile) {
+          this.flags.updateError = true
+          this.$emit('update', 'end')
+          this.updateStage = 'No file selected'
+          throw new Error('No file selected')
+        } else if (!this.uploadedFile.name.endsWith('.tgz')) {
+          this.flags.updateError = true
+          this.$emit('update', 'end')
+          this.updateStage = 'Wrong file format'
+          throw new Error('Wrong file format')
+        }
+      }
+      await this.loadFirmware(fromFile)
       this.flags.updateInProgress = false
     },
 
-    async loadFirmware () {
-      this.updateStage = 'Downloading firmware...'
-      if (this.channels[this.fwModel.value].url) {
-        const files = await fetchFirmware(this.channels[this.fwModel.value].url)
-          .catch(error => {
-            this.flags.updateError = true
-            this.updateStage = error
-            throw error
-          })
+    async loadFirmware (fromFile) {
+      this.updateStage = 'Loading firmware bundle...'
+      if (fromFile || this.channels[this.fwModel.value].url) {
+        let files
+        if (!fromFile) {
+          files = await fetchFirmware(this.channels[this.fwModel.value].url)
+            .catch(error => {
+              this.flags.updateError = true
+              this.updateStage = error
+              throw error
+            })
+        } else {
+          const buffer = await this.uploadedFile.arrayBuffer()
+          files = await unpack(buffer)
+        }
         this.updateStage = 'Loading firmware files'
         let path = '/ext/update/'
         await this.flipper.commands.storage.mkdir('/ext/update')

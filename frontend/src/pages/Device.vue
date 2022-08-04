@@ -54,6 +54,7 @@
           :flipper="flipper"
           :rpcActive="rpcActive"
           :info="info"
+          :installFromFile="installFromFile"
           @update="onUpdateStage"
         />
       </div>
@@ -84,7 +85,8 @@ export default defineComponent({
     flipper: Object,
     connected: Boolean,
     rpcActive: Boolean,
-    info: Object
+    info: Object,
+    installFromFile: Boolean
   },
 
   components: {
@@ -258,7 +260,7 @@ export default defineComponent({
       if (stage === 'start') {
         this.flags.updateInProgress = true
         this.stopScreenStream()
-      } else if (stage === 'success') {
+      } else if (stage === 'end') {
         this.flags.updateInProgress = false
         this.startScreenStream()
       }

@@ -34,6 +34,7 @@
             v-else-if="this.info"
             outline
             class="q-mx-sm"
+            icon="tune"
             :label="info.hardware_name"
           >
           <q-menu :offset="[0, 10]">
@@ -49,6 +50,11 @@
                   v-model="flags.autoReconnect"
                   @click="toggleAutoReconnect"
                   label="Auto-reconnect"
+                ></q-toggle>
+                <q-toggle
+                  v-model="flags.installFromFile"
+                  @click="toggleInstallFromFile"
+                  label="3rd party firmware install"
                 ></q-toggle>
               </div>
 
@@ -135,6 +141,7 @@
         :rpcActive="flags.rpcActive"
         :connected="flags.connected"
         :info="info"
+        :installFromFile="flags.installFromFile"
         @setRpcStatus="setRpcStatus"
         @setInfo="setInfo"
         @update="onUpdateStage"
@@ -263,7 +270,8 @@ export default defineComponent({
         rpcActive: false,
         connectOnStart: true,
         autoReconnect: false,
-        updateInProgress: false
+        updateInProgress: false,
+        installFromFile: false
       }),
       reconnectLoop: ref(null),
       connectionStatus: ref('Ready to connect')
@@ -400,6 +408,9 @@ export default defineComponent({
     toggleAutoReconnect () {
       localStorage.setItem('autoReconnect', this.flags.autoReconnect)
     },
+    toggleInstallFromFile () {
+      localStorage.setItem('installFromFile', this.flags.installFromFile)
+    },
     setRpcStatus (s) {
       this.flags.rpcActive = s
     },
@@ -449,6 +460,9 @@ export default defineComponent({
       }
       if (localStorage.getItem('autoReconnect') !== 'false') {
         this.flags.autoReconnect = true
+      }
+      if (localStorage.getItem('installFromFile') === 'true') {
+        this.flags.installFromFile = true
       }
       navigator.serial.addEventListener('disconnect', e => {
         this.autoReconnect()
