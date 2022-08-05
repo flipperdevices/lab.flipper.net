@@ -2,9 +2,11 @@
   <div class="updater column flex-center text-center">
     <template v-if="!flags.updateInProgress">
       <template v-if="flags.ableToUpdate && info.storage_sdcard_present">
-        <p v-if="flags.outdated">Your firmware is out of date, newest release is {{ channels.release.version }}.</p>
-        <p v-else-if="flags.aheadOfRelease">Your firmware is ahead of current release.</p>
-        <p v-else-if="info.firmware_version !== 'unknown'">Your firmware is up to date.</p>
+        <template v-if="flags.outdated !== undefined">
+          <p v-if="flags.outdated">Your firmware is out of date, newest release is {{ channels.release.version }}.</p>
+          <p v-else-if="flags.aheadOfRelease">Your firmware is ahead of current release.</p>
+          <p v-else-if="info.firmware_version !== 'unknown'">Your firmware is up to date.</p>
+        </template>
         <p v-if="channels.custom">
           Detected custom firmware <b>"{{ channels.custom.channel }}"</b>
           <span v-if="!this.channels.custom.url.endsWith('tgz')"> with <b>unsupported</b> filetype</span>
@@ -238,7 +240,7 @@ export default defineComponent({
         this.flags.ableToUpdate = false
       }
       if (this.info.firmware_version) {
-        if (this.info.firmware_version !== 'unknown') {
+        if (this.info.firmware_version !== 'unknown' && semver.valid(this.info.firmware_version)) {
           if (semver.eq(this.info.firmware_version, this.channels.release.version)) {
             this.flags.outdated = false
           } else if (semver.gt(this.info.firmware_version, this.channels.release.version)) {
