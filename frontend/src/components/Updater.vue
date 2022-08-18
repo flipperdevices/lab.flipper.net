@@ -102,7 +102,7 @@
 
 <script>
 import { defineComponent, ref } from 'vue'
-import { fetchChannels, fetchFirmware, unpack } from '../util/util'
+import { fetchChannels, fetchFirmware, fetchRegions, unpack } from '../util/util'
 import ProgressBar from './ProgressBar.vue'
 import semver from 'semver'
 import asyncSleep from 'simple-async-sleep'
@@ -205,6 +205,45 @@ export default defineComponent({
 
     async loadFirmware (fromFile) {
       this.updateStage = 'Loading firmware bundle...'
+      const regions = await fetchRegions()
+        .catch(error => {
+          this.$emit('showNotif', {
+            message: 'Failed to fetch regions: ' + error.toString(),
+            color: 'negative'
+          })
+          this.$emit('log', {
+            level: 'error',
+            message: 'Updater: Failed to fetch regions: ' + error.toString()
+          })
+          throw error
+        })
+      const bands = regions.countries[regions.country].map(e => regions.bands[e])
+      const t = new TextEncoder()
+      const bandsBinary = bands.map(e => {
+        return {
+          start: t.encode(e.start),
+          end: t.encode(e.end),
+          max_power: t.encode(e.max_power),
+          duty_cycle: t.encode(e.duty_cycle)
+        }
+      })
+      let merged = t.encode(regions.country)
+      for (const band of bandsBinary) {
+        const temp = new Uint8Array(merged.length + band.start.length + band.end.length + band.max_power.length + band.duty_cycle.length)
+        temp.set(merged)
+        temp.set(band.start, merged.length)
+        temp.set(band.end, band.start.length + merged.length)
+        temp.set(band.max_power, band.end.length + band.start.length + merged.length)
+        temp.set(band.duty_cycle, band.max_power.length + band.end.length + band.start.length + merged.length)
+        merged = temp
+      }
+      await this.flipper.commands.storage.write('/int/.region_data', merged)
+        .catch(error => this.rpcErrorHandler(error, 'storage.write'))
+      this.$emit('log', {
+        level: 'debug',
+        message: 'Updater: wrote /int/.region_data: region: ' + regions.country
+      })
+
       if (fromFile || (this.channels[this.fwModel.value] && this.channels[this.fwModel.value].url)) {
         let files
         if (!fromFile) {
@@ -213,12 +252,12 @@ export default defineComponent({
               this.flags.updateError = true
               this.updateStage = error
               this.$emit('showNotif', {
-                message: error.toString(),
+                message: 'Failed to fetch firmware: ' + error.toString(),
                 color: 'negative'
               })
               this.$emit('log', {
                 level: 'error',
-                message: 'Updater: ' + error.toString()
+                message: 'Updater: Failed to fetch firmware: ' + error.toString()
               })
               throw error
             })
