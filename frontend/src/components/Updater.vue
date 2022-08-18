@@ -168,6 +168,10 @@ export default defineComponent({
     async update (fromFile) {
       this.flags.updateInProgress = true
       this.$emit('update', 'start')
+      this.$emit('log', {
+        level: 'debug',
+        message: 'Updater: update started'
+      })
       if (fromFile) {
         if (!this.uploadedFile) {
           this.flags.updateError = true
@@ -182,18 +186,39 @@ export default defineComponent({
         }
       }
       await this.loadFirmware(fromFile)
+        .catch(error => {
+          this.flags.updateError = true
+          this.updateStage = error
+          this.$emit('showNotif', {
+            message: error.toString(),
+            color: 'negative'
+          })
+          this.$emit('log', {
+            level: 'error',
+            message: 'Updater: ' + error.toString()
+          })
+          throw error
+        })
       this.flags.updateInProgress = false
     },
 
     async loadFirmware (fromFile) {
       this.updateStage = 'Loading firmware bundle...'
-      if (fromFile || this.channels[this.fwModel.value].url) {
+      if (fromFile || (this.channels[this.fwModel.value] && this.channels[this.fwModel.value].url)) {
         let files
         if (!fromFile) {
           files = await fetchFirmware(this.channels[this.fwModel.value].url)
             .catch(error => {
               this.flags.updateError = true
               this.updateStage = error
+              this.$emit('showNotif', {
+                message: error.toString(),
+                color: 'negative'
+              })
+              this.$emit('log', {
+                level: 'error',
+                message: 'Updater: ' + error.toString()
+              })
               throw error
             })
         } else {
@@ -201,6 +226,10 @@ export default defineComponent({
           files = await unpack(buffer)
         }
         this.updateStage = 'Loading firmware files'
+        this.$emit('log', {
+          level: 'debug',
+          message: 'Updater: loading firmware files'
+        })
         let path = '/ext/update/'
         await this.flipper.commands.storage.mkdir('/ext/update')
         for (const file of files) {
@@ -216,6 +245,10 @@ export default defineComponent({
               this.write.progress = e.progress / e.total
             })
             await this.flipper.commands.storage.write('/ext/update/' + file.name, file.buffer)
+            this.$emit('log', {
+              level: 'debug',
+              message: 'Updater: wrote ' + '/ext/update/' + file.name
+            })
             unbind()
           }
           await asyncSleep(300)
@@ -224,14 +257,30 @@ export default defineComponent({
         this.write.progress = 0
 
         this.updateStage = 'Loading manifest...'
+        this.$emit('log', {
+          level: 'debug',
+          message: 'Updater: loading update manifest'
+        })
         await this.flipper.commands.system.update(path + '/update.fuf')
 
         this.updateStage = 'Update in progress, pay attention to your Flipper'
+        this.$emit('log', {
+          level: 'debug',
+          message: 'Updater: rebooting Flipper'
+        })
         await this.flipper.commands.system.reboot(2)
       } else {
         this.flags.updateError = true
-        this.updateStage = 'No channel url'
-        throw new Error('No channel url')
+        this.updateStage = 'Failed to fetch channel'
+        this.$emit('showNotif', {
+          message: 'Unable to load firmware channel from the build server. Reload the page and try again.',
+          color: 'negative',
+          reloadBtn: true
+        })
+        this.$emit('log', {
+          level: 'error',
+          message: 'Updater: failed to fetch channel'
+        })
       }
     },
 
@@ -258,6 +307,18 @@ export default defineComponent({
 
   async mounted () {
     this.channels = await fetchChannels(this.info.hardware_target)
+      .catch(error => {
+        this.$emit('showNotif', {
+          message: 'Unable to load firmware channels from the build server. Reload the page and try again.',
+          color: 'negative',
+          reloadBtn: true
+        })
+        this.$emit('log', {
+          level: 'error',
+          message: 'Updater: failed to fetch channels'
+        })
+        throw error
+      })
     this.compareVersions()
     this.fwOptions[0].version = this.channels.release.version
     this.fwOptions[1].version = this.channels.rc.version

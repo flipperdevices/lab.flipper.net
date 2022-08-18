@@ -95,7 +95,14 @@ export default defineComponent({
       this.terminal.onData(data => {
         this.socket.emit('dmToHost', this.hostId, data, (res) => {
           if (res.error) {
-            console.error(res.message)
+            this.$emit('showNotif', {
+              message: 'Failed to send message to host',
+              color: 'negative'
+            })
+            this.$emit('log', {
+              level: 'error',
+              message: `Remote CLI: Failed to send message to host: ${res.error.toString()}`
+            })
           }
         })
       })
@@ -113,13 +120,26 @@ export default defineComponent({
       this.socket = io('ws://localhost:3000')
       this.socket.on('connect', () => {
         this.flags.connected = true
-        console.log(`Connected to cli server. My id: ${this.socket.id}`)
+        this.$emit('log', {
+          level: 'info',
+          message: `Remote CLI: Connected to cli server. My id: ${this.socket.id}`
+        })
 
         this.socket.emit('joinRoom', this.roomName, (res) => {
           if (res.error) {
-            console.error(res.message)
+            this.$emit('showNotif', {
+              message: `Failed to connect to room ${this.roomName}`,
+              color: 'negative'
+            })
+            this.$emit('log', {
+              level: 'error',
+              message: `Remote CLI: Failed to connect to room ${this.roomName}: ${res.error.toString()}`
+            })
           } else if (res.hostId) {
-            console.log(`Connected to room ${this.roomName}. Host id: ${res.hostId}`)
+            this.$emit('log', {
+              level: 'info',
+              message: `Remote CLI: Connected to room ${this.roomName}. Host id: ${res.hostId}`
+            })
             this.hostId = res.hostId
 
             this.clientsPollingInterval = setInterval(() => {
@@ -134,24 +154,23 @@ export default defineComponent({
       })
 
       this.socket.on('cliText', (text) => {
-        // console.log('cliText:', text)
         if (typeof (text) === 'string') {
           this.terminal.write(text)
         }
       })
 
       this.socket.on('disconnect', () => {
-        console.log('Disconnected from cli server')
+        this.$emit('showNotif', {
+          message: 'Disconnected from cli server'
+        })
+        this.$emit('log', {
+          level: 'info',
+          message: 'Remote CLI: Disconnected from cli server'
+        })
         this.flags.connected = true
         this.socket.disconnect()
         clearInterval(this.clientsPollingInterval)
       })
-
-      /* this.p2pt.on('peerclose', (peer) => {
-        if (peer.id === this.hostPeer.id) {
-          this.flags.hostDisconnected = true
-        }
-      }) */
     }
   },
 

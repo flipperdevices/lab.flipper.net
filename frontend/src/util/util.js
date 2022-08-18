@@ -5,6 +5,9 @@ import pako from 'pako'
 function fetchChannels (target) {
   return fetch('https://update.flipperzero.one/firmware/directory.json')
     .then((response) => {
+      if (response.status >= 400) {
+        throw new Error('Failed to fetch firmware channels (' + response.status + ')')
+      }
       return response.json()
     })
     .then((data) => {

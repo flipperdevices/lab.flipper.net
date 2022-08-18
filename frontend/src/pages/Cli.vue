@@ -139,6 +139,10 @@ export default defineComponent({
       this.flags.rpcActive = false
       this.flags.rpcToggling = false
       this.$emit('setRpcStatus', false)
+      this.$emit('log', {
+        level: 'debug',
+        message: 'CLI: rpc stopped'
+      })
     },
 
     startServer () {
@@ -149,19 +153,39 @@ export default defineComponent({
       }
 
       this.socket.on('connect', () => {
-        console.log(`Connected to cli server. My id: ${this.socket.id}, room name: ${this.roomName}`)
+        this.$emit('log', {
+          level: 'info',
+          message: `CLI: Connected to cli server. My id: ${this.socket.id}, room name: ${this.roomName}`
+        })
 
         this.socket.emit('claimRoomName', this.roomName, (res) => {
           if (res.error) {
-            console.error(res.message)
+            this.$emit('showNotif', {
+              message: `Failed to claim room ${this.roomName}`,
+              color: 'negative'
+            })
+            this.$emit('log', {
+              level: 'error',
+              message: `CLI: Failed to claim room ${this.roomName}: ${res.error.toString()}`
+            })
           }
         })
 
         this.socket.emit('joinRoom', this.roomName, (res) => {
           if (res.error) {
-            console.error(res.message)
+            this.$emit('showNotif', {
+              message: `Failed to join room ${this.roomName}`,
+              color: 'negative'
+            })
+            this.$emit('log', {
+              level: 'error',
+              message: `CLI: Failed to join room ${this.roomName}: ${res.error.toString()}`
+            })
           } else {
-            console.log(`Hosting room '${this.roomName}'`)
+            this.$emit('log', {
+              level: 'info',
+              message: `CLI: Hosting room ${this.roomName}`
+            })
 
             this.clientsPollingInterval = setInterval(() => {
               this.socket.emit('pollClients', this.roomName, (res) => {
@@ -175,14 +199,19 @@ export default defineComponent({
       })
 
       this.socket.on('dm', (id, text) => {
-        // console.log(`Message from ${id}: ${text}`)
         if (typeof (text) === 'string' && this.flags.allowPeerInput) {
           this.write(text)
         }
       })
 
       this.socket.on('disconnect', () => {
-        console.log('Disconnected from cli server')
+        this.$emit('showNotif', {
+          message: 'Disconnected from cli server'
+        })
+        this.$emit('log', {
+          level: 'info',
+          message: 'CLI: Disconnected from cli server'
+        })
         if (this.flags.serverActive !== false) {
           this.stopServer()
         }
@@ -206,6 +235,10 @@ export default defineComponent({
     broadcast (msg) {
       this.socket.emit('broadcast', this.roomName, msg, (res) => {
         if (res.error) {
+          this.$emit('log', {
+            level: 'error',
+            message: `Remote CLI: Failed to broadcast: ${res.error.toString()}`
+          })
           console.error(res.message)
         }
       })

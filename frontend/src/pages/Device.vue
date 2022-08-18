@@ -56,6 +56,8 @@
           :info="info"
           :installFromFile="installFromFile"
           @update="onUpdateStage"
+          @showNotif="passNotif"
+          @log="passLog"
         />
       </div>
       <div
@@ -181,11 +183,24 @@ export default defineComponent({
       this.flags.rpcToggling = true
       const ping = await this.flipper.commands.startRpcSession(this.flipper)
       if (!ping.resolved || ping.error) {
+        this.$emit('showNotif', {
+          message: 'Unable to start RPC session. Reload the page or reconnect Flipper manually.',
+          color: 'negative',
+          reloadBtn: true
+        })
+        this.$emit('log', {
+          level: 'error',
+          message: 'Device: Couldn\'t start rpc session'
+        })
         throw new Error('Couldn\'t start rpc session')
       }
       this.flags.rpcActive = true
       this.flags.rpcToggling = false
       this.$emit('setRpcStatus', true)
+      this.$emit('log', {
+        level: 'debug',
+        message: 'Device: rpc started'
+      })
     },
 
     async stopRpc () {
@@ -194,6 +209,10 @@ export default defineComponent({
       this.flags.rpcActive = false
       this.flags.rpcToggling = false
       this.$emit('setRpcStatus', false)
+      this.$emit('log', {
+        level: 'debug',
+        message: 'Device: rpc stopped'
+      })
     },
 
     async restartRpc (force) {
@@ -205,12 +224,20 @@ export default defineComponent({
         await asyncSleep(300)
         await this.flipper.connect()
         await this.startRpc()
+        this.$emit('log', {
+          level: 'debug',
+          message: 'Device: restarted rpc'
+        })
         return this.startScreenStream()
       }
     },
 
     async startScreenStream () {
       await this.flipper.commands.gui.startScreenStreamRequest()
+      this.$emit('log', {
+        level: 'debug',
+        message: 'Device: screen streaming started'
+      })
       this.flags.screenStream = true
 
       const ctx = this.$refs.screenStreamCanvas.getContext('2d')
@@ -252,6 +279,10 @@ export default defineComponent({
 
     async stopScreenStream () {
       await this.flipper.commands.gui.stopScreenStreamRequest()
+      this.$emit('log', {
+        level: 'debug',
+        message: 'Device: screen streaming stopped'
+      })
       this.flags.screenStream = false
     },
 
@@ -264,6 +295,13 @@ export default defineComponent({
         this.flags.updateInProgress = false
         this.startScreenStream()
       }
+    },
+
+    passNotif (config) {
+      this.$emit('showNotif', config)
+    },
+    passLog (config) {
+      this.$emit('log', config)
     },
 
     async start () {

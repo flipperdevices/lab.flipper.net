@@ -19,7 +19,7 @@
           style="height: 18px;"
         />
 
-        <q-space></q-space>
+        <q-space />
 
         <template v-if="flags.serialSupported">
           <q-btn
@@ -73,7 +73,17 @@
                   label="Disconnect"
                   size="sm"
                   v-close-popup
+                  flat
                   @click="disconnect"
+                ></q-btn>
+
+                <q-btn
+                  color="primary"
+                  label="View logs"
+                  size="sm"
+                  v-close-popup
+                  flat
+                  @click="flags.reportPopup = true"
                 ></q-btn>
               </div>
             </div>
@@ -145,6 +155,8 @@
         @setRpcStatus="setRpcStatus"
         @setInfo="setInfo"
         @update="onUpdateStage"
+        @showNotif="showNotif"
+        @log="log"
       />
       <q-page v-else class="flex-center column">
         <div
@@ -177,16 +189,47 @@
           </p>
         </div>
       </q-page>
+      <q-dialog v-model="flags.reportPopup">
+        <q-card>
+          <q-card-section class="row items-center q-pb-none">
+            <div class="text-h6">Logs</div>
+            <q-space />
+            <q-btn icon="close" flat round dense v-close-popup />
+          </q-card-section>
+
+          <q-card-section>
+            <p>You can report bugs <a href="https://forum.flipperzero.one/c/web-app/22" target="blank_">here</a>. Attached logs may be helpful.</p>
+            <q-scroll-area style="height: 300px; min-width: 280px; width: calc(min(80vw, 500px));" class="bg-grey-12 q-px-sm q-py-xs rounded-borders">
+              <code>
+                <span v-for="line in history" :key="line.timestamp">
+                  {{ `${line.time.padEnd(8)} [${line.level.toUpperCase()}] ${line.message}` }}
+                  <br />
+                </span>
+              </code>
+            </q-scroll-area>
+          </q-card-section>
+
+          <q-card-section align="right" class="q-pt-none">
+            <q-btn
+              flat
+              label="Download"
+              @click="downloadLogs"
+            ></q-btn>
+          </q-card-section>
+        </q-card>
+      </q-dialog>
     </q-page-container>
   </q-layout>
 </template>
 
 <script>
 import { defineComponent, ref } from 'vue'
+import { useQuasar } from 'quasar'
 import ExternalLink from 'components/ExternalLink.vue'
 import RouterLink from 'components/RouterLink.vue'
 import * as flipper from '../flipper/core'
 import asyncSleep from 'simple-async-sleep'
+import log from 'loglevel'
 
 export default defineComponent({
   name: 'MainLayout',
@@ -197,6 +240,7 @@ export default defineComponent({
   },
 
   setup () {
+    const $q = useQuasar()
     return {
       routes: [
         {
@@ -259,7 +303,6 @@ export default defineComponent({
       leftDrawer: ref(false),
       linksMenu: ref(false),
       miniState: ref(true),
-
       flipper: ref(flipper),
       info: ref(null),
       flags: ref({
@@ -271,10 +314,14 @@ export default defineComponent({
         connectOnStart: true,
         autoReconnect: false,
         updateInProgress: false,
-        installFromFile: false
+        installFromFile: false,
+        reportPopup: false
       }),
       reconnectLoop: ref(null),
-      connectionStatus: ref('Ready to connect')
+      connectionStatus: ref('Ready to connect'),
+      logger: log,
+      history: ref([]),
+      notify: $q.notify
     }
   },
 
@@ -291,6 +338,10 @@ export default defineComponent({
           this.flags.portSelectRequired = false
           this.connectionStatus = 'Flipper connected'
           this.flags.connected = true
+          this.log({
+            level: 'debug',
+            message: 'Main: Flipper connected'
+          })
         })
         .catch((error) => {
           if (error.toString() === 'Error: No known ports') {
@@ -330,6 +381,10 @@ export default defineComponent({
             this.connectionStatus = error.toString()
           }
         })
+      this.log({
+        level: 'debug',
+        message: 'Main: Flipper disconnected'
+      })
     },
 
     async startRpc () {
@@ -340,6 +395,10 @@ export default defineComponent({
       }
       this.flags.rpcActive = true
       this.flags.rpcToggling = false
+      this.log({
+        level: 'debug',
+        message: 'Main: rpc started'
+      })
     },
 
     async stopRpc () {
@@ -347,6 +406,10 @@ export default defineComponent({
       await this.flipper.commands.stopRpcSession()
       this.flags.rpcActive = false
       this.flags.rpcToggling = false
+      this.log({
+        level: 'debug',
+        message: 'Main: rpc stopped'
+      })
     },
 
     async readInfo () {
@@ -371,6 +434,10 @@ export default defineComponent({
         this.info.storage_sdcard_present = 'missing'
         this.info.storage_databases_present = 'missing'
       }
+      this.log({
+        level: 'debug',
+        message: 'Main: read device info'
+      })
     },
 
     findKnownDevices () {
@@ -435,6 +502,69 @@ export default defineComponent({
       }
     },
 
+    showNotif ({ message, color, reloadBtn }) {
+      const actions = []
+
+      if (reloadBtn) {
+        actions.push({ label: 'Reload', color: 'white', handler: () => { location.reload() } })
+      }
+
+      if (actions.length === 0) {
+        actions.push({ icon: 'close', color: 'white', class: 'q-px-sm' })
+      } else {
+        actions.push({ label: 'Dismiss', color: 'white' })
+      }
+
+      this.notify({
+        message: message,
+        color: color,
+        textColor: 'white',
+        position: 'bottom-right',
+        timeout: 0,
+        group: false,
+        actions: actions
+      })
+    },
+
+    log ({ level, message }) {
+      const timestamp = Date.now()
+      const t = new Date(timestamp)
+      this.history.push({
+        level,
+        timestamp,
+        time: `${t.getHours()}:${t.getMinutes()}:${t.getSeconds()}`,
+        message
+      })
+      switch (level) {
+        case 'error':
+          this.logger.error(message)
+          break
+        case 'warn':
+          this.logger.warn(message)
+          break
+        case 'info':
+          this.logger.info(message)
+          break
+        case 'debug':
+          this.logger.debug(message)
+          break
+      }
+    },
+
+    downloadLogs () {
+      let text = ''
+      for (const line of this.history) {
+        text += `${line.time} [${line.level}] ${line.message}\n`
+      }
+      const dl = document.createElement('a')
+      dl.setAttribute('download', 'logs.txt')
+      dl.setAttribute('href', 'data:text/plain,' + text)
+      dl.style.visibility = 'hidden'
+      document.body.append(dl)
+      dl.click()
+      dl.remove()
+    },
+
     async start (manual) {
       const ports = await this.findKnownDevices()
       if (ports && ports.length > 0) {
@@ -470,6 +600,19 @@ export default defineComponent({
     } else {
       this.flags.serialSupported = false
     }
+
+    this.logger.setLevel('info', true)
+    const originalFactory = this.logger.methodFactory
+    this.logger.methodFactory = function (methodName, logLevel, loggerName) {
+      const rawMethod = originalFactory(methodName, logLevel, loggerName)
+
+      return function (message) {
+        if (methodName !== 'debug') {
+          rawMethod(message)
+        }
+      }
+    }
+    this.logger.setLevel(log.getLevel())
   }
 })
 </script>

@@ -187,11 +187,24 @@ export default defineComponent({
       this.flags.rpcToggling = true
       const ping = await this.flipper.commands.startRpcSession(this.flipper)
       if (!ping.resolved || ping.error) {
+        this.$emit('showNotif', {
+          message: 'Unable to start RPC session. Reload the page or reconnect Flipper manually.',
+          color: 'negative',
+          reloadBtn: true
+        })
+        this.$emit('log', {
+          level: 'error',
+          message: 'Device: Couldn\'t start rpc session'
+        })
         throw new Error('Couldn\'t start rpc session')
       }
       this.flags.rpcActive = true
       this.flags.rpcToggling = false
       this.$emit('setRpcStatus', true)
+      this.$emit('log', {
+        level: 'debug',
+        message: 'Paint: rpc started'
+      })
     },
 
     async stopRpc () {
@@ -200,6 +213,10 @@ export default defineComponent({
       this.flags.rpcActive = false
       this.flags.rpcToggling = false
       this.$emit('setRpcStatus', false)
+      this.$emit('log', {
+        level: 'debug',
+        message: 'Paint: rpc stopped'
+      })
     },
 
     async restartRpc (force) {
@@ -217,7 +234,14 @@ export default defineComponent({
     async startVirtualDisplay () {
       const response = await this.flipper.commands.gui.startVirtualDisplay()
       if (!response.resolved || response.error) {
-        console.log('Couldn\'t start virtual display session:', response.error)
+        this.$emit('showNotif', {
+          message: 'Couldn\'t start virtual display session: ' + response.error,
+          color: 'negative'
+        })
+        this.$emit('log', {
+          level: 'error',
+          message: 'Paint: Couldn\'t start virtual display session: ' + response.error
+        })
       }
 
       await this.enableBacklight()
