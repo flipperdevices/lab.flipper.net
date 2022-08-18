@@ -237,6 +237,383 @@ export const PB_App = $root.PB_App = (() => {
     return LockStatusResponse
   })()
 
+  PB_App.AppExitRequest = (function () {
+    function AppExitRequest (properties) {
+      if (properties) {
+        for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i) {
+          if (properties[keys[i]] != null) { this[keys[i]] = properties[keys[i]] }
+        }
+      }
+    }
+
+    AppExitRequest.create = function create (properties) {
+      return new AppExitRequest(properties)
+    }
+
+    AppExitRequest.encode = function encode (message, writer) {
+      if (!writer) { writer = $Writer.create() }
+      return writer
+    }
+
+    AppExitRequest.encodeDelimited = function encodeDelimited (message, writer) {
+      return this.encode(message, writer).ldelim()
+    }
+
+    AppExitRequest.decode = function decode (reader, length) {
+      if (!(reader instanceof $Reader)) { reader = $Reader.create(reader) }
+      const end = length === undefined ? reader.len : reader.pos + length, message = new $root.PB_App.AppExitRequest()
+      while (reader.pos < end) {
+        const tag = reader.uint32()
+        switch (tag >>> 3) {
+          default:
+            reader.skipType(tag & 7)
+            break
+        }
+      }
+      return message
+    }
+
+    AppExitRequest.decodeDelimited = function decodeDelimited (reader) {
+      if (!(reader instanceof $Reader)) { reader = new $Reader(reader) }
+      return this.decode(reader, reader.uint32())
+    }
+
+    AppExitRequest.verify = function verify (message) {
+      if (typeof message !== 'object' || message === null) { return 'object expected' }
+      return null
+    }
+
+    AppExitRequest.fromObject = function fromObject (object) {
+      if (object instanceof $root.PB_App.AppExitRequest) { return object }
+      return new $root.PB_App.AppExitRequest()
+    }
+
+    AppExitRequest.toObject = function toObject () {
+      return {}
+    }
+
+    AppExitRequest.prototype.toJSON = function toJSON () {
+      return this.constructor.toObject(this, $protobuf.util.toJSONOptions)
+    }
+
+    return AppExitRequest
+  })()
+
+  PB_App.AppLoadFileRequest = (function () {
+    function AppLoadFileRequest (properties) {
+      if (properties) {
+        for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i) {
+          if (properties[keys[i]] != null) { this[keys[i]] = properties[keys[i]] }
+        }
+      }
+    }
+
+    AppLoadFileRequest.prototype.path = ''
+
+    AppLoadFileRequest.create = function create (properties) {
+      return new AppLoadFileRequest(properties)
+    }
+
+    AppLoadFileRequest.encode = function encode (message, writer) {
+      if (!writer) { writer = $Writer.create() }
+      if (message.path != null && Object.hasOwnProperty.call(message, 'path')) { writer.uint32(10).string(message.path) }
+      return writer
+    }
+
+    AppLoadFileRequest.encodeDelimited = function encodeDelimited (message, writer) {
+      return this.encode(message, writer).ldelim()
+    }
+
+    AppLoadFileRequest.decode = function decode (reader, length) {
+      if (!(reader instanceof $Reader)) { reader = $Reader.create(reader) }
+      const end = length === undefined ? reader.len : reader.pos + length, message = new $root.PB_App.AppLoadFileRequest()
+      while (reader.pos < end) {
+        const tag = reader.uint32()
+        switch (tag >>> 3) {
+          case 1:
+            message.path = reader.string()
+            break
+          default:
+            reader.skipType(tag & 7)
+            break
+        }
+      }
+      return message
+    }
+
+    AppLoadFileRequest.decodeDelimited = function decodeDelimited (reader) {
+      if (!(reader instanceof $Reader)) { reader = new $Reader(reader) }
+      return this.decode(reader, reader.uint32())
+    }
+
+    AppLoadFileRequest.verify = function verify (message) {
+      if (typeof message !== 'object' || message === null) { return 'object expected' }
+      if (message.path != null && message.hasOwnProperty('path')) {
+        if (!$util.isString(message.path)) { return 'path: string expected' }
+      }
+      return null
+    }
+
+    AppLoadFileRequest.fromObject = function fromObject (object) {
+      if (object instanceof $root.PB_App.AppLoadFileRequest) { return object }
+      const message = new $root.PB_App.AppLoadFileRequest()
+      if (object.path != null) { message.path = String(object.path) }
+      return message
+    }
+
+    AppLoadFileRequest.toObject = function toObject (message, options) {
+      if (!options) { options = {} }
+      const object = {}
+      if (options.defaults) { object.path = '' }
+      if (message.path != null && message.hasOwnProperty('path')) { object.path = message.path }
+      return object
+    }
+
+    AppLoadFileRequest.prototype.toJSON = function toJSON () {
+      return this.constructor.toObject(this, $protobuf.util.toJSONOptions)
+    }
+
+    return AppLoadFileRequest
+  })()
+
+  PB_App.AppButtonPressRequest = (function () {
+    function AppButtonPressRequest (properties) {
+      if (properties) {
+        for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i) {
+          if (properties[keys[i]] != null) { this[keys[i]] = properties[keys[i]] }
+        }
+      }
+    }
+
+    AppButtonPressRequest.prototype.args = ''
+
+    AppButtonPressRequest.create = function create (properties) {
+      return new AppButtonPressRequest(properties)
+    }
+
+    AppButtonPressRequest.encode = function encode (message, writer) {
+      if (!writer) { writer = $Writer.create() }
+      if (message.args != null && Object.hasOwnProperty.call(message, 'args')) { writer.uint32(10).string(message.args) }
+      return writer
+    }
+
+    AppButtonPressRequest.encodeDelimited = function encodeDelimited (message, writer) {
+      return this.encode(message, writer).ldelim()
+    }
+
+    AppButtonPressRequest.decode = function decode (reader, length) {
+      if (!(reader instanceof $Reader)) { reader = $Reader.create(reader) }
+      const end = length === undefined ? reader.len : reader.pos + length, message = new $root.PB_App.AppButtonPressRequest()
+      while (reader.pos < end) {
+        const tag = reader.uint32()
+        switch (tag >>> 3) {
+          case 1:
+            message.args = reader.string()
+            break
+          default:
+            reader.skipType(tag & 7)
+            break
+        }
+      }
+      return message
+    }
+
+    AppButtonPressRequest.decodeDelimited = function decodeDelimited (reader) {
+      if (!(reader instanceof $Reader)) { reader = new $Reader(reader) }
+      return this.decode(reader, reader.uint32())
+    }
+
+    AppButtonPressRequest.verify = function verify (message) {
+      if (typeof message !== 'object' || message === null) { return 'object expected' }
+      if (message.args != null && message.hasOwnProperty('args')) {
+        if (!$util.isString(message.args)) { return 'args: string expected' }
+      }
+      return null
+    }
+
+    AppButtonPressRequest.fromObject = function fromObject (object) {
+      if (object instanceof $root.PB_App.AppButtonPressRequest) { return object }
+      const message = new $root.PB_App.AppButtonPressRequest()
+      if (object.args != null) { message.args = String(object.args) }
+      return message
+    }
+
+    AppButtonPressRequest.toObject = function toObject (message, options) {
+      if (!options) { options = {} }
+      const object = {}
+      if (options.defaults) { object.args = '' }
+      if (message.args != null && message.hasOwnProperty('args')) { object.args = message.args }
+      return object
+    }
+
+    AppButtonPressRequest.prototype.toJSON = function toJSON () {
+      return this.constructor.toObject(this, $protobuf.util.toJSONOptions)
+    }
+
+    return AppButtonPressRequest
+  })()
+
+  PB_App.AppButtonReleaseRequest = (function () {
+    function AppButtonReleaseRequest (properties) {
+      if (properties) {
+        for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i) {
+          if (properties[keys[i]] != null) { this[keys[i]] = properties[keys[i]] }
+        }
+      }
+    }
+
+    AppButtonReleaseRequest.create = function create (properties) {
+      return new AppButtonReleaseRequest(properties)
+    }
+
+    AppButtonReleaseRequest.encode = function encode (message, writer) {
+      if (!writer) { writer = $Writer.create() }
+      return writer
+    }
+
+    AppButtonReleaseRequest.encodeDelimited = function encodeDelimited (message, writer) {
+      return this.encode(message, writer).ldelim()
+    }
+
+    AppButtonReleaseRequest.decode = function decode (reader, length) {
+      if (!(reader instanceof $Reader)) { reader = $Reader.create(reader) }
+      const end = length === undefined ? reader.len : reader.pos + length, message = new $root.PB_App.AppButtonReleaseRequest()
+      while (reader.pos < end) {
+        const tag = reader.uint32()
+        switch (tag >>> 3) {
+          default:
+            reader.skipType(tag & 7)
+            break
+        }
+      }
+      return message
+    }
+
+    AppButtonReleaseRequest.decodeDelimited = function decodeDelimited (reader) {
+      if (!(reader instanceof $Reader)) { reader = new $Reader(reader) }
+      return this.decode(reader, reader.uint32())
+    }
+
+    AppButtonReleaseRequest.verify = function verify (message) {
+      if (typeof message !== 'object' || message === null) { return 'object expected' }
+      return null
+    }
+
+    AppButtonReleaseRequest.fromObject = function fromObject (object) {
+      if (object instanceof $root.PB_App.AppButtonReleaseRequest) { return object }
+      return new $root.PB_App.AppButtonReleaseRequest()
+    }
+
+    AppButtonReleaseRequest.toObject = function toObject () {
+      return {}
+    }
+
+    AppButtonReleaseRequest.prototype.toJSON = function toJSON () {
+      return this.constructor.toObject(this, $protobuf.util.toJSONOptions)
+    }
+
+    return AppButtonReleaseRequest
+  })()
+
+  PB_App.AppState = (function () {
+    const valuesById = {}, values = Object.create(valuesById)
+    values[valuesById[0] = 'APP_CLOSED'] = 0
+    values[valuesById[1] = 'APP_STARTED'] = 1
+    return values
+  })()
+
+  PB_App.AppStateResponse = (function () {
+    function AppStateResponse (properties) {
+      if (properties) {
+        for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i) {
+          if (properties[keys[i]] != null) { this[keys[i]] = properties[keys[i]] }
+        }
+      }
+    }
+
+    AppStateResponse.prototype.state = 0
+
+    AppStateResponse.create = function create (properties) {
+      return new AppStateResponse(properties)
+    }
+
+    AppStateResponse.encode = function encode (message, writer) {
+      if (!writer) { writer = $Writer.create() }
+      if (message.state != null && Object.hasOwnProperty.call(message, 'state')) { writer.uint32(8).int32(message.state) }
+      return writer
+    }
+
+    AppStateResponse.encodeDelimited = function encodeDelimited (message, writer) {
+      return this.encode(message, writer).ldelim()
+    }
+
+    AppStateResponse.decode = function decode (reader, length) {
+      if (!(reader instanceof $Reader)) { reader = $Reader.create(reader) }
+      const end = length === undefined ? reader.len : reader.pos + length, message = new $root.PB_App.AppStateResponse()
+      while (reader.pos < end) {
+        const tag = reader.uint32()
+        switch (tag >>> 3) {
+          case 1:
+            message.state = reader.int32()
+            break
+          default:
+            reader.skipType(tag & 7)
+            break
+        }
+      }
+      return message
+    }
+
+    AppStateResponse.decodeDelimited = function decodeDelimited (reader) {
+      if (!(reader instanceof $Reader)) { reader = new $Reader(reader) }
+      return this.decode(reader, reader.uint32())
+    }
+
+    AppStateResponse.verify = function verify (message) {
+      if (typeof message !== 'object' || message === null) { return 'object expected' }
+      if (message.state != null && message.hasOwnProperty('state')) {
+        switch (message.state) {
+          default:
+            return 'state: enum value expected'
+          case 0:
+          case 1:
+            break
+        }
+      }
+      return null
+    }
+
+    AppStateResponse.fromObject = function fromObject (object) {
+      if (object instanceof $root.PB_App.AppStateResponse) { return object }
+      const message = new $root.PB_App.AppStateResponse()
+      switch (object.state) {
+        case 'APP_CLOSED':
+        case 0:
+          message.state = 0
+          break
+        case 'APP_STARTED':
+        case 1:
+          message.state = 1
+          break
+      }
+      return message
+    }
+
+    AppStateResponse.toObject = function toObject (message, options) {
+      if (!options) { options = {} }
+      const object = {}
+      if (options.defaults) { object.state = options.enums === String ? 'APP_CLOSED' : 0 }
+      if (message.state != null && message.hasOwnProperty('state')) { object.state = options.enums === String ? $root.PB_App.AppState[message.state] : message.state }
+      return object
+    }
+
+    AppStateResponse.prototype.toJSON = function toJSON () {
+      return this.constructor.toObject(this, $protobuf.util.toJSONOptions)
+    }
+
+    return AppStateResponse
+  })()
+
   return PB_App
 })()
 
@@ -264,8 +641,12 @@ export const PB = $root.PB = (() => {
     values[valuesById[18] = 'ERROR_STORAGE_DIR_NOT_EMPTY'] = 18
     values[valuesById[16] = 'ERROR_APP_CANT_START'] = 16
     values[valuesById[17] = 'ERROR_APP_SYSTEM_LOCKED'] = 17
+    values[valuesById[21] = 'ERROR_APP_NOT_RUNNING'] = 21
+    values[valuesById[22] = 'ERROR_APP_CMD_ERROR'] = 22
     values[valuesById[19] = 'ERROR_VIRTUAL_DISPLAY_ALREADY_STARTED'] = 19
     values[valuesById[20] = 'ERROR_VIRTUAL_DISPLAY_NOT_STARTED'] = 20
+    values[valuesById[58] = 'ERROR_GPIO_MODE_INCORRECT'] = 58
+    values[valuesById[59] = 'ERROR_GPIO_UNKNOWN_PIN_MODE'] = 59
     return values
   })()
 
@@ -442,17 +823,29 @@ export const PB = $root.PB = (() => {
     Main.prototype.appStartRequest = null
     Main.prototype.appLockStatusRequest = null
     Main.prototype.appLockStatusResponse = null
+    Main.prototype.appExitRequest = null
+    Main.prototype.appLoadFileRequest = null
+    Main.prototype.appButtonPressRequest = null
+    Main.prototype.appButtonReleaseRequest = null
     Main.prototype.guiStartScreenStreamRequest = null
     Main.prototype.guiStopScreenStreamRequest = null
     Main.prototype.guiScreenFrame = null
     Main.prototype.guiSendInputEventRequest = null
     Main.prototype.guiStartVirtualDisplayRequest = null
     Main.prototype.guiStopVirtualDisplayRequest = null
+    Main.prototype.gpioSetPinMode = null
+    Main.prototype.gpioSetInputPull = null
+    Main.prototype.gpioGetPinMode = null
+    Main.prototype.gpioGetPinModeResponse = null
+    Main.prototype.gpioReadPin = null
+    Main.prototype.gpioReadPinResponse = null
+    Main.prototype.gpioWritePin = null
+    Main.prototype.appStateResponse = null
 
     let $oneOfFields
 
     Object.defineProperty(Main.prototype, 'content', {
-      get: $util.oneOfGetter($oneOfFields = ['empty', 'stopSession', 'systemPingRequest', 'systemPingResponse', 'systemRebootRequest', 'systemDeviceInfoRequest', 'systemDeviceInfoResponse', 'systemFactoryResetRequest', 'systemGetDatetimeRequest', 'systemGetDatetimeResponse', 'systemSetDatetimeRequest', 'systemPlayAudiovisualAlertRequest', 'systemProtobufVersionRequest', 'systemProtobufVersionResponse', 'systemUpdateRequest', 'systemUpdateResponse', 'systemPowerInfoRequest', 'systemPowerInfoResponse', 'storageInfoRequest', 'storageInfoResponse', 'storageStatRequest', 'storageStatResponse', 'storageListRequest', 'storageListResponse', 'storageReadRequest', 'storageReadResponse', 'storageWriteRequest', 'storageDeleteRequest', 'storageMkdirRequest', 'storageMd5sumRequest', 'storageMd5sumResponse', 'storageRenameRequest', 'storageBackupCreateRequest', 'storageBackupRestoreRequest', 'appStartRequest', 'appLockStatusRequest', 'appLockStatusResponse', 'guiStartScreenStreamRequest', 'guiStopScreenStreamRequest', 'guiScreenFrame', 'guiSendInputEventRequest', 'guiStartVirtualDisplayRequest', 'guiStopVirtualDisplayRequest']),
+      get: $util.oneOfGetter($oneOfFields = ['empty', 'stopSession', 'systemPingRequest', 'systemPingResponse', 'systemRebootRequest', 'systemDeviceInfoRequest', 'systemDeviceInfoResponse', 'systemFactoryResetRequest', 'systemGetDatetimeRequest', 'systemGetDatetimeResponse', 'systemSetDatetimeRequest', 'systemPlayAudiovisualAlertRequest', 'systemProtobufVersionRequest', 'systemProtobufVersionResponse', 'systemUpdateRequest', 'systemUpdateResponse', 'systemPowerInfoRequest', 'systemPowerInfoResponse', 'storageInfoRequest', 'storageInfoResponse', 'storageStatRequest', 'storageStatResponse', 'storageListRequest', 'storageListResponse', 'storageReadRequest', 'storageReadResponse', 'storageWriteRequest', 'storageDeleteRequest', 'storageMkdirRequest', 'storageMd5sumRequest', 'storageMd5sumResponse', 'storageRenameRequest', 'storageBackupCreateRequest', 'storageBackupRestoreRequest', 'appStartRequest', 'appLockStatusRequest', 'appLockStatusResponse', 'appExitRequest', 'appLoadFileRequest', 'appButtonPressRequest', 'appButtonReleaseRequest', 'guiStartScreenStreamRequest', 'guiStopScreenStreamRequest', 'guiScreenFrame', 'guiSendInputEventRequest', 'guiStartVirtualDisplayRequest', 'guiStopVirtualDisplayRequest', 'gpioSetPinMode', 'gpioSetInputPull', 'gpioGetPinMode', 'gpioGetPinModeResponse', 'gpioReadPin', 'gpioReadPinResponse', 'gpioWritePin', 'appStateResponse']),
       set: $util.oneOfSetter($oneOfFields)
     })
 
@@ -508,6 +901,18 @@ export const PB = $root.PB = (() => {
       if (message.systemPowerInfoRequest != null && Object.hasOwnProperty.call(message, 'systemPowerInfoRequest')) { $root.PB_System.PowerInfoRequest.encode(message.systemPowerInfoRequest, writer.uint32(354).fork()).ldelim() }
       if (message.systemPowerInfoResponse != null && Object.hasOwnProperty.call(message, 'systemPowerInfoResponse')) { $root.PB_System.PowerInfoResponse.encode(message.systemPowerInfoResponse, writer.uint32(362).fork()).ldelim() }
       if (message.systemUpdateResponse != null && Object.hasOwnProperty.call(message, 'systemUpdateResponse')) { $root.PB_System.UpdateResponse.encode(message.systemUpdateResponse, writer.uint32(370).fork()).ldelim() }
+      if (message.appExitRequest != null && Object.hasOwnProperty.call(message, 'appExitRequest')) { $root.PB_App.AppExitRequest.encode(message.appExitRequest, writer.uint32(378).fork()).ldelim() }
+      if (message.appLoadFileRequest != null && Object.hasOwnProperty.call(message, 'appLoadFileRequest')) { $root.PB_App.AppLoadFileRequest.encode(message.appLoadFileRequest, writer.uint32(386).fork()).ldelim() }
+      if (message.appButtonPressRequest != null && Object.hasOwnProperty.call(message, 'appButtonPressRequest')) { $root.PB_App.AppButtonPressRequest.encode(message.appButtonPressRequest, writer.uint32(394).fork()).ldelim() }
+      if (message.appButtonReleaseRequest != null && Object.hasOwnProperty.call(message, 'appButtonReleaseRequest')) { $root.PB_App.AppButtonReleaseRequest.encode(message.appButtonReleaseRequest, writer.uint32(402).fork()).ldelim() }
+      if (message.gpioSetPinMode != null && Object.hasOwnProperty.call(message, 'gpioSetPinMode')) { $root.PB_Gpio.SetPinMode.encode(message.gpioSetPinMode, writer.uint32(410).fork()).ldelim() }
+      if (message.gpioSetInputPull != null && Object.hasOwnProperty.call(message, 'gpioSetInputPull')) { $root.PB_Gpio.SetInputPull.encode(message.gpioSetInputPull, writer.uint32(418).fork()).ldelim() }
+      if (message.gpioGetPinMode != null && Object.hasOwnProperty.call(message, 'gpioGetPinMode')) { $root.PB_Gpio.GetPinMode.encode(message.gpioGetPinMode, writer.uint32(426).fork()).ldelim() }
+      if (message.gpioGetPinModeResponse != null && Object.hasOwnProperty.call(message, 'gpioGetPinModeResponse')) { $root.PB_Gpio.GetPinModeResponse.encode(message.gpioGetPinModeResponse, writer.uint32(434).fork()).ldelim() }
+      if (message.gpioReadPin != null && Object.hasOwnProperty.call(message, 'gpioReadPin')) { $root.PB_Gpio.ReadPin.encode(message.gpioReadPin, writer.uint32(442).fork()).ldelim() }
+      if (message.gpioReadPinResponse != null && Object.hasOwnProperty.call(message, 'gpioReadPinResponse')) { $root.PB_Gpio.ReadPinResponse.encode(message.gpioReadPinResponse, writer.uint32(450).fork()).ldelim() }
+      if (message.gpioWritePin != null && Object.hasOwnProperty.call(message, 'gpioWritePin')) { $root.PB_Gpio.WritePin.encode(message.gpioWritePin, writer.uint32(458).fork()).ldelim() }
+      if (message.appStateResponse != null && Object.hasOwnProperty.call(message, 'appStateResponse')) { $root.PB_App.AppStateResponse.encode(message.appStateResponse, writer.uint32(466).fork()).ldelim() }
       return writer
     }
 
@@ -641,6 +1046,18 @@ export const PB = $root.PB = (() => {
           case 18:
             message.appLockStatusResponse = $root.PB_App.LockStatusResponse.decode(reader, reader.uint32())
             break
+          case 47:
+            message.appExitRequest = $root.PB_App.AppExitRequest.decode(reader, reader.uint32())
+            break
+          case 48:
+            message.appLoadFileRequest = $root.PB_App.AppLoadFileRequest.decode(reader, reader.uint32())
+            break
+          case 49:
+            message.appButtonPressRequest = $root.PB_App.AppButtonPressRequest.decode(reader, reader.uint32())
+            break
+          case 50:
+            message.appButtonReleaseRequest = $root.PB_App.AppButtonReleaseRequest.decode(reader, reader.uint32())
+            break
           case 20:
             message.guiStartScreenStreamRequest = $root.PB_Gui.StartScreenStreamRequest.decode(reader, reader.uint32())
             break
@@ -658,6 +1075,30 @@ export const PB = $root.PB = (() => {
             break
           case 27:
             message.guiStopVirtualDisplayRequest = $root.PB_Gui.StopVirtualDisplayRequest.decode(reader, reader.uint32())
+            break
+          case 51:
+            message.gpioSetPinMode = $root.PB_Gpio.SetPinMode.decode(reader, reader.uint32())
+            break
+          case 52:
+            message.gpioSetInputPull = $root.PB_Gpio.SetInputPull.decode(reader, reader.uint32())
+            break
+          case 53:
+            message.gpioGetPinMode = $root.PB_Gpio.GetPinMode.decode(reader, reader.uint32())
+            break
+          case 54:
+            message.gpioGetPinModeResponse = $root.PB_Gpio.GetPinModeResponse.decode(reader, reader.uint32())
+            break
+          case 55:
+            message.gpioReadPin = $root.PB_Gpio.ReadPin.decode(reader, reader.uint32())
+            break
+          case 56:
+            message.gpioReadPinResponse = $root.PB_Gpio.ReadPinResponse.decode(reader, reader.uint32())
+            break
+          case 57:
+            message.gpioWritePin = $root.PB_Gpio.WritePin.decode(reader, reader.uint32())
+            break
+          case 58:
+            message.appStateResponse = $root.PB_App.AppStateResponse.decode(reader, reader.uint32())
             break
           default:
             reader.skipType(tag & 7)
@@ -701,8 +1142,12 @@ export const PB = $root.PB = (() => {
           case 18:
           case 16:
           case 17:
+          case 21:
+          case 22:
           case 19:
           case 20:
+          case 58:
+          case 59:
             break
         }
       }
@@ -1004,6 +1449,38 @@ export const PB = $root.PB = (() => {
           if (error) { return 'appLockStatusResponse.' + error }
         }
       }
+      if (message.appExitRequest != null && message.hasOwnProperty('appExitRequest')) {
+        if (properties.content === 1) { return 'content: multiple values' }
+        properties.content = 1
+        {
+          const error = $root.PB_App.AppExitRequest.verify(message.appExitRequest)
+          if (error) { return 'appExitRequest.' + error }
+        }
+      }
+      if (message.appLoadFileRequest != null && message.hasOwnProperty('appLoadFileRequest')) {
+        if (properties.content === 1) { return 'content: multiple values' }
+        properties.content = 1
+        {
+          const error = $root.PB_App.AppLoadFileRequest.verify(message.appLoadFileRequest)
+          if (error) { return 'appLoadFileRequest.' + error }
+        }
+      }
+      if (message.appButtonPressRequest != null && message.hasOwnProperty('appButtonPressRequest')) {
+        if (properties.content === 1) { return 'content: multiple values' }
+        properties.content = 1
+        {
+          const error = $root.PB_App.AppButtonPressRequest.verify(message.appButtonPressRequest)
+          if (error) { return 'appButtonPressRequest.' + error }
+        }
+      }
+      if (message.appButtonReleaseRequest != null && message.hasOwnProperty('appButtonReleaseRequest')) {
+        if (properties.content === 1) { return 'content: multiple values' }
+        properties.content = 1
+        {
+          const error = $root.PB_App.AppButtonReleaseRequest.verify(message.appButtonReleaseRequest)
+          if (error) { return 'appButtonReleaseRequest.' + error }
+        }
+      }
       if (message.guiStartScreenStreamRequest != null && message.hasOwnProperty('guiStartScreenStreamRequest')) {
         if (properties.content === 1) { return 'content: multiple values' }
         properties.content = 1
@@ -1050,6 +1527,70 @@ export const PB = $root.PB = (() => {
         {
           const error = $root.PB_Gui.StopVirtualDisplayRequest.verify(message.guiStopVirtualDisplayRequest)
           if (error) { return 'guiStopVirtualDisplayRequest.' + error }
+        }
+      }
+      if (message.gpioSetPinMode != null && message.hasOwnProperty('gpioSetPinMode')) {
+        if (properties.content === 1) { return 'content: multiple values' }
+        properties.content = 1
+        {
+          const error = $root.PB_Gpio.SetPinMode.verify(message.gpioSetPinMode)
+          if (error) { return 'gpioSetPinMode.' + error }
+        }
+      }
+      if (message.gpioSetInputPull != null && message.hasOwnProperty('gpioSetInputPull')) {
+        if (properties.content === 1) { return 'content: multiple values' }
+        properties.content = 1
+        {
+          const error = $root.PB_Gpio.SetInputPull.verify(message.gpioSetInputPull)
+          if (error) { return 'gpioSetInputPull.' + error }
+        }
+      }
+      if (message.gpioGetPinMode != null && message.hasOwnProperty('gpioGetPinMode')) {
+        if (properties.content === 1) { return 'content: multiple values' }
+        properties.content = 1
+        {
+          const error = $root.PB_Gpio.GetPinMode.verify(message.gpioGetPinMode)
+          if (error) { return 'gpioGetPinMode.' + error }
+        }
+      }
+      if (message.gpioGetPinModeResponse != null && message.hasOwnProperty('gpioGetPinModeResponse')) {
+        if (properties.content === 1) { return 'content: multiple values' }
+        properties.content = 1
+        {
+          const error = $root.PB_Gpio.GetPinModeResponse.verify(message.gpioGetPinModeResponse)
+          if (error) { return 'gpioGetPinModeResponse.' + error }
+        }
+      }
+      if (message.gpioReadPin != null && message.hasOwnProperty('gpioReadPin')) {
+        if (properties.content === 1) { return 'content: multiple values' }
+        properties.content = 1
+        {
+          const error = $root.PB_Gpio.ReadPin.verify(message.gpioReadPin)
+          if (error) { return 'gpioReadPin.' + error }
+        }
+      }
+      if (message.gpioReadPinResponse != null && message.hasOwnProperty('gpioReadPinResponse')) {
+        if (properties.content === 1) { return 'content: multiple values' }
+        properties.content = 1
+        {
+          const error = $root.PB_Gpio.ReadPinResponse.verify(message.gpioReadPinResponse)
+          if (error) { return 'gpioReadPinResponse.' + error }
+        }
+      }
+      if (message.gpioWritePin != null && message.hasOwnProperty('gpioWritePin')) {
+        if (properties.content === 1) { return 'content: multiple values' }
+        properties.content = 1
+        {
+          const error = $root.PB_Gpio.WritePin.verify(message.gpioWritePin)
+          if (error) { return 'gpioWritePin.' + error }
+        }
+      }
+      if (message.appStateResponse != null && message.hasOwnProperty('appStateResponse')) {
+        if (properties.content === 1) { return 'content: multiple values' }
+        properties.content = 1
+        {
+          const error = $root.PB_App.AppStateResponse.verify(message.appStateResponse)
+          if (error) { return 'appStateResponse.' + error }
         }
       }
       return null
@@ -1136,6 +1677,14 @@ export const PB = $root.PB = (() => {
         case 17:
           message.commandStatus = 17
           break
+        case 'ERROR_APP_NOT_RUNNING':
+        case 21:
+          message.commandStatus = 21
+          break
+        case 'ERROR_APP_CMD_ERROR':
+        case 22:
+          message.commandStatus = 22
+          break
         case 'ERROR_VIRTUAL_DISPLAY_ALREADY_STARTED':
         case 19:
           message.commandStatus = 19
@@ -1143,6 +1692,14 @@ export const PB = $root.PB = (() => {
         case 'ERROR_VIRTUAL_DISPLAY_NOT_STARTED':
         case 20:
           message.commandStatus = 20
+          break
+        case 'ERROR_GPIO_MODE_INCORRECT':
+        case 58:
+          message.commandStatus = 58
+          break
+        case 'ERROR_GPIO_UNKNOWN_PIN_MODE':
+        case 59:
+          message.commandStatus = 59
           break
       }
       if (object.hasNext != null) { message.hasNext = Boolean(object.hasNext) }
@@ -1294,6 +1851,22 @@ export const PB = $root.PB = (() => {
         if (typeof object.appLockStatusResponse !== 'object') { throw TypeError('.PB.Main.appLockStatusResponse: object expected') }
         message.appLockStatusResponse = $root.PB_App.LockStatusResponse.fromObject(object.appLockStatusResponse)
       }
+      if (object.appExitRequest != null) {
+        if (typeof object.appExitRequest !== 'object') { throw TypeError('.PB.Main.appExitRequest: object expected') }
+        message.appExitRequest = $root.PB_App.AppExitRequest.fromObject(object.appExitRequest)
+      }
+      if (object.appLoadFileRequest != null) {
+        if (typeof object.appLoadFileRequest !== 'object') { throw TypeError('.PB.Main.appLoadFileRequest: object expected') }
+        message.appLoadFileRequest = $root.PB_App.AppLoadFileRequest.fromObject(object.appLoadFileRequest)
+      }
+      if (object.appButtonPressRequest != null) {
+        if (typeof object.appButtonPressRequest !== 'object') { throw TypeError('.PB.Main.appButtonPressRequest: object expected') }
+        message.appButtonPressRequest = $root.PB_App.AppButtonPressRequest.fromObject(object.appButtonPressRequest)
+      }
+      if (object.appButtonReleaseRequest != null) {
+        if (typeof object.appButtonReleaseRequest !== 'object') { throw TypeError('.PB.Main.appButtonReleaseRequest: object expected') }
+        message.appButtonReleaseRequest = $root.PB_App.AppButtonReleaseRequest.fromObject(object.appButtonReleaseRequest)
+      }
       if (object.guiStartScreenStreamRequest != null) {
         if (typeof object.guiStartScreenStreamRequest !== 'object') { throw TypeError('.PB.Main.guiStartScreenStreamRequest: object expected') }
         message.guiStartScreenStreamRequest = $root.PB_Gui.StartScreenStreamRequest.fromObject(object.guiStartScreenStreamRequest)
@@ -1317,6 +1890,38 @@ export const PB = $root.PB = (() => {
       if (object.guiStopVirtualDisplayRequest != null) {
         if (typeof object.guiStopVirtualDisplayRequest !== 'object') { throw TypeError('.PB.Main.guiStopVirtualDisplayRequest: object expected') }
         message.guiStopVirtualDisplayRequest = $root.PB_Gui.StopVirtualDisplayRequest.fromObject(object.guiStopVirtualDisplayRequest)
+      }
+      if (object.gpioSetPinMode != null) {
+        if (typeof object.gpioSetPinMode !== 'object') { throw TypeError('.PB.Main.gpioSetPinMode: object expected') }
+        message.gpioSetPinMode = $root.PB_Gpio.SetPinMode.fromObject(object.gpioSetPinMode)
+      }
+      if (object.gpioSetInputPull != null) {
+        if (typeof object.gpioSetInputPull !== 'object') { throw TypeError('.PB.Main.gpioSetInputPull: object expected') }
+        message.gpioSetInputPull = $root.PB_Gpio.SetInputPull.fromObject(object.gpioSetInputPull)
+      }
+      if (object.gpioGetPinMode != null) {
+        if (typeof object.gpioGetPinMode !== 'object') { throw TypeError('.PB.Main.gpioGetPinMode: object expected') }
+        message.gpioGetPinMode = $root.PB_Gpio.GetPinMode.fromObject(object.gpioGetPinMode)
+      }
+      if (object.gpioGetPinModeResponse != null) {
+        if (typeof object.gpioGetPinModeResponse !== 'object') { throw TypeError('.PB.Main.gpioGetPinModeResponse: object expected') }
+        message.gpioGetPinModeResponse = $root.PB_Gpio.GetPinModeResponse.fromObject(object.gpioGetPinModeResponse)
+      }
+      if (object.gpioReadPin != null) {
+        if (typeof object.gpioReadPin !== 'object') { throw TypeError('.PB.Main.gpioReadPin: object expected') }
+        message.gpioReadPin = $root.PB_Gpio.ReadPin.fromObject(object.gpioReadPin)
+      }
+      if (object.gpioReadPinResponse != null) {
+        if (typeof object.gpioReadPinResponse !== 'object') { throw TypeError('.PB.Main.gpioReadPinResponse: object expected') }
+        message.gpioReadPinResponse = $root.PB_Gpio.ReadPinResponse.fromObject(object.gpioReadPinResponse)
+      }
+      if (object.gpioWritePin != null) {
+        if (typeof object.gpioWritePin !== 'object') { throw TypeError('.PB.Main.gpioWritePin: object expected') }
+        message.gpioWritePin = $root.PB_Gpio.WritePin.fromObject(object.gpioWritePin)
+      }
+      if (object.appStateResponse != null) {
+        if (typeof object.appStateResponse !== 'object') { throw TypeError('.PB.Main.appStateResponse: object expected') }
+        message.appStateResponse = $root.PB_App.AppStateResponse.fromObject(object.appStateResponse)
       }
       return message
     }
@@ -1504,6 +2109,54 @@ export const PB = $root.PB = (() => {
         object.systemUpdateResponse = $root.PB_System.UpdateResponse.toObject(message.systemUpdateResponse, options)
         if (options.oneofs) { object.content = 'systemUpdateResponse' }
       }
+      if (message.appExitRequest != null && message.hasOwnProperty('appExitRequest')) {
+        object.appExitRequest = $root.PB_App.AppExitRequest.toObject(message.appExitRequest, options)
+        if (options.oneofs) { object.content = 'appExitRequest' }
+      }
+      if (message.appLoadFileRequest != null && message.hasOwnProperty('appLoadFileRequest')) {
+        object.appLoadFileRequest = $root.PB_App.AppLoadFileRequest.toObject(message.appLoadFileRequest, options)
+        if (options.oneofs) { object.content = 'appLoadFileRequest' }
+      }
+      if (message.appButtonPressRequest != null && message.hasOwnProperty('appButtonPressRequest')) {
+        object.appButtonPressRequest = $root.PB_App.AppButtonPressRequest.toObject(message.appButtonPressRequest, options)
+        if (options.oneofs) { object.content = 'appButtonPressRequest' }
+      }
+      if (message.appButtonReleaseRequest != null && message.hasOwnProperty('appButtonReleaseRequest')) {
+        object.appButtonReleaseRequest = $root.PB_App.AppButtonReleaseRequest.toObject(message.appButtonReleaseRequest, options)
+        if (options.oneofs) { object.content = 'appButtonReleaseRequest' }
+      }
+      if (message.gpioSetPinMode != null && message.hasOwnProperty('gpioSetPinMode')) {
+        object.gpioSetPinMode = $root.PB_Gpio.SetPinMode.toObject(message.gpioSetPinMode, options)
+        if (options.oneofs) { object.content = 'gpioSetPinMode' }
+      }
+      if (message.gpioSetInputPull != null && message.hasOwnProperty('gpioSetInputPull')) {
+        object.gpioSetInputPull = $root.PB_Gpio.SetInputPull.toObject(message.gpioSetInputPull, options)
+        if (options.oneofs) { object.content = 'gpioSetInputPull' }
+      }
+      if (message.gpioGetPinMode != null && message.hasOwnProperty('gpioGetPinMode')) {
+        object.gpioGetPinMode = $root.PB_Gpio.GetPinMode.toObject(message.gpioGetPinMode, options)
+        if (options.oneofs) { object.content = 'gpioGetPinMode' }
+      }
+      if (message.gpioGetPinModeResponse != null && message.hasOwnProperty('gpioGetPinModeResponse')) {
+        object.gpioGetPinModeResponse = $root.PB_Gpio.GetPinModeResponse.toObject(message.gpioGetPinModeResponse, options)
+        if (options.oneofs) { object.content = 'gpioGetPinModeResponse' }
+      }
+      if (message.gpioReadPin != null && message.hasOwnProperty('gpioReadPin')) {
+        object.gpioReadPin = $root.PB_Gpio.ReadPin.toObject(message.gpioReadPin, options)
+        if (options.oneofs) { object.content = 'gpioReadPin' }
+      }
+      if (message.gpioReadPinResponse != null && message.hasOwnProperty('gpioReadPinResponse')) {
+        object.gpioReadPinResponse = $root.PB_Gpio.ReadPinResponse.toObject(message.gpioReadPinResponse, options)
+        if (options.oneofs) { object.content = 'gpioReadPinResponse' }
+      }
+      if (message.gpioWritePin != null && message.hasOwnProperty('gpioWritePin')) {
+        object.gpioWritePin = $root.PB_Gpio.WritePin.toObject(message.gpioWritePin, options)
+        if (options.oneofs) { object.content = 'gpioWritePin' }
+      }
+      if (message.appStateResponse != null && message.hasOwnProperty('appStateResponse')) {
+        object.appStateResponse = $root.PB_App.AppStateResponse.toObject(message.appStateResponse, options)
+        if (options.oneofs) { object.content = 'appStateResponse' }
+      }
       return object
     }
 
@@ -1512,6 +2165,231 @@ export const PB = $root.PB = (() => {
     }
 
     return Main
+  })()
+
+  PB.Region = (function () {
+    function Region (properties) {
+      this.bands = []
+      if (properties) {
+        for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i) {
+          if (properties[keys[i]] != null) { this[keys[i]] = properties[keys[i]] }
+        }
+      }
+    }
+
+    Region.prototype.countryCode = $util.newBuffer([])
+    Region.prototype.bands = $util.emptyArray
+
+    Region.create = function create (properties) {
+      return new Region(properties)
+    }
+
+    Region.encode = function encode (message, writer) {
+      if (!writer) { writer = $Writer.create() }
+      if (message.countryCode != null && Object.hasOwnProperty.call(message, 'countryCode')) { writer.uint32(10).bytes(message.countryCode) }
+      if (message.bands != null && message.bands.length) {
+        for (let i = 0; i < message.bands.length; ++i) { $root.PB.Region.Band.encode(message.bands[i], writer.uint32(18).fork()).ldelim() }
+      }
+      return writer
+    }
+
+    Region.encodeDelimited = function encodeDelimited (message, writer) {
+      return this.encode(message, writer).ldelim()
+    }
+
+    Region.decode = function decode (reader, length) {
+      if (!(reader instanceof $Reader)) { reader = $Reader.create(reader) }
+      const end = length === undefined ? reader.len : reader.pos + length, message = new $root.PB.Region()
+      while (reader.pos < end) {
+        const tag = reader.uint32()
+        switch (tag >>> 3) {
+          case 1:
+            message.countryCode = reader.bytes()
+            break
+          case 2:
+            if (!(message.bands && message.bands.length)) { message.bands = [] }
+            message.bands.push($root.PB.Region.Band.decode(reader, reader.uint32()))
+            break
+          default:
+            reader.skipType(tag & 7)
+            break
+        }
+      }
+      return message
+    }
+
+    Region.decodeDelimited = function decodeDelimited (reader) {
+      if (!(reader instanceof $Reader)) { reader = new $Reader(reader) }
+      return this.decode(reader, reader.uint32())
+    }
+
+    Region.verify = function verify (message) {
+      if (typeof message !== 'object' || message === null) { return 'object expected' }
+      if (message.countryCode != null && message.hasOwnProperty('countryCode')) {
+        if (!(message.countryCode && typeof message.countryCode.length === 'number' || $util.isString(message.countryCode))) { return 'countryCode: buffer expected' }
+      }
+      if (message.bands != null && message.hasOwnProperty('bands')) {
+        if (!Array.isArray(message.bands)) { return 'bands: array expected' }
+        for (let i = 0; i < message.bands.length; ++i) {
+          const error = $root.PB.Region.Band.verify(message.bands[i])
+          if (error) { return 'bands.' + error }
+        }
+      }
+      return null
+    }
+
+    Region.fromObject = function fromObject (object) {
+      if (object instanceof $root.PB.Region) { return object }
+      const message = new $root.PB.Region()
+      if (object.countryCode != null) {
+        if (typeof object.countryCode === 'string') { $util.base64.decode(object.countryCode, message.countryCode = $util.newBuffer($util.base64.length(object.countryCode)), 0) } else if (object.countryCode.length) { message.countryCode = object.countryCode }
+      }
+      if (object.bands) {
+        if (!Array.isArray(object.bands)) { throw TypeError('.PB.Region.bands: array expected') }
+        message.bands = []
+        for (let i = 0; i < object.bands.length; ++i) {
+          if (typeof object.bands[i] !== 'object') { throw TypeError('.PB.Region.bands: object expected') }
+          message.bands[i] = $root.PB.Region.Band.fromObject(object.bands[i])
+        }
+      }
+      return message
+    }
+
+    Region.toObject = function toObject (message, options) {
+      if (!options) { options = {} }
+      const object = {}
+      if (options.arrays || options.defaults) { object.bands = [] }
+      if (options.defaults) {
+        if (options.bytes === String) { object.countryCode = '' } else {
+          object.countryCode = []
+          if (options.bytes !== Array) { object.countryCode = $util.newBuffer(object.countryCode) }
+        }
+      }
+      if (message.countryCode != null && message.hasOwnProperty('countryCode')) { object.countryCode = options.bytes === String ? $util.base64.encode(message.countryCode, 0, message.countryCode.length) : options.bytes === Array ? Array.prototype.slice.call(message.countryCode) : message.countryCode }
+      if (message.bands && message.bands.length) {
+        object.bands = []
+        for (let j = 0; j < message.bands.length; ++j) { object.bands[j] = $root.PB.Region.Band.toObject(message.bands[j], options) }
+      }
+      return object
+    }
+
+    Region.prototype.toJSON = function toJSON () {
+      return this.constructor.toObject(this, $protobuf.util.toJSONOptions)
+    }
+
+    Region.Band = (function () {
+      function Band (properties) {
+        if (properties) {
+          for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i) {
+            if (properties[keys[i]] != null) { this[keys[i]] = properties[keys[i]] }
+          }
+        }
+      }
+
+      Band.prototype.start = 0
+      Band.prototype.end = 0
+      Band.prototype.powerLimit = 0
+      Band.prototype.dutyCycle = 0
+
+      Band.create = function create (properties) {
+        return new Band(properties)
+      }
+
+      Band.encode = function encode (message, writer) {
+        if (!writer) { writer = $Writer.create() }
+        if (message.start != null && Object.hasOwnProperty.call(message, 'start')) { writer.uint32(8).uint32(message.start) }
+        if (message.end != null && Object.hasOwnProperty.call(message, 'end')) { writer.uint32(16).uint32(message.end) }
+        if (message.powerLimit != null && Object.hasOwnProperty.call(message, 'powerLimit')) { writer.uint32(24).int32(message.powerLimit) }
+        if (message.dutyCycle != null && Object.hasOwnProperty.call(message, 'dutyCycle')) { writer.uint32(32).uint32(message.dutyCycle) }
+        return writer
+      }
+
+      Band.encodeDelimited = function encodeDelimited (message, writer) {
+        return this.encode(message, writer).ldelim()
+      }
+
+      Band.decode = function decode (reader, length) {
+        if (!(reader instanceof $Reader)) { reader = $Reader.create(reader) }
+        const end = length === undefined ? reader.len : reader.pos + length, message = new $root.PB.Region.Band()
+        while (reader.pos < end) {
+          const tag = reader.uint32()
+          switch (tag >>> 3) {
+            case 1:
+              message.start = reader.uint32()
+              break
+            case 2:
+              message.end = reader.uint32()
+              break
+            case 3:
+              message.powerLimit = reader.int32()
+              break
+            case 4:
+              message.dutyCycle = reader.uint32()
+              break
+            default:
+              reader.skipType(tag & 7)
+              break
+          }
+        }
+        return message
+      }
+
+      Band.decodeDelimited = function decodeDelimited (reader) {
+        if (!(reader instanceof $Reader)) { reader = new $Reader(reader) }
+        return this.decode(reader, reader.uint32())
+      }
+
+      Band.verify = function verify (message) {
+        if (typeof message !== 'object' || message === null) { return 'object expected' }
+        if (message.start != null && message.hasOwnProperty('start')) {
+          if (!$util.isInteger(message.start)) { return 'start: integer expected' }
+        }
+        if (message.end != null && message.hasOwnProperty('end')) {
+          if (!$util.isInteger(message.end)) { return 'end: integer expected' }
+        }
+        if (message.powerLimit != null && message.hasOwnProperty('powerLimit')) {
+          if (!$util.isInteger(message.powerLimit)) { return 'powerLimit: integer expected' }
+        }
+        if (message.dutyCycle != null && message.hasOwnProperty('dutyCycle')) {
+          if (!$util.isInteger(message.dutyCycle)) { return 'dutyCycle: integer expected' }
+        }
+        return null
+      }
+
+      Band.fromObject = function fromObject (object) {
+        if (object instanceof $root.PB.Region.Band) { return object }
+        const message = new $root.PB.Region.Band()
+        if (object.start != null) { message.start = object.start >>> 0 }
+        if (object.end != null) { message.end = object.end >>> 0 }
+        if (object.powerLimit != null) { message.powerLimit = object.powerLimit | 0 }
+        if (object.dutyCycle != null) { message.dutyCycle = object.dutyCycle >>> 0 }
+        return message
+      }
+
+      Band.toObject = function toObject (message, options) {
+        if (!options) { options = {} }
+        const object = {}
+        if (options.defaults) {
+          object.start = 0
+          object.end = 0
+          object.powerLimit = 0
+          object.dutyCycle = 0
+        }
+        if (message.start != null && message.hasOwnProperty('start')) { object.start = message.start }
+        if (message.end != null && message.hasOwnProperty('end')) { object.end = message.end }
+        if (message.powerLimit != null && message.hasOwnProperty('powerLimit')) { object.powerLimit = message.powerLimit }
+        if (message.dutyCycle != null && message.hasOwnProperty('dutyCycle')) { object.dutyCycle = message.dutyCycle }
+        return object
+      }
+
+      Band.prototype.toJSON = function toJSON () {
+        return this.constructor.toObject(this, $protobuf.util.toJSONOptions)
+      }
+
+      return Band
+    })()
+
+    return Region
   })()
 
   return PB
@@ -4201,6 +5079,9 @@ export const PB_System = $root.PB_System = (() => {
           case 5:
           case 6:
           case 7:
+          case 8:
+          case 9:
+          case 10:
             break
         }
       }
@@ -4243,6 +5124,18 @@ export const PB_System = $root.PB_System = (() => {
         case 7:
           message.code = 7
           break
+        case 'OutdatedManifestVersion':
+        case 8:
+          message.code = 8
+          break
+        case 'IntFull':
+        case 9:
+          message.code = 9
+          break
+        case 'UnspecifiedError':
+        case 10:
+          message.code = 10
+          break
       }
       return message
     }
@@ -4269,6 +5162,9 @@ export const PB_System = $root.PB_System = (() => {
       values[valuesById[5] = 'StageIntegrityError'] = 5
       values[valuesById[6] = 'ManifestPointerError'] = 6
       values[valuesById[7] = 'TargetMismatch'] = 7
+      values[valuesById[8] = 'OutdatedManifestVersion'] = 8
+      values[valuesById[9] = 'IntFull'] = 9
+      values[valuesById[10] = 'UnspecifiedError'] = 10
       return values
     })()
 
@@ -4961,6 +5857,893 @@ export const PB_Gui = $root.PB_Gui = (() => {
   })()
 
   return PB_Gui
+})()
+
+export const PB_Gpio = $root.PB_Gpio = (() => {
+  const PB_Gpio = {}
+
+  PB_Gpio.GpioPin = (function () {
+    const valuesById = {}, values = Object.create(valuesById)
+    values[valuesById[0] = 'PC0'] = 0
+    values[valuesById[1] = 'PC1'] = 1
+    values[valuesById[2] = 'PC3'] = 2
+    values[valuesById[3] = 'PB2'] = 3
+    values[valuesById[4] = 'PB3'] = 4
+    values[valuesById[5] = 'PA4'] = 5
+    values[valuesById[6] = 'PA6'] = 6
+    values[valuesById[7] = 'PA7'] = 7
+    return values
+  })()
+
+  PB_Gpio.GpioPinMode = (function () {
+    const valuesById = {}, values = Object.create(valuesById)
+    values[valuesById[0] = 'OUTPUT'] = 0
+    values[valuesById[1] = 'INPUT'] = 1
+    return values
+  })()
+
+  PB_Gpio.GpioInputPull = (function () {
+    const valuesById = {}, values = Object.create(valuesById)
+    values[valuesById[0] = 'NO'] = 0
+    values[valuesById[1] = 'UP'] = 1
+    values[valuesById[2] = 'DOWN'] = 2
+    return values
+  })()
+
+  PB_Gpio.SetPinMode = (function () {
+    function SetPinMode (properties) {
+      if (properties) {
+        for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i) {
+          if (properties[keys[i]] != null) { this[keys[i]] = properties[keys[i]] }
+        }
+      }
+    }
+
+    SetPinMode.prototype.pin = 0
+    SetPinMode.prototype.mode = 0
+
+    SetPinMode.create = function create (properties) {
+      return new SetPinMode(properties)
+    }
+
+    SetPinMode.encode = function encode (message, writer) {
+      if (!writer) { writer = $Writer.create() }
+      if (message.pin != null && Object.hasOwnProperty.call(message, 'pin')) { writer.uint32(8).int32(message.pin) }
+      if (message.mode != null && Object.hasOwnProperty.call(message, 'mode')) { writer.uint32(16).int32(message.mode) }
+      return writer
+    }
+
+    SetPinMode.encodeDelimited = function encodeDelimited (message, writer) {
+      return this.encode(message, writer).ldelim()
+    }
+
+    SetPinMode.decode = function decode (reader, length) {
+      if (!(reader instanceof $Reader)) { reader = $Reader.create(reader) }
+      const end = length === undefined ? reader.len : reader.pos + length, message = new $root.PB_Gpio.SetPinMode()
+      while (reader.pos < end) {
+        const tag = reader.uint32()
+        switch (tag >>> 3) {
+          case 1:
+            message.pin = reader.int32()
+            break
+          case 2:
+            message.mode = reader.int32()
+            break
+          default:
+            reader.skipType(tag & 7)
+            break
+        }
+      }
+      return message
+    }
+
+    SetPinMode.decodeDelimited = function decodeDelimited (reader) {
+      if (!(reader instanceof $Reader)) { reader = new $Reader(reader) }
+      return this.decode(reader, reader.uint32())
+    }
+
+    SetPinMode.verify = function verify (message) {
+      if (typeof message !== 'object' || message === null) { return 'object expected' }
+      if (message.pin != null && message.hasOwnProperty('pin')) {
+        switch (message.pin) {
+          default:
+            return 'pin: enum value expected'
+          case 0:
+          case 1:
+          case 2:
+          case 3:
+          case 4:
+          case 5:
+          case 6:
+          case 7:
+            break
+        }
+      }
+      if (message.mode != null && message.hasOwnProperty('mode')) {
+        switch (message.mode) {
+          default:
+            return 'mode: enum value expected'
+          case 0:
+          case 1:
+            break
+        }
+      }
+      return null
+    }
+
+    SetPinMode.fromObject = function fromObject (object) {
+      if (object instanceof $root.PB_Gpio.SetPinMode) { return object }
+      const message = new $root.PB_Gpio.SetPinMode()
+      switch (object.pin) {
+        case 'PC0':
+        case 0:
+          message.pin = 0
+          break
+        case 'PC1':
+        case 1:
+          message.pin = 1
+          break
+        case 'PC3':
+        case 2:
+          message.pin = 2
+          break
+        case 'PB2':
+        case 3:
+          message.pin = 3
+          break
+        case 'PB3':
+        case 4:
+          message.pin = 4
+          break
+        case 'PA4':
+        case 5:
+          message.pin = 5
+          break
+        case 'PA6':
+        case 6:
+          message.pin = 6
+          break
+        case 'PA7':
+        case 7:
+          message.pin = 7
+          break
+      }
+      switch (object.mode) {
+        case 'OUTPUT':
+        case 0:
+          message.mode = 0
+          break
+        case 'INPUT':
+        case 1:
+          message.mode = 1
+          break
+      }
+      return message
+    }
+
+    SetPinMode.toObject = function toObject (message, options) {
+      if (!options) { options = {} }
+      const object = {}
+      if (options.defaults) {
+        object.pin = options.enums === String ? 'PC0' : 0
+        object.mode = options.enums === String ? 'OUTPUT' : 0
+      }
+      if (message.pin != null && message.hasOwnProperty('pin')) { object.pin = options.enums === String ? $root.PB_Gpio.GpioPin[message.pin] : message.pin }
+      if (message.mode != null && message.hasOwnProperty('mode')) { object.mode = options.enums === String ? $root.PB_Gpio.GpioPinMode[message.mode] : message.mode }
+      return object
+    }
+
+    SetPinMode.prototype.toJSON = function toJSON () {
+      return this.constructor.toObject(this, $protobuf.util.toJSONOptions)
+    }
+
+    return SetPinMode
+  })()
+
+  PB_Gpio.SetInputPull = (function () {
+    function SetInputPull (properties) {
+      if (properties) {
+        for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i) {
+          if (properties[keys[i]] != null) { this[keys[i]] = properties[keys[i]] }
+        }
+      }
+    }
+
+    SetInputPull.prototype.pin = 0
+    SetInputPull.prototype.pullMode = 0
+
+    SetInputPull.create = function create (properties) {
+      return new SetInputPull(properties)
+    }
+
+    SetInputPull.encode = function encode (message, writer) {
+      if (!writer) { writer = $Writer.create() }
+      if (message.pin != null && Object.hasOwnProperty.call(message, 'pin')) { writer.uint32(8).int32(message.pin) }
+      if (message.pullMode != null && Object.hasOwnProperty.call(message, 'pullMode')) { writer.uint32(16).int32(message.pullMode) }
+      return writer
+    }
+
+    SetInputPull.encodeDelimited = function encodeDelimited (message, writer) {
+      return this.encode(message, writer).ldelim()
+    }
+
+    SetInputPull.decode = function decode (reader, length) {
+      if (!(reader instanceof $Reader)) { reader = $Reader.create(reader) }
+      const end = length === undefined ? reader.len : reader.pos + length, message = new $root.PB_Gpio.SetInputPull()
+      while (reader.pos < end) {
+        const tag = reader.uint32()
+        switch (tag >>> 3) {
+          case 1:
+            message.pin = reader.int32()
+            break
+          case 2:
+            message.pullMode = reader.int32()
+            break
+          default:
+            reader.skipType(tag & 7)
+            break
+        }
+      }
+      return message
+    }
+
+    SetInputPull.decodeDelimited = function decodeDelimited (reader) {
+      if (!(reader instanceof $Reader)) { reader = new $Reader(reader) }
+      return this.decode(reader, reader.uint32())
+    }
+
+    SetInputPull.verify = function verify (message) {
+      if (typeof message !== 'object' || message === null) { return 'object expected' }
+      if (message.pin != null && message.hasOwnProperty('pin')) {
+        switch (message.pin) {
+          default:
+            return 'pin: enum value expected'
+          case 0:
+          case 1:
+          case 2:
+          case 3:
+          case 4:
+          case 5:
+          case 6:
+          case 7:
+            break
+        }
+      }
+      if (message.pullMode != null && message.hasOwnProperty('pullMode')) {
+        switch (message.pullMode) {
+          default:
+            return 'pullMode: enum value expected'
+          case 0:
+          case 1:
+          case 2:
+            break
+        }
+      }
+      return null
+    }
+
+    SetInputPull.fromObject = function fromObject (object) {
+      if (object instanceof $root.PB_Gpio.SetInputPull) { return object }
+      const message = new $root.PB_Gpio.SetInputPull()
+      switch (object.pin) {
+        case 'PC0':
+        case 0:
+          message.pin = 0
+          break
+        case 'PC1':
+        case 1:
+          message.pin = 1
+          break
+        case 'PC3':
+        case 2:
+          message.pin = 2
+          break
+        case 'PB2':
+        case 3:
+          message.pin = 3
+          break
+        case 'PB3':
+        case 4:
+          message.pin = 4
+          break
+        case 'PA4':
+        case 5:
+          message.pin = 5
+          break
+        case 'PA6':
+        case 6:
+          message.pin = 6
+          break
+        case 'PA7':
+        case 7:
+          message.pin = 7
+          break
+      }
+      switch (object.pullMode) {
+        case 'NO':
+        case 0:
+          message.pullMode = 0
+          break
+        case 'UP':
+        case 1:
+          message.pullMode = 1
+          break
+        case 'DOWN':
+        case 2:
+          message.pullMode = 2
+          break
+      }
+      return message
+    }
+
+    SetInputPull.toObject = function toObject (message, options) {
+      if (!options) { options = {} }
+      const object = {}
+      if (options.defaults) {
+        object.pin = options.enums === String ? 'PC0' : 0
+        object.pullMode = options.enums === String ? 'NO' : 0
+      }
+      if (message.pin != null && message.hasOwnProperty('pin')) { object.pin = options.enums === String ? $root.PB_Gpio.GpioPin[message.pin] : message.pin }
+      if (message.pullMode != null && message.hasOwnProperty('pullMode')) { object.pullMode = options.enums === String ? $root.PB_Gpio.GpioInputPull[message.pullMode] : message.pullMode }
+      return object
+    }
+
+    SetInputPull.prototype.toJSON = function toJSON () {
+      return this.constructor.toObject(this, $protobuf.util.toJSONOptions)
+    }
+
+    return SetInputPull
+  })()
+
+  PB_Gpio.GetPinMode = (function () {
+    function GetPinMode (properties) {
+      if (properties) {
+        for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i) {
+          if (properties[keys[i]] != null) { this[keys[i]] = properties[keys[i]] }
+        }
+      }
+    }
+
+    GetPinMode.prototype.pin = 0
+
+    GetPinMode.create = function create (properties) {
+      return new GetPinMode(properties)
+    }
+
+    GetPinMode.encode = function encode (message, writer) {
+      if (!writer) { writer = $Writer.create() }
+      if (message.pin != null && Object.hasOwnProperty.call(message, 'pin')) { writer.uint32(8).int32(message.pin) }
+      return writer
+    }
+
+    GetPinMode.encodeDelimited = function encodeDelimited (message, writer) {
+      return this.encode(message, writer).ldelim()
+    }
+
+    GetPinMode.decode = function decode (reader, length) {
+      if (!(reader instanceof $Reader)) { reader = $Reader.create(reader) }
+      const end = length === undefined ? reader.len : reader.pos + length, message = new $root.PB_Gpio.GetPinMode()
+      while (reader.pos < end) {
+        const tag = reader.uint32()
+        switch (tag >>> 3) {
+          case 1:
+            message.pin = reader.int32()
+            break
+          default:
+            reader.skipType(tag & 7)
+            break
+        }
+      }
+      return message
+    }
+
+    GetPinMode.decodeDelimited = function decodeDelimited (reader) {
+      if (!(reader instanceof $Reader)) { reader = new $Reader(reader) }
+      return this.decode(reader, reader.uint32())
+    }
+
+    GetPinMode.verify = function verify (message) {
+      if (typeof message !== 'object' || message === null) { return 'object expected' }
+      if (message.pin != null && message.hasOwnProperty('pin')) {
+        switch (message.pin) {
+          default:
+            return 'pin: enum value expected'
+          case 0:
+          case 1:
+          case 2:
+          case 3:
+          case 4:
+          case 5:
+          case 6:
+          case 7:
+            break
+        }
+      }
+      return null
+    }
+
+    GetPinMode.fromObject = function fromObject (object) {
+      if (object instanceof $root.PB_Gpio.GetPinMode) { return object }
+      const message = new $root.PB_Gpio.GetPinMode()
+      switch (object.pin) {
+        case 'PC0':
+        case 0:
+          message.pin = 0
+          break
+        case 'PC1':
+        case 1:
+          message.pin = 1
+          break
+        case 'PC3':
+        case 2:
+          message.pin = 2
+          break
+        case 'PB2':
+        case 3:
+          message.pin = 3
+          break
+        case 'PB3':
+        case 4:
+          message.pin = 4
+          break
+        case 'PA4':
+        case 5:
+          message.pin = 5
+          break
+        case 'PA6':
+        case 6:
+          message.pin = 6
+          break
+        case 'PA7':
+        case 7:
+          message.pin = 7
+          break
+      }
+      return message
+    }
+
+    GetPinMode.toObject = function toObject (message, options) {
+      if (!options) { options = {} }
+      const object = {}
+      if (options.defaults) { object.pin = options.enums === String ? 'PC0' : 0 }
+      if (message.pin != null && message.hasOwnProperty('pin')) { object.pin = options.enums === String ? $root.PB_Gpio.GpioPin[message.pin] : message.pin }
+      return object
+    }
+
+    GetPinMode.prototype.toJSON = function toJSON () {
+      return this.constructor.toObject(this, $protobuf.util.toJSONOptions)
+    }
+
+    return GetPinMode
+  })()
+
+  PB_Gpio.GetPinModeResponse = (function () {
+    function GetPinModeResponse (properties) {
+      if (properties) {
+        for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i) {
+          if (properties[keys[i]] != null) { this[keys[i]] = properties[keys[i]] }
+        }
+      }
+    }
+
+    GetPinModeResponse.prototype.mode = 0
+
+    GetPinModeResponse.create = function create (properties) {
+      return new GetPinModeResponse(properties)
+    }
+
+    GetPinModeResponse.encode = function encode (message, writer) {
+      if (!writer) { writer = $Writer.create() }
+      if (message.mode != null && Object.hasOwnProperty.call(message, 'mode')) { writer.uint32(8).int32(message.mode) }
+      return writer
+    }
+
+    GetPinModeResponse.encodeDelimited = function encodeDelimited (message, writer) {
+      return this.encode(message, writer).ldelim()
+    }
+
+    GetPinModeResponse.decode = function decode (reader, length) {
+      if (!(reader instanceof $Reader)) { reader = $Reader.create(reader) }
+      const end = length === undefined ? reader.len : reader.pos + length, message = new $root.PB_Gpio.GetPinModeResponse()
+      while (reader.pos < end) {
+        const tag = reader.uint32()
+        switch (tag >>> 3) {
+          case 1:
+            message.mode = reader.int32()
+            break
+          default:
+            reader.skipType(tag & 7)
+            break
+        }
+      }
+      return message
+    }
+
+    GetPinModeResponse.decodeDelimited = function decodeDelimited (reader) {
+      if (!(reader instanceof $Reader)) { reader = new $Reader(reader) }
+      return this.decode(reader, reader.uint32())
+    }
+
+    GetPinModeResponse.verify = function verify (message) {
+      if (typeof message !== 'object' || message === null) { return 'object expected' }
+      if (message.mode != null && message.hasOwnProperty('mode')) {
+        switch (message.mode) {
+          default:
+            return 'mode: enum value expected'
+          case 0:
+          case 1:
+            break
+        }
+      }
+      return null
+    }
+
+    GetPinModeResponse.fromObject = function fromObject (object) {
+      if (object instanceof $root.PB_Gpio.GetPinModeResponse) { return object }
+      const message = new $root.PB_Gpio.GetPinModeResponse()
+      switch (object.mode) {
+        case 'OUTPUT':
+        case 0:
+          message.mode = 0
+          break
+        case 'INPUT':
+        case 1:
+          message.mode = 1
+          break
+      }
+      return message
+    }
+
+    GetPinModeResponse.toObject = function toObject (message, options) {
+      if (!options) { options = {} }
+      const object = {}
+      if (options.defaults) { object.mode = options.enums === String ? 'OUTPUT' : 0 }
+      if (message.mode != null && message.hasOwnProperty('mode')) { object.mode = options.enums === String ? $root.PB_Gpio.GpioPinMode[message.mode] : message.mode }
+      return object
+    }
+
+    GetPinModeResponse.prototype.toJSON = function toJSON () {
+      return this.constructor.toObject(this, $protobuf.util.toJSONOptions)
+    }
+
+    return GetPinModeResponse
+  })()
+
+  PB_Gpio.ReadPin = (function () {
+    function ReadPin (properties) {
+      if (properties) {
+        for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i) {
+          if (properties[keys[i]] != null) { this[keys[i]] = properties[keys[i]] }
+        }
+      }
+    }
+
+    ReadPin.prototype.pin = 0
+
+    ReadPin.create = function create (properties) {
+      return new ReadPin(properties)
+    }
+
+    ReadPin.encode = function encode (message, writer) {
+      if (!writer) { writer = $Writer.create() }
+      if (message.pin != null && Object.hasOwnProperty.call(message, 'pin')) { writer.uint32(8).int32(message.pin) }
+      return writer
+    }
+
+    ReadPin.encodeDelimited = function encodeDelimited (message, writer) {
+      return this.encode(message, writer).ldelim()
+    }
+
+    ReadPin.decode = function decode (reader, length) {
+      if (!(reader instanceof $Reader)) { reader = $Reader.create(reader) }
+      const end = length === undefined ? reader.len : reader.pos + length, message = new $root.PB_Gpio.ReadPin()
+      while (reader.pos < end) {
+        const tag = reader.uint32()
+        switch (tag >>> 3) {
+          case 1:
+            message.pin = reader.int32()
+            break
+          default:
+            reader.skipType(tag & 7)
+            break
+        }
+      }
+      return message
+    }
+
+    ReadPin.decodeDelimited = function decodeDelimited (reader) {
+      if (!(reader instanceof $Reader)) { reader = new $Reader(reader) }
+      return this.decode(reader, reader.uint32())
+    }
+
+    ReadPin.verify = function verify (message) {
+      if (typeof message !== 'object' || message === null) { return 'object expected' }
+      if (message.pin != null && message.hasOwnProperty('pin')) {
+        switch (message.pin) {
+          default:
+            return 'pin: enum value expected'
+          case 0:
+          case 1:
+          case 2:
+          case 3:
+          case 4:
+          case 5:
+          case 6:
+          case 7:
+            break
+        }
+      }
+      return null
+    }
+
+    ReadPin.fromObject = function fromObject (object) {
+      if (object instanceof $root.PB_Gpio.ReadPin) { return object }
+      const message = new $root.PB_Gpio.ReadPin()
+      switch (object.pin) {
+        case 'PC0':
+        case 0:
+          message.pin = 0
+          break
+        case 'PC1':
+        case 1:
+          message.pin = 1
+          break
+        case 'PC3':
+        case 2:
+          message.pin = 2
+          break
+        case 'PB2':
+        case 3:
+          message.pin = 3
+          break
+        case 'PB3':
+        case 4:
+          message.pin = 4
+          break
+        case 'PA4':
+        case 5:
+          message.pin = 5
+          break
+        case 'PA6':
+        case 6:
+          message.pin = 6
+          break
+        case 'PA7':
+        case 7:
+          message.pin = 7
+          break
+      }
+      return message
+    }
+
+    ReadPin.toObject = function toObject (message, options) {
+      if (!options) { options = {} }
+      const object = {}
+      if (options.defaults) { object.pin = options.enums === String ? 'PC0' : 0 }
+      if (message.pin != null && message.hasOwnProperty('pin')) { object.pin = options.enums === String ? $root.PB_Gpio.GpioPin[message.pin] : message.pin }
+      return object
+    }
+
+    ReadPin.prototype.toJSON = function toJSON () {
+      return this.constructor.toObject(this, $protobuf.util.toJSONOptions)
+    }
+
+    return ReadPin
+  })()
+
+  PB_Gpio.ReadPinResponse = (function () {
+    function ReadPinResponse (properties) {
+      if (properties) {
+        for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i) {
+          if (properties[keys[i]] != null) { this[keys[i]] = properties[keys[i]] }
+        }
+      }
+    }
+
+    ReadPinResponse.prototype.value = 0
+
+    ReadPinResponse.create = function create (properties) {
+      return new ReadPinResponse(properties)
+    }
+
+    ReadPinResponse.encode = function encode (message, writer) {
+      if (!writer) { writer = $Writer.create() }
+      if (message.value != null && Object.hasOwnProperty.call(message, 'value')) { writer.uint32(16).uint32(message.value) }
+      return writer
+    }
+
+    ReadPinResponse.encodeDelimited = function encodeDelimited (message, writer) {
+      return this.encode(message, writer).ldelim()
+    }
+
+    ReadPinResponse.decode = function decode (reader, length) {
+      if (!(reader instanceof $Reader)) { reader = $Reader.create(reader) }
+      const end = length === undefined ? reader.len : reader.pos + length, message = new $root.PB_Gpio.ReadPinResponse()
+      while (reader.pos < end) {
+        const tag = reader.uint32()
+        switch (tag >>> 3) {
+          case 2:
+            message.value = reader.uint32()
+            break
+          default:
+            reader.skipType(tag & 7)
+            break
+        }
+      }
+      return message
+    }
+
+    ReadPinResponse.decodeDelimited = function decodeDelimited (reader) {
+      if (!(reader instanceof $Reader)) { reader = new $Reader(reader) }
+      return this.decode(reader, reader.uint32())
+    }
+
+    ReadPinResponse.verify = function verify (message) {
+      if (typeof message !== 'object' || message === null) { return 'object expected' }
+      if (message.value != null && message.hasOwnProperty('value')) {
+        if (!$util.isInteger(message.value)) { return 'value: integer expected' }
+      }
+      return null
+    }
+
+    ReadPinResponse.fromObject = function fromObject (object) {
+      if (object instanceof $root.PB_Gpio.ReadPinResponse) { return object }
+      const message = new $root.PB_Gpio.ReadPinResponse()
+      if (object.value != null) { message.value = object.value >>> 0 }
+      return message
+    }
+
+    ReadPinResponse.toObject = function toObject (message, options) {
+      if (!options) { options = {} }
+      const object = {}
+      if (options.defaults) { object.value = 0 }
+      if (message.value != null && message.hasOwnProperty('value')) { object.value = message.value }
+      return object
+    }
+
+    ReadPinResponse.prototype.toJSON = function toJSON () {
+      return this.constructor.toObject(this, $protobuf.util.toJSONOptions)
+    }
+
+    return ReadPinResponse
+  })()
+
+  PB_Gpio.WritePin = (function () {
+    function WritePin (properties) {
+      if (properties) {
+        for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i) {
+          if (properties[keys[i]] != null) { this[keys[i]] = properties[keys[i]] }
+        }
+      }
+    }
+
+    WritePin.prototype.pin = 0
+    WritePin.prototype.value = 0
+
+    WritePin.create = function create (properties) {
+      return new WritePin(properties)
+    }
+
+    WritePin.encode = function encode (message, writer) {
+      if (!writer) { writer = $Writer.create() }
+      if (message.pin != null && Object.hasOwnProperty.call(message, 'pin')) { writer.uint32(8).int32(message.pin) }
+      if (message.value != null && Object.hasOwnProperty.call(message, 'value')) { writer.uint32(16).uint32(message.value) }
+      return writer
+    }
+
+    WritePin.encodeDelimited = function encodeDelimited (message, writer) {
+      return this.encode(message, writer).ldelim()
+    }
+
+    WritePin.decode = function decode (reader, length) {
+      if (!(reader instanceof $Reader)) { reader = $Reader.create(reader) }
+      const end = length === undefined ? reader.len : reader.pos + length, message = new $root.PB_Gpio.WritePin()
+      while (reader.pos < end) {
+        const tag = reader.uint32()
+        switch (tag >>> 3) {
+          case 1:
+            message.pin = reader.int32()
+            break
+          case 2:
+            message.value = reader.uint32()
+            break
+          default:
+            reader.skipType(tag & 7)
+            break
+        }
+      }
+      return message
+    }
+
+    WritePin.decodeDelimited = function decodeDelimited (reader) {
+      if (!(reader instanceof $Reader)) { reader = new $Reader(reader) }
+      return this.decode(reader, reader.uint32())
+    }
+
+    WritePin.verify = function verify (message) {
+      if (typeof message !== 'object' || message === null) { return 'object expected' }
+      if (message.pin != null && message.hasOwnProperty('pin')) {
+        switch (message.pin) {
+          default:
+            return 'pin: enum value expected'
+          case 0:
+          case 1:
+          case 2:
+          case 3:
+          case 4:
+          case 5:
+          case 6:
+          case 7:
+            break
+        }
+      }
+      if (message.value != null && message.hasOwnProperty('value')) {
+        if (!$util.isInteger(message.value)) { return 'value: integer expected' }
+      }
+      return null
+    }
+
+    WritePin.fromObject = function fromObject (object) {
+      if (object instanceof $root.PB_Gpio.WritePin) { return object }
+      const message = new $root.PB_Gpio.WritePin()
+      switch (object.pin) {
+        case 'PC0':
+        case 0:
+          message.pin = 0
+          break
+        case 'PC1':
+        case 1:
+          message.pin = 1
+          break
+        case 'PC3':
+        case 2:
+          message.pin = 2
+          break
+        case 'PB2':
+        case 3:
+          message.pin = 3
+          break
+        case 'PB3':
+        case 4:
+          message.pin = 4
+          break
+        case 'PA4':
+        case 5:
+          message.pin = 5
+          break
+        case 'PA6':
+        case 6:
+          message.pin = 6
+          break
+        case 'PA7':
+        case 7:
+          message.pin = 7
+          break
+      }
+      if (object.value != null) { message.value = object.value >>> 0 }
+      return message
+    }
+
+    WritePin.toObject = function toObject (message, options) {
+      if (!options) { options = {} }
+      const object = {}
+      if (options.defaults) {
+        object.pin = options.enums === String ? 'PC0' : 0
+        object.value = 0
+      }
+      if (message.pin != null && message.hasOwnProperty('pin')) { object.pin = options.enums === String ? $root.PB_Gpio.GpioPin[message.pin] : message.pin }
+      if (message.value != null && message.hasOwnProperty('value')) { object.value = message.value }
+      return object
+    }
+
+    WritePin.prototype.toJSON = function toJSON () {
+      return this.constructor.toObject(this, $protobuf.util.toJSONOptions)
+    }
+
+    return WritePin
+  })()
+
+  return PB_Gpio
 })()
 
 export { $root as default }
