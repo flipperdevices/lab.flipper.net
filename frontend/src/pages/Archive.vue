@@ -335,6 +335,7 @@ export default defineComponent({
 
     async list () {
       let res = await this.flipper.commands.storage.list(this.path)
+        .catch(error => this.rpcErrorHandler(error, 'storage.list'))
       if (res === 'empty response' || res[0] === undefined) {
         return setTimeout(this.list, 300)
       }
@@ -357,6 +358,7 @@ export default defineComponent({
         }
       })
       const res = await this.flipper.commands.storage.read(path)
+        .catch(error => this.rpcErrorHandler(error, 'storage.read'))
       const s = path.split('/')
       exportFile(s[s.length - 1], res)
       unbind()
@@ -365,16 +367,19 @@ export default defineComponent({
 
     async remove (path, isRecursive) {
       await this.flipper.commands.storage.remove(path, isRecursive)
+        .catch(error => this.rpcErrorHandler(error, 'storage.remove'))
       this.list()
     },
 
     async rename (path, oldName, newName) {
       await this.flipper.commands.storage.rename(path, oldName, newName)
+        .catch(error => this.rpcErrorHandler(error, 'storage.renam'))
       this.list()
     },
 
     async mkdir (path) {
       await this.flipper.commands.storage.mkdir(path)
+        .catch(error => this.rpcErrorHandler(error, 'storage.mkdir'))
       this.list()
     },
 
@@ -386,6 +391,7 @@ export default defineComponent({
           this.file.progress = e.progress / e.total
         })
         await this.flipper.commands.storage.write(this.path + '/' + file.name, await file.arrayBuffer())
+          .catch(error => this.rpcErrorHandler(error, 'storage.write'))
         unbind()
       }
       this.file.name = ''
@@ -435,6 +441,18 @@ export default defineComponent({
       } else {
         return 'archive:file'
       }
+    },
+
+    rpcErrorHandler (error, command) {
+      error = error.toString()
+      this.$emit('showNotif', {
+        message: `RPC error in command '${command}': ${error}`,
+        color: 'negative'
+      })
+      this.$emit('log', {
+        level: 'error',
+        message: `Archive: RPC error in command '${command}': ${error}`
+      })
     },
 
     async start () {

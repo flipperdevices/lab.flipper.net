@@ -234,6 +234,7 @@ export default defineComponent({
 
     async startScreenStream () {
       await this.flipper.commands.gui.startScreenStreamRequest()
+        .catch(error => this.rpcErrorHandler(error, 'gui.startScreenStreamRequest'))
       this.$emit('log', {
         level: 'debug',
         message: 'Device: screen streaming started'
@@ -279,6 +280,7 @@ export default defineComponent({
 
     async stopScreenStream () {
       await this.flipper.commands.gui.stopScreenStreamRequest()
+        .catch(error => this.rpcErrorHandler(error, 'gui.stopScreenStreamRequest'))
       this.$emit('log', {
         level: 'debug',
         message: 'Device: screen streaming stopped'
@@ -302,6 +304,18 @@ export default defineComponent({
     },
     passLog (config) {
       this.$emit('log', config)
+    },
+
+    rpcErrorHandler (error, command) {
+      error = error.toString()
+      this.$emit('showNotif', {
+        message: `RPC error in command '${command}': ${error}`,
+        color: 'negative'
+      })
+      this.$emit('log', {
+        level: 'error',
+        message: `Device: RPC error in command '${command}': ${error}`
+      })
     },
 
     async start () {

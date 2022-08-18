@@ -43,6 +43,7 @@
           v-if="installFromFile && flags.uploadEnabled"
           @click="flags.uploadPopup = true; uploadedFile = null"
           class="q-mt-lg"
+          flat
         >Install from file</q-btn>
       </template>
       <template v-else>
@@ -232,6 +233,7 @@ export default defineComponent({
         })
         let path = '/ext/update/'
         await this.flipper.commands.storage.mkdir('/ext/update')
+          .catch(error => this.rpcErrorHandler(error, 'storage.mkdir'))
         for (const file of files) {
           if (file.size === 0) {
             path = '/ext/update/' + file.name
@@ -239,12 +241,14 @@ export default defineComponent({
               path = path.slice(0, -1)
             }
             await this.flipper.commands.storage.mkdir(path)
+              .catch(error => this.rpcErrorHandler(error, 'storage.mkdir'))
           } else {
             this.write.filename = file.name.slice(file.name.lastIndexOf('/') + 1)
             const unbind = this.flipper.emitter.on('storageWriteRequest/progress', e => {
               this.write.progress = e.progress / e.total
             })
             await this.flipper.commands.storage.write('/ext/update/' + file.name, file.buffer)
+              .catch(error => this.rpcErrorHandler(error, 'storage.write'))
             this.$emit('log', {
               level: 'debug',
               message: 'Updater: wrote ' + '/ext/update/' + file.name
@@ -262,6 +266,7 @@ export default defineComponent({
           message: 'Updater: loading update manifest'
         })
         await this.flipper.commands.system.update(path + '/update.fuf')
+          .catch(error => this.rpcErrorHandler(error, 'system.update'))
 
         this.updateStage = 'Update in progress, pay attention to your Flipper'
         this.$emit('log', {
@@ -269,6 +274,7 @@ export default defineComponent({
           message: 'Updater: rebooting Flipper'
         })
         await this.flipper.commands.system.reboot(2)
+          .catch(error => this.rpcErrorHandler(error, 'system.reboot'))
       } else {
         this.flags.updateError = true
         this.updateStage = 'Failed to fetch channel'
@@ -302,6 +308,18 @@ export default defineComponent({
           this.flags.outdated = undefined
         }
       }
+    },
+
+    rpcErrorHandler (error, command) {
+      error = error.toString()
+      this.$emit('showNotif', {
+        message: `RPC error in command '${command}': ${error}`,
+        color: 'negative'
+      })
+      this.$emit('log', {
+        level: 'error',
+        message: `Updater: RPC error in command '${command}': ${error}`
+      })
     }
   },
 

@@ -76,15 +76,6 @@
                   flat
                   @click="disconnect"
                 ></q-btn>
-
-                <q-btn
-                  color="primary"
-                  label="View logs"
-                  size="sm"
-                  v-close-popup
-                  flat
-                  @click="flags.reportPopup = true"
-                ></q-btn>
               </div>
             </div>
           </q-menu>
@@ -141,6 +132,19 @@
           :key="link.title"
           v-bind="link"
         />
+        <q-item
+          clickable
+          class="absolute-bottom"
+          @click="flags.reportPopup = true"
+        >
+          <q-item-section avatar>
+            <q-icon name="info_outline"/>
+          </q-item-section>
+
+          <q-item-section>
+            <q-item-label>View logs</q-item-label>
+          </q-item-section>
+        </q-item>
       </q-list>
     </q-drawer>
 
@@ -415,11 +419,13 @@ export default defineComponent({
     async readInfo () {
       this.info = {}
       let res = await this.flipper.commands.system.deviceInfo()
+        .catch(error => this.rpcErrorHandler(error, 'system.deviceInfo'))
       for (const line of res) {
         this.info[line.key] = line.value
       }
       await asyncSleep(300)
       res = await this.flipper.commands.storage.list('/ext')
+        .catch(error => this.rpcErrorHandler(error, 'storage.list'))
       if (res && typeof (res) === 'object' && res.length) {
         const manifest = res.find(e => e.name === 'Manifest')
         if (manifest) {
@@ -429,6 +435,7 @@ export default defineComponent({
         }
 
         res = await this.flipper.commands.storage.info('/ext')
+          .catch(error => this.rpcErrorHandler(error, 'storage.info'))
         this.info.storage_sdcard_present = Math.floor(res.freeSpace / (res.totalSpace / 100)) + '% free'
       } else {
         this.info.storage_sdcard_present = 'missing'
@@ -521,7 +528,7 @@ export default defineComponent({
         textColor: 'white',
         position: 'bottom-right',
         timeout: 0,
-        group: false,
+        group: true,
         actions: actions
       })
     },
@@ -549,6 +556,18 @@ export default defineComponent({
           this.logger.debug(message)
           break
       }
+    },
+
+    rpcErrorHandler (error, command) {
+      error = error.toString()
+      this.$emit('showNotif', {
+        message: `RPC error in command '${command}': ${error}`,
+        color: 'negative'
+      })
+      this.$emit('log', {
+        level: 'error',
+        message: `Main: RPC error in command '${command}': ${error}`
+      })
     },
 
     downloadLogs () {

@@ -233,6 +233,7 @@ export default defineComponent({
 
     async startVirtualDisplay () {
       const response = await this.flipper.commands.gui.startVirtualDisplay()
+        .catch(error => this.rpcErrorHandler(error, 'gui.startVirtualDisplay'))
       if (!response.resolved || response.error) {
         this.$emit('showNotif', {
           message: 'Couldn\'t start virtual display session: ' + response.error,
@@ -249,6 +250,7 @@ export default defineComponent({
     },
     async stopSession () {
       await this.flipper.commands.gui.stopVirtualDisplay()
+        .catch(error => this.rpcErrorHandler(error, 'gui.stopVirtualDisplay'))
     },
     async sendFrame () {
       const resized = this.resize()
@@ -280,6 +282,7 @@ export default defineComponent({
       }
 
       this.flipper.commands.gui.screenFrame(new Uint8Array(xbmBytes))
+        .catch(error => this.rpcErrorHandler(error, 'gui.screenFrame'))
     },
     toggleAutoStreaming () {
       if (this.autoStreaming.enabled) {
@@ -293,8 +296,11 @@ export default defineComponent({
     },
     async enableBacklight () {
       await this.flipper.commands.gui.sendInputEvent(4, 0)
+        .catch(error => this.rpcErrorHandler(error, 'gui.sendInputEvent'))
       await this.flipper.commands.gui.sendInputEvent(4, 2)
+        .catch(error => this.rpcErrorHandler(error, 'gui.sendInputEvent'))
       await this.flipper.commands.gui.sendInputEvent(4, 1)
+        .catch(error => this.rpcErrorHandler(error, 'gui.sendInputEvent'))
     },
 
     clear () {
@@ -419,6 +425,18 @@ export default defineComponent({
     },
     toggleTool () {
       this.ctx.strokeStyle = this.tool === 'pencil' ? 'black' : '#fe8a2c'
+    },
+
+    rpcErrorHandler (error, command) {
+      error = error.toString()
+      this.$emit('showNotif', {
+        message: `RPC error in command '${command}': ${error}`,
+        color: 'negative'
+      })
+      this.$emit('log', {
+        level: 'error',
+        message: `Paint: RPC error in command '${command}': ${error}`
+      })
     },
 
     async start () {
