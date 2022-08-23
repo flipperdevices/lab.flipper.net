@@ -202,8 +202,8 @@ export default defineComponent({
       this.flags.rpcToggling = false
       this.$emit('setRpcStatus', true)
       this.$emit('log', {
-        level: 'debug',
-        message: 'Paint: rpc started'
+        level: 'info',
+        message: 'Paint: RPC started'
       })
     },
 
@@ -214,8 +214,8 @@ export default defineComponent({
       this.flags.rpcToggling = false
       this.$emit('setRpcStatus', false)
       this.$emit('log', {
-        level: 'debug',
-        message: 'Paint: rpc stopped'
+        level: 'info',
+        message: 'Paint: RPC stopped'
       })
     },
 

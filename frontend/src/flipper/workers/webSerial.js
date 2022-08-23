@@ -148,32 +148,40 @@ async function read (mode) {
   readComplete = false
 
   while (!readComplete) {
-    await reader.read().then(({ done, value }) => {
-      if (done) {
-        readComplete = true
-      } else {
-        if (mode) {
-          self.postMessage({
-            operation: mode + ' output',
-            data: value
-          })
+    await reader.read()
+      .then(({ done, value }) => {
+        if (done) {
+          readComplete = true
         } else {
-          const newBuffer = new Uint8Array(buffer.length + value.length)
-          newBuffer.set(buffer)
-          newBuffer.set(value, buffer.length)
-          buffer = newBuffer
-
-          if (decoder.decode(buffer.slice(-12)).replace(/\s/g, '').endsWith('>:\x07')) {
-            readComplete = true
+          if (mode) {
             self.postMessage({
-              operation: 'read',
-              data: 'read',
-              status: 1
+              operation: mode + ' output',
+              data: value
             })
+          } else {
+            const newBuffer = new Uint8Array(buffer.length + value.length)
+            newBuffer.set(buffer)
+            newBuffer.set(value, buffer.length)
+            buffer = newBuffer
+
+            if (decoder.decode(buffer.slice(-12)).replace(/\s/g, '').endsWith('>:\x07')) {
+              readComplete = true
+              self.postMessage({
+                operation: 'read',
+                data: 'read',
+                status: 1
+              })
+            }
           }
         }
-      }
-    })
+      })
+      .catch(error => {
+        if (error.toString().includes('The device has been lost.')) {
+          readComplete = true
+        } else {
+          throw error
+        }
+      })
   }
   await reader.cancel()
     .then(() => {

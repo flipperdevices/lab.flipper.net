@@ -198,8 +198,8 @@ export default defineComponent({
       this.flags.rpcToggling = false
       this.$emit('setRpcStatus', true)
       this.$emit('log', {
-        level: 'debug',
-        message: 'Device: rpc started'
+        level: 'info',
+        message: 'Device: RPC started'
       })
     },
 
@@ -210,8 +210,8 @@ export default defineComponent({
       this.flags.rpcToggling = false
       this.$emit('setRpcStatus', false)
       this.$emit('log', {
-        level: 'debug',
-        message: 'Device: rpc stopped'
+        level: 'info',
+        message: 'Device: RPC stopped'
       })
     },
 
@@ -225,8 +225,8 @@ export default defineComponent({
         await this.flipper.connect()
         await this.startRpc()
         this.$emit('log', {
-          level: 'debug',
-          message: 'Device: restarted rpc'
+          level: 'info',
+          message: 'Device: Restarted RPC'
         })
         return this.startScreenStream()
       }
@@ -235,10 +235,12 @@ export default defineComponent({
     async startScreenStream () {
       await this.flipper.commands.gui.startScreenStreamRequest()
         .catch(error => this.rpcErrorHandler(error, 'gui.startScreenStreamRequest'))
-      this.$emit('log', {
-        level: 'debug',
-        message: 'Device: screen streaming started'
-      })
+        .finally(() => {
+          this.$emit('log', {
+            level: 'debug',
+            message: 'Device: gui.startScreenStreamRequest: OK'
+          })
+        })
       this.flags.screenStream = true
 
       const ctx = this.$refs.screenStreamCanvas.getContext('2d')
@@ -281,10 +283,12 @@ export default defineComponent({
     async stopScreenStream () {
       await this.flipper.commands.gui.stopScreenStreamRequest()
         .catch(error => this.rpcErrorHandler(error, 'gui.stopScreenStreamRequest'))
-      this.$emit('log', {
-        level: 'debug',
-        message: 'Device: screen streaming stopped'
-      })
+        .finally(() => {
+          this.$emit('log', {
+            level: 'debug',
+            message: 'Device: gui.stopScreenStreamRequest: OK'
+          })
+        })
       this.flags.screenStream = false
     },
 

@@ -164,7 +164,7 @@ export default defineComponent({
           message: 'Disconnected from cli server'
         })
         this.$emit('log', {
-          level: 'info',
+          level: 'warn',
           message: 'Remote CLI: Disconnected from cli server'
         })
         this.flags.connected = true

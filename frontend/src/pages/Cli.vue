@@ -140,8 +140,8 @@ export default defineComponent({
       this.flags.rpcToggling = false
       this.$emit('setRpcStatus', false)
       this.$emit('log', {
-        level: 'debug',
-        message: 'CLI: rpc stopped'
+        level: 'info',
+        message: 'CLI: RPC stopped'
       })
     },
 
@@ -209,7 +209,7 @@ export default defineComponent({
           message: 'Disconnected from cli server'
         })
         this.$emit('log', {
-          level: 'info',
+          level: 'warn',
           message: 'CLI: Disconnected from cli server'
         })
         if (this.flags.serverActive !== false) {

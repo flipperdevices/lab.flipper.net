@@ -235,6 +235,8 @@ import * as flipper from '../flipper/core'
 import asyncSleep from 'simple-async-sleep'
 import log from 'loglevel'
 
+let dismissNotif
+
 export default defineComponent({
   name: 'MainLayout',
 
@@ -343,9 +345,12 @@ export default defineComponent({
           this.connectionStatus = 'Flipper connected'
           this.flags.connected = true
           this.log({
-            level: 'debug',
+            level: 'info',
             message: 'Main: Flipper connected'
           })
+          if (dismissNotif) {
+            dismissNotif()
+          }
         })
         .catch((error) => {
           if (error.toString() === 'Error: No known ports') {
@@ -386,7 +391,7 @@ export default defineComponent({
           }
         })
       this.log({
-        level: 'debug',
+        level: 'info',
         message: 'Main: Flipper disconnected'
       })
     },
@@ -400,8 +405,8 @@ export default defineComponent({
       this.flags.rpcActive = true
       this.flags.rpcToggling = false
       this.log({
-        level: 'debug',
-        message: 'Main: rpc started'
+        level: 'info',
+        message: 'Main: RPC started'
       })
     },
 
@@ -411,8 +416,8 @@ export default defineComponent({
       this.flags.rpcActive = false
       this.flags.rpcToggling = false
       this.log({
-        level: 'debug',
-        message: 'Main: rpc stopped'
+        level: 'info',
+        message: 'Main: RPC stopped'
       })
     },
 
@@ -420,12 +425,24 @@ export default defineComponent({
       this.info = {}
       let res = await this.flipper.commands.system.deviceInfo()
         .catch(error => this.rpcErrorHandler(error, 'system.deviceInfo'))
+        .finally(() => {
+          this.$emit('log', {
+            level: 'debug',
+            message: 'Main: system.deviceInfo: OK'
+          })
+        })
       for (const line of res) {
         this.info[line.key] = line.value
       }
       await asyncSleep(300)
       res = await this.flipper.commands.storage.list('/ext')
         .catch(error => this.rpcErrorHandler(error, 'storage.list'))
+        .finally(() => {
+          this.$emit('log', {
+            level: 'debug',
+            message: 'Main: storage.list: /ext'
+          })
+        })
       if (res && typeof (res) === 'object' && res.length) {
         const manifest = res.find(e => e.name === 'Manifest')
         if (manifest) {
@@ -436,14 +453,20 @@ export default defineComponent({
 
         res = await this.flipper.commands.storage.info('/ext')
           .catch(error => this.rpcErrorHandler(error, 'storage.info'))
+          .finally(() => {
+            this.$emit('log', {
+              level: 'debug',
+              message: 'Main: storage.info: /ext'
+            })
+          })
         this.info.storage_sdcard_present = Math.floor(res.freeSpace / (res.totalSpace / 100)) + '% free'
       } else {
         this.info.storage_sdcard_present = 'missing'
         this.info.storage_databases_present = 'missing'
       }
       this.log({
-        level: 'debug',
-        message: 'Main: read device info'
+        level: 'info',
+        message: 'Main: Fetched device info'
       })
     },
 
@@ -522,7 +545,7 @@ export default defineComponent({
         actions.push({ label: 'Dismiss', color: 'white' })
       }
 
-      this.notify({
+      dismissNotif = this.notify({
         message: message,
         color: color,
         textColor: 'white',
@@ -560,11 +583,11 @@ export default defineComponent({
 
     rpcErrorHandler (error, command) {
       error = error.toString()
-      this.$emit('showNotif', {
+      this.showNotif({
         message: `RPC error in command '${command}': ${error}`,
         color: 'negative'
       })
-      this.$emit('log', {
+      this.log({
         level: 'error',
         message: `Main: RPC error in command '${command}': ${error}`
       })
@@ -619,6 +642,18 @@ export default defineComponent({
     } else {
       this.flags.serialSupported = false
     }
+
+    navigator.serial.addEventListener('disconnect', (e) => {
+      if (!this.flags.updateInProgress) {
+        this.showNotif({
+          message: 'Flipper has been disconnected'
+        })
+      }
+      this.log({
+        level: 'info',
+        message: 'Main: Flipper has been disconnected'
+      })
+    })
 
     this.logger.setLevel('info', true)
     const originalFactory = this.logger.methodFactory

@@ -306,8 +306,8 @@ export default defineComponent({
       this.flags.rpcToggling = false
       this.$emit('setRpcStatus', true)
       this.$emit('log', {
-        level: 'debug',
-        message: 'Archive: rpc started'
+        level: 'info',
+        message: 'Archive: RPC started'
       })
     },
     async stopRpc () {
@@ -317,8 +317,8 @@ export default defineComponent({
       this.flags.rpcToggling = false
       this.$emit('setRpcStatus', false)
       this.$emit('log', {
-        level: 'debug',
-        message: 'Archive: rpc stopped'
+        level: 'info',
+        message: 'Archive: RPC stopped'
       })
     },
     async restartRpc (force) {
@@ -336,6 +336,12 @@ export default defineComponent({
     async list () {
       let res = await this.flipper.commands.storage.list(this.path)
         .catch(error => this.rpcErrorHandler(error, 'storage.list'))
+        .finally(() => {
+          this.$emit('log', {
+            level: 'debug',
+            message: 'Archive: storage.list: ' + this.path
+          })
+        })
       if (res === 'empty response' || res[0] === undefined) {
         return setTimeout(this.list, 300)
       }
@@ -359,6 +365,12 @@ export default defineComponent({
       })
       const res = await this.flipper.commands.storage.read(path)
         .catch(error => this.rpcErrorHandler(error, 'storage.read'))
+        .finally(() => {
+          this.$emit('log', {
+            level: 'debug',
+            message: 'Archive: storage.read: ' + path
+          })
+        })
       const s = path.split('/')
       exportFile(s[s.length - 1], res)
       unbind()
@@ -368,18 +380,36 @@ export default defineComponent({
     async remove (path, isRecursive) {
       await this.flipper.commands.storage.remove(path, isRecursive)
         .catch(error => this.rpcErrorHandler(error, 'storage.remove'))
+        .finally(() => {
+          this.$emit('log', {
+            level: 'debug',
+            message: `Archive: storage.remove: ${path}, recursive: ${isRecursive}`
+          })
+        })
       this.list()
     },
 
     async rename (path, oldName, newName) {
       await this.flipper.commands.storage.rename(path, oldName, newName)
-        .catch(error => this.rpcErrorHandler(error, 'storage.renam'))
+        .catch(error => this.rpcErrorHandler(error, 'storage.rename'))
+        .finally(() => {
+          this.$emit('log', {
+            level: 'debug',
+            message: `Archive: storage.rename: ${path}, old name: ${oldName}, new name: ${newName}`
+          })
+        })
       this.list()
     },
 
     async mkdir (path) {
       await this.flipper.commands.storage.mkdir(path)
         .catch(error => this.rpcErrorHandler(error, 'storage.mkdir'))
+        .finally(() => {
+          this.$emit('log', {
+            level: 'debug',
+            message: 'Archive: storage.mkdir: ' + path
+          })
+        })
       this.list()
     },
 
@@ -392,6 +422,12 @@ export default defineComponent({
         })
         await this.flipper.commands.storage.write(this.path + '/' + file.name, await file.arrayBuffer())
           .catch(error => this.rpcErrorHandler(error, 'storage.write'))
+          .finally(() => {
+            this.$emit('log', {
+              level: 'debug',
+              message: 'Archive: storage.write: ' + this.path + '/' + file.name
+            })
+          })
         unbind()
       }
       this.file.name = ''
