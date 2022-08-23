@@ -538,7 +538,6 @@ export default defineComponent({
       if (reloadBtn) {
         actions.push({ label: 'Reload', color: 'white', handler: () => { location.reload() } })
       }
-
       if (actions.length === 0) {
         actions.push({ icon: 'close', color: 'white', class: 'q-px-sm' })
       } else {

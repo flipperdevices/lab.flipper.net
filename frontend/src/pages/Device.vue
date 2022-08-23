@@ -293,7 +293,7 @@ export default defineComponent({
     },
 
     onUpdateStage (stage) {
-      this.$emit(stage)
+      this.$emit('update', stage)
       if (stage === 'start') {
         this.flags.updateInProgress = true
         this.stopScreenStream()
