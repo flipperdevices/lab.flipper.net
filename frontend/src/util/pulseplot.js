@@ -2341,13 +2341,15 @@
             } // zoom (y)
 
             const zoomMin = 0.5
-            const zoomMax = this.data.width / this.width * 10
+            const zoomMax = this.data.width / this.width * 10 > 2000 ? 2000 : this.data.width / this.width * 10
             let zoom
 
             if (e.deltaY < 0) {
-              zoom = this.zoom * (1 + e.deltaY * -0.2) // zoom in
+              const deltaY = e.deltaY < -10 ? -10 : e.deltaY
+              zoom = this.zoom * (1 + deltaY * -0.2) // zoom in
             } else {
-              zoom = this.zoom / (1 + e.deltaY * 0.2) // zoom out
+              const deltaY = e.deltaY > 10 ? 10 : e.deltaY
+              zoom = this.zoom / (1 + deltaY * 0.2) // zoom out
             }
 
             if (zoom < zoomMin) zoom = zoomMin
@@ -2396,6 +2398,7 @@
 
           mousemove (e) {
             if (!this.isDrag) return
+            // console.log(this.dragX, e.offsetX)
             this.redrawScroll(this.dragX - e.offsetX, this.dragY - e.offsetY)
             e.stopPropagation()
             e.preventDefault()
@@ -2512,7 +2515,7 @@
           redrawScroll (x
             /*, y */
           ) {
-            // console.log(`scroll ${x}, ${y}`)
+            // console.log(`scroll ${x} ${this.dragOrig}`)
             this.scroll = this.dragOrig + x // TODO: Y for zoom
 
             this.redrawCanvas()
@@ -2537,6 +2540,11 @@
               alpha: false,
               desynchronized: true
             })
+            if (this.scroll <= -10) {
+              this.scroll = -10
+            } else if (this.scroll > width * this.zoom) {
+              this.scroll = width * this.zoom
+            }
             const scroll = -this.scroll
             const scale = width * this.zoom / this.data.width
             const yHi = this.yHi + 0.5
@@ -2734,7 +2742,6 @@
 
             ctx.stroke()
             if (!this.data.pulses || !this.data.pulses.length) return // marks
-            // console.log(this.data)
             let pulses = this.data.pulses, shrinkRate = 1
             if (this.data.pulses.length > this.width) {
               pulses = []
@@ -2742,10 +2749,6 @@
               for (let i = 0; i < this.width; i++) {
                 pulses.push(this.data.pulses[i * shrinkRate])
               }
-              // console.log(pulses)
-              // console.log(this.width)
-              // shrinkRate = 1
-              // pulses = this.data.pulses
             }
 
             let x = scroll
@@ -3105,7 +3108,7 @@
               zs = 0
             }
 
-            hints.push([x, x + onew, '1'])
+            // hints.push([x, x + onew, '1'])
             bits.pushOne()
             x += onew
 
@@ -3118,7 +3121,7 @@
             const cnt = ~~(zs / long + 0.5)
 
             for (let k = 0; k < cnt; ++k) {
-              hints.push([x + zs * k / cnt, x + zs * (k + 1) / cnt, '0'])
+              // hints.push([x + zs * k / cnt, x + zs * (k + 1) / cnt, '0'])
               bits.pushZero()
             }
 
