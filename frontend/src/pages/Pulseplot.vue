@@ -25,14 +25,55 @@
 
     <div class="pulseplot fit" v-show="!flags.wrongFileType">
       <canvas class="pulseplot-canvas" style="image-rendering: pixelated;"></canvas>
-      <div class="pulseplot-timings"></div>
+      <div v-show="plot" class="flex q-py-sm">
+        <q-select
+          v-model="slicer.modulation"
+          :options="slicerModulations"
+          label="Slicer"
+          class="q-px-sm"
+          style="width: 100px"
+        />
+        <q-input
+          v-model.number="slicer.short"
+          type="number"
+          label="Short"
+          class="q-px-sm"
+          style="width: 100px"
+        />
+        <q-input
+          v-model.number="slicer.long"
+          type="number"
+          label="Long"
+          class="q-px-sm"
+          style="100px"
+        />
+        <q-input
+          v-model.number="slicer.sync"
+          type="number"
+          label="Sync"
+          class="q-px-sm"
+          style="100px"
+        />
+        <q-input
+          v-model.number="slicer.gap"
+          type="number"
+          label="Gap"
+          class="q-px-sm"
+          style="max-width: 200px"
+        />
+        <div class="flex flex-center q-px-md">
+          <q-btn @click="setSlicer" label="Sumbit" size="16px"/>
+        </div>
+      </div>
+      <div class="pulseplot-timings q-py-sm"></div>
+      <div class="pulseplot-messages q-py-sm" style="word-break: break-all;"></div>
     </div>
   </q-page>
 </template>
 
 <script>
 import { defineComponent, ref } from 'vue'
-import { Pulseplot } from '../util/pulseplot'
+import { Pulseplot } from '../pulseplot/pulseplot'
 
 export default defineComponent({
   name: 'Pulseplot',
@@ -46,7 +87,24 @@ export default defineComponent({
       plot: ref(null),
       data: ref(null),
       signals: ref(null),
-      currentSignal: ref(null)
+      currentSignal: ref(null),
+      slicer: ref({
+        long: 0,
+        modulation: '',
+        short: 0,
+        sync: 0,
+        gap: 0
+      }),
+      slicerModulations: [
+        'PCM',
+        'PWM',
+        'PPM',
+        'MC',
+        'DM',
+        'NRZI',
+        'CMI',
+        'PIWM'
+      ]
     }
   },
 
@@ -167,6 +225,18 @@ export default defineComponent({
         height: 300
       })
       this.plot.enableScrollZoom()
+      if (this.plot.slicer.name !== 'No clue...' && this.plot.slicer.modulation) {
+        this.slicer.modulation = this.plot.slicer.modulation
+        this.slicer.short = this.plot.slicer.short || 0
+        this.slicer.long = this.plot.slicer.long || 0
+        this.slicer.sync = this.plot.slicer.sync || 0
+        this.slicer.gap = this.plot.slicer.gap || 0
+        this.setSlicer()
+      }
+    },
+
+    setSlicer () {
+      this.plot.setSlicer(this.slicer)
     }
   }
 })
