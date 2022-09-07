@@ -26,12 +26,12 @@
           class="q-py-xs q-px-sm bg-grey-3 rounded-borders overflow-hidden-y"
         >{{ path }}</code>
         <q-space></q-space>
-        <q-btn flat dense icon="archive:new" :disabled="path === '/'">
+        <q-btn flat dense icon="mdi-plus" :disabled="path === '/'">
           <q-menu auto-close self="top middle">
             <q-list style="min-width: 100px">
               <q-item clickable @click="flags.uploadPopup = true; uploadedFiles = null">
                 <q-item-section avatar>
-                  <q-icon name="archive:file"/>
+                  <q-icon name="mdi-file-upload-outline"/>
                 </q-item-section>
                 <q-item-section>
                   Upload file
@@ -39,7 +39,7 @@
               </q-item>
               <q-item clickable @click="flags.uploadFolderPopup = true; uploadedFiles = null">
                 <q-item-section avatar>
-                  <q-icon name="archive:folder"/>
+                  <q-icon name="mdi-folder-upload-outline"/>
                 </q-item-section>
                 <q-item-section>
                   Upload folder
@@ -47,7 +47,7 @@
               </q-item>
               <q-item clickable @click="flags.mkdirPopup = true; editorText = ''">
                 <q-item-section avatar>
-                  <q-icon name="archive:folder"/>
+                  <q-icon name="mdi-folder-plus-outline"/>
                 </q-item-section>
                 <q-item-section>
                   Create folder
@@ -85,7 +85,7 @@
                 <q-list style="min-width: 100px">
                   <q-item clickable @click="editorText = item.name; oldName = item.name; flags.renamePopup = true">
                     <q-item-section avatar>
-                      <q-icon name="archive:rename"/>
+                      <q-icon name="mdi-pencil-outline"/>
                     </q-item-section>
                     <q-item-section>
                       Rename
@@ -93,7 +93,7 @@
                   </q-item>
                   <q-item clickable class="text-negative" @click="remove(path + '/' + item.name, !!item.type)">
                     <q-item-section avatar>
-                      <q-icon name="archive:remove"/>
+                      <q-icon name="mdi-delete-outline"/>
                     </q-item-section>
                     <q-item-section>
                       Delete
@@ -106,7 +106,7 @@
         </q-item>
         <q-item v-if="dir.length === 0 && path !== '/'">
           <q-item-section avatar class="q-ml-xs">
-            <q-icon name="archive:folder"/>
+            <q-icon name="mdi-folder-outline"/>
           </q-item-section>
 
           <q-item-section>
@@ -129,7 +129,7 @@
               :style="$q.screen.width > 380 ? 'width: 300px;' : ''"
             >
               <template v-slot:prepend>
-                <q-icon name="archive:file"></q-icon>
+                <q-icon name="mdi-folder-upload-outline"></q-icon>
               </template>
             </q-file>
           </q-card-section>
@@ -162,7 +162,7 @@
               :style="$q.screen.width > 380 ? 'width: 300px;' : ''"
             >
               <template v-slot:prepend>
-                <q-icon name="archive:file"></q-icon>
+                <q-icon name="mdi-file-upload-outline"></q-icon>
               </template>
             </q-file>
           </q-card-section>
@@ -523,7 +523,7 @@ export default defineComponent({
       } else if (this.path === '/' && item.name === 'ext') {
         return 'archive:sdcard'
       } else if (item.type === 1) {
-        return 'archive:folder'
+        return 'mdi-folder-outline'
       } else if (item.name.endsWith('.badusb')) {
         return 'archive:badusb'
       } else if (item.name.endsWith('.ibtn')) {
@@ -539,7 +539,7 @@ export default defineComponent({
       } else if (item.name.endsWith('.u2f')) {
         return 'archive:u2f'
       } else {
-        return 'archive:file'
+        return 'mdi-file-outline'
       }
     },
 
