@@ -125,7 +125,7 @@
               webkitdirectory
               v-model="uploadedFiles"
               label="Drop or select folder"
-              class="q-pt-md"
+              class="q-pt-md folder-upload"
               :style="$q.screen.width > 380 ? 'width: 300px;' : ''"
             >
               <template v-slot:prepend>
