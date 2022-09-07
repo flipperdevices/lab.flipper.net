@@ -658,6 +658,8 @@ export default defineComponent({
         this.showNotif({
           message: 'Flipper has been disconnected'
         })
+        this.flags.connected = false
+        this.flags.portSelectRequired = true
       }
       this.log({
         level: 'info',

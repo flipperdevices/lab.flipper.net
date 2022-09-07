@@ -1,150 +1,156 @@
 <template>
-  <div id="paint-wrapper" class="fit flex justify-center items-center bg-white">
-    <div class="flex column full-width items-center">
-      <div class="flex column q-mb-md">
-        <div class="flex flex-center q-ma-sm">
-          <q-toggle
-            v-model="autoStreaming.enabled"
-            label="Auto-streaming"
-            class="q-mr-md"
-            @click="toggleAutoStreaming"
-          ></q-toggle>
-          <q-btn
-            v-if="!autoStreaming.enabled"
-            @click="sendFrame"
-          >Send frame</q-btn>
-          <q-input
-            v-else
-            v-model="autoStreaming.delay"
-            label="Delay, ms"
-            dense
-            class="inline-block"
-            style="width: 50px;"
-          />
-        </div>
-
-        <div>
-          <input type="file" id="file-upload" @change="upload" class="hidden"/>
-          <q-btn
-            @click="triggerUpload"
-            :icon="mdiFileImageOutline"
-          ></q-btn>
-
-          <q-btn-group
-            class="q-ma-sm"
-          >
-            <q-btn
-              :disabled="this.saveState.length < 2"
-              icon="undo"
-              @click="undo"
-            ></q-btn>
-            <q-btn
-              :disabled="this.restoreState.length === 0"
-              icon="redo"
-              @click="redo"
-            ></q-btn>
-            <q-btn
-              icon="delete_outline"
-              @click="clear"
-            ></q-btn>
-          </q-btn-group>
-
-          <q-btn-toggle
-            v-model="tool"
-            @click="toggleTool"
-            toggle-color="primary"
-            :options="[
-              {value: 'pencil', slot: 'pencil'},
-              {value: 'eraser', slot: 'eraser'}
-            ]"
-          >
-            <template v-slot:pencil>
-              <q-icon name="edit" />
-            </template>
-
-            <template v-slot:eraser>
-              <q-icon :name="mdiEraser" />
-            </template>
-          </q-btn-toggle>
-
-          <q-btn-toggle
-            v-model="scaling"
-            toggle-color="primary"
-            :options="[
-              {label: '1x', value: 1},
-              {label: '2x', value: 2},
-              {label: '4x', value: 4}
-            ]"
-            class="q-ma-sm"
-          />
-        </div>
-
-        <div>
-          <q-item>
-            <q-item-section side>
-              <q-icon :name="mdiPencilMinus" />
-            </q-item-section>
-            <q-item-section>
-              <q-slider
-                v-model="ctx.lineWidth"
-                :min="1"
-                :max="10"
-                :step="1"
-                label
-                label-always
-                class="q-mt-lg"
-              />
-            </q-item-section>
-            <q-item-section side>
-              <q-icon :name="mdiPencilPlus" />
-            </q-item-section>
-            <q-checkbox v-model="flags.pixelGrid" class="q-ml-md" label="Pixel grid" />
-          </q-item>
-        </div>
-      </div>
-
-      <div
-        class="canvas-container"
-        :style="'transform: scale(' + scaling + '); top:' + (scaling - 1) * 64 + 'px;'"
-      >
-        <div
-          v-if="flags.pixelGrid"
-          class="pixel-grid"
-          @mousedown="mouseDown"
-          @mouseup="mouseUp"
-          @mousemove="mouseMove"
-        ></div>
-        <canvas
-          width="256"
-          height="128"
-          ref="mainCanvas"
-          @mousedown="mouseDown"
-          @mouseup="mouseUp"
-          @mousemove="mouseMove"
-        ></canvas>
-      </div>
+  <q-page class="column items-center q-pa-md">
+    <div
+      v-if="!connected || !flags.rpcActive || flags.rpcToggling"
+      class="column flex-center q-my-xl"
+    >
+      <q-spinner
+        color="primary"
+        size="3em"
+        class="q-mb-md"
+      ></q-spinner>
+      <p>Waiting for Flipper...</p>
     </div>
+    <div v-if="connected && flags.rpcActive" id="paint-wrapper" class="fit flex justify-center items-center bg-white">
+      <div class="flex column full-width items-center">
+        <div class="flex column q-mb-md">
+          <div class="flex flex-center q-ma-sm">
+            <q-toggle
+              v-model="autoStreaming.enabled"
+              label="Auto-streaming"
+              class="q-mr-md"
+              @click="toggleAutoStreaming"
+            ></q-toggle>
+            <q-btn
+              v-if="!autoStreaming.enabled"
+              @click="sendFrame"
+            >Send frame</q-btn>
+            <q-input
+              v-else
+              v-model="autoStreaming.delay"
+              label="Delay, ms"
+              dense
+              class="inline-block"
+              style="width: 50px;"
+            />
+          </div>
 
-    <canvas
-      class="hidden"
-      width="128"
-      height="64"
-      ref="resizeCanvas"
-    ></canvas>
-  </div>
+          <div>
+            <input type="file" id="file-upload" @change="upload" class="hidden"/>
+            <q-btn
+              @click="triggerUpload"
+              icon="mdi-file-image-outline"
+            ></q-btn>
+
+            <q-btn-group
+              class="q-ma-sm"
+            >
+              <q-btn
+                :disabled="this.saveState.length < 2"
+                icon="undo"
+                @click="undo"
+              ></q-btn>
+              <q-btn
+                :disabled="this.restoreState.length === 0"
+                icon="redo"
+                @click="redo"
+              ></q-btn>
+              <q-btn
+                icon="delete_outline"
+                @click="clear"
+              ></q-btn>
+            </q-btn-group>
+
+            <q-btn-toggle
+              v-model="tool"
+              @click="toggleTool"
+              toggle-color="primary"
+              :options="[
+                {value: 'pencil', slot: 'pencil'},
+                {value: 'eraser', slot: 'eraser'}
+              ]"
+            >
+              <template v-slot:pencil>
+                <q-icon name="edit" />
+              </template>
+
+              <template v-slot:eraser>
+                <q-icon name="mdi-eraser" />
+              </template>
+            </q-btn-toggle>
+
+            <q-btn-toggle
+              v-model="scaling"
+              toggle-color="primary"
+              :options="[
+                {label: '1x', value: 1},
+                {label: '2x', value: 2},
+                {label: '4x', value: 4}
+              ]"
+              class="q-ma-sm"
+            />
+          </div>
+
+          <div>
+            <q-item>
+              <q-item-section side>
+                <q-icon name="mdi-pencil-minus" />
+              </q-item-section>
+              <q-item-section>
+                <q-slider
+                  v-model="ctx.lineWidth"
+                  :min="1"
+                  :max="10"
+                  :step="1"
+                  label
+                  label-always
+                  class="q-mt-lg"
+                />
+              </q-item-section>
+              <q-item-section side>
+                <q-icon name="mdi-pencil-plus" />
+              </q-item-section>
+              <q-checkbox v-model="flags.pixelGrid" class="q-ml-md" label="Pixel grid" />
+            </q-item>
+          </div>
+        </div>
+
+        <div
+          class="canvas-container"
+          :style="'transform: scale(' + scaling + '); top:' + (scaling - 1) * 64 + 'px;'"
+        >
+          <div
+            v-if="flags.pixelGrid"
+            class="pixel-grid"
+            @mousedown="mouseDown"
+            @mouseup="mouseUp"
+            @mousemove="mouseMove"
+          ></div>
+          <canvas
+            width="256"
+            height="128"
+            ref="mainCanvas"
+            @mousedown="mouseDown"
+            @mouseup="mouseUp"
+            @mousemove="mouseMove"
+          ></canvas>
+        </div>
+      </div>
+
+      <canvas
+        class="hidden"
+        width="128"
+        height="64"
+        ref="resizeCanvas"
+      ></canvas>
+    </div>
+  </q-page>
 </template>
 
 <script>
 import { defineComponent, ref } from 'vue'
 import asyncSleep from 'simple-async-sleep'
 import { xbmValues } from '../util/xbm-values'
-
-import {
-  mdiPencilMinus,
-  mdiPencilPlus,
-  mdiEraser,
-  mdiFileImageOutline
-} from '@quasar/extras/mdi-v5'
 
 export default defineComponent({
   name: 'Paint',
@@ -450,13 +456,6 @@ export default defineComponent({
         await this.startRpc()
       }
     }
-  },
-
-  created () {
-    this.mdiPencilMinus = mdiPencilMinus
-    this.mdiPencilPlus = mdiPencilPlus
-    this.mdiEraser = mdiEraser
-    this.mdiFileImageOutline = mdiFileImageOutline
   },
 
   async mounted () {
