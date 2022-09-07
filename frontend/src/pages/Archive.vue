@@ -83,6 +83,22 @@
             <q-btn flat dense round icon="more_vert">
               <q-menu auto-close self="top middle">
                 <q-list style="min-width: 100px">
+                  <q-item v-if="item.type === 0" clickable @click="itemClicked(item)">
+                    <q-item-section avatar>
+                      <q-icon name="mdi-download-outline"/>
+                    </q-item-section>
+                    <q-item-section>
+                      Download
+                    </q-item-section>
+                  </q-item>
+                  <q-item v-if="item.name.endsWith('.sub') || item.name.endsWith('.ir')" clickable @click="openFileIn(item, 'pulse-plotter')">
+                    <q-item-section avatar>
+                      <q-icon name="mdi-share-outline"/>
+                    </q-item-section>
+                    <q-item-section>
+                      Open in Pulse plotter
+                    </q-item-section>
+                  </q-item>
                   <q-item clickable @click="editorText = item.name; oldName = item.name; flags.renamePopup = true">
                     <q-item-section avatar>
                       <q-icon name="mdi-pencil-outline"/>
@@ -398,7 +414,7 @@ export default defineComponent({
       this.dir = res.sort((a, b) => { return (b.type || 0) - a.type })
     },
 
-    async read (path) {
+    async read (path, preventDownload) {
       this.flags.blockingOperationPopup = true
       this.file.name = path.slice(path.lastIndexOf('/') + 1)
       const file = this.dir.find(e => e.name === this.file.name && !e.type)
@@ -419,9 +435,14 @@ export default defineComponent({
           })
         })
       const s = path.split('/')
-      exportFile(s[s.length - 1], res)
+      if (!preventDownload) {
+        exportFile(s[s.length - 1], res)
+      }
       unbind()
       this.flags.blockingOperationPopup = false
+      if (preventDownload) {
+        return res
+      }
     },
 
     async remove (path, isRecursive) {
@@ -515,6 +536,17 @@ export default defineComponent({
       } else {
         this.read(this.path + '/' + item.name)
       }
+    },
+
+    async openFileIn (item, path) {
+      const res = await this.read(this.path + '/' + item.name, true)
+      this.$emit('openFileIn', {
+        path,
+        file: {
+          name: item.name,
+          data: res
+        }
+      })
     },
 
     itemIconSwitcher (item) {

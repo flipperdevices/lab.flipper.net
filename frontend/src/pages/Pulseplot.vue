@@ -78,6 +78,10 @@ import { Pulseplot } from '../pulseplot/pulseplot'
 export default defineComponent({
   name: 'Pulseplot',
 
+  props: {
+    passedFile: Object
+  },
+
   setup () {
     return {
       flags: ref({
@@ -133,8 +137,14 @@ export default defineComponent({
   },
 
   methods: {
-    async switchFiletype (file) {
-      const text = new TextDecoder().decode(await file.arrayBuffer()).split(/\r?\n/)
+    async switchFiletype (file, isBuffer) {
+      let buffer
+      if (isBuffer) {
+        buffer = file
+      } else {
+        buffer = await file.arrayBuffer()
+      }
+      const text = new TextDecoder().decode(buffer).split(/\r?\n/)
 
       switch (text[0]) {
         case 'Filetype: Flipper SubGhz RAW File':
@@ -237,6 +247,12 @@ export default defineComponent({
 
     setSlicer () {
       this.plot.setSlicer(this.slicer)
+    }
+  },
+
+  mounted () {
+    if (this.passedFile) {
+      this.switchFiletype(this.passedFile.data, true)
     }
   }
 })

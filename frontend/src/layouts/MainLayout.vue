@@ -156,9 +156,11 @@
         :connected="flags.connected"
         :info="info"
         :installFromFile="flags.installFromFile"
+        :passedFile="fileToPass"
         @setRpcStatus="setRpcStatus"
         @setInfo="setInfo"
         @update="onUpdateStage"
+        @openFileIn="openFileIn"
         @showNotif="showNotif"
         @log="log"
       />
@@ -327,7 +329,8 @@ export default defineComponent({
       connectionStatus: ref('Ready to connect'),
       logger: log,
       history: ref([]),
-      notify: $q.notify
+      notify: $q.notify,
+      fileToPass: ref(null)
     }
   },
 
@@ -520,6 +523,14 @@ export default defineComponent({
       } else if (stage === 'success') {
         this.flags.updateInProgress = false
       }
+    },
+    openFileIn ({ path, file }) {
+      this.log({
+        level: 'info',
+        message: `Main: Passing file ${file.name} to ${path}`
+      })
+      this.fileToPass = file
+      this.$router.push(path)
     },
 
     checkConnectionRequirement (path) {
