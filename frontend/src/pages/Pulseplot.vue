@@ -62,7 +62,7 @@
           style="max-width: 200px"
         />
         <div class="flex flex-center q-px-md">
-          <q-btn @click="setSlicer" label="Sumbit" size="16px"/>
+          <q-btn @click="setSlicer" label="Submit" size="16px"/>
         </div>
       </div>
       <div class="pulseplot-timings q-py-sm"></div>
