@@ -2,6 +2,29 @@ import semver from 'semver'
 import { untar } from '../untar/untar.js'
 import pako from 'pako'
 
+class Operation {
+  constructor () {
+    this.resolve = undefined
+    this.reject = undefined
+  }
+
+  create (worker, operation, data) {
+    return new Promise((resolve, reject) => {
+      worker.postMessage({ operation: operation, data: data })
+      this.resolve = resolve
+      this.reject = reject
+    })
+  }
+
+  terminate (event) {
+    if (event.status === 1) {
+      this.resolve(event.data)
+    } else {
+      this.reject(event.error)
+    }
+  }
+}
+
 function fetchChannels (target) {
   return fetch('https://update.flipperzero.one/firmware/directory.json')
     .then((response) => {
@@ -106,6 +129,7 @@ function unpack (buffer) {
 }
 
 export {
+  Operation,
   fetchChannels,
   fetchFirmware,
   fetchRegions,

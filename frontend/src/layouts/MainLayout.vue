@@ -267,6 +267,11 @@ export default defineComponent({
           link: '/cli'
         },
         {
+          title: 'NFC Tools',
+          icon: 'mdi-nfc-variant',
+          link: '/nfc-tools'
+        },
+        {
           title: 'Paint',
           icon: 'draw',
           link: '/paint'

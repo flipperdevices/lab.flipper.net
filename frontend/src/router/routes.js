@@ -43,6 +43,13 @@ const routes = [
     ]
   },
   {
+    path: '/nfc-tools',
+    component: () => import('layouts/MainLayout.vue'),
+    children: [
+      { path: '/nfc-tools', component: () => import('pages/NfcTools.vue') }
+    ]
+  },
+  {
     path: '/:catchAll(.*)*',
     component: () => import('pages/Error404.vue')
   }
