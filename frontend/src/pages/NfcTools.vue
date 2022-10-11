@@ -192,7 +192,7 @@ export default defineComponent({
           errors.push(error.toString())
           this.$emit('log', {
             level: 'error',
-            message: `NfcTools: error in mfkey32v2: ${error.toString()}`
+            message: `NfcTools: error in mfkey32v2: ${error}`
           })
         }
       }
@@ -208,7 +208,6 @@ export default defineComponent({
             message: 'NfcTools: storage.read: /ext/nfc/assets/mf_classic_dict_user.nfc'
           })
         })
-      console.log(res)
 
       let dictionary = []
       if (res) {
@@ -253,6 +252,9 @@ export default defineComponent({
         args = Object.values(this.args)
       }
       const key = await startMfkey(args)
+        .catch(error => {
+          throw error
+        })
       if (this.flags.mfkeyManualInProgress) {
         this.result = key
       }
