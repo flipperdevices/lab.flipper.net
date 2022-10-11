@@ -1171,7 +1171,7 @@ function createWasm() {
         //   https://github.com/emscripten-core/emscripten/pull/16917
         !ENVIRONMENT_IS_NODE &&
         typeof fetch == 'function') {
-      return fetch(wasmBinaryFile, { credentials: 'same-origin' }).then(async function(response) {
+      return fetch('https://cdn.flipperzero.one/mfkey.wasm'/*wasmBinaryFile*/, { credentials: 'same-origin' }).then(async function(response) {
         const buffer = await response.arrayBuffer()
         // Suppress closure warning here since the upstream definition for
         // instantiateStreaming only allows Promise<Repsponse> rather than
