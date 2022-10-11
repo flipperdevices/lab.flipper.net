@@ -1171,13 +1171,14 @@ function createWasm() {
         //   https://github.com/emscripten-core/emscripten/pull/16917
         !ENVIRONMENT_IS_NODE &&
         typeof fetch == 'function') {
-      return fetch(wasmBinaryFile, { credentials: 'same-origin' }).then(function(response) {
+      return fetch(wasmBinaryFile, { credentials: 'same-origin' }).then(async function(response) {
+        const buffer = await response.arrayBuffer()
         // Suppress closure warning here since the upstream definition for
         // instantiateStreaming only allows Promise<Repsponse> rather than
         // an actual Response.
         // TODO(https://github.com/google/closure-compiler/pull/3913): Remove if/when upstream closure is fixed.
         /** @suppress {checkTypes} */
-        var result = WebAssembly.instantiateStreaming(response, info);
+        var result = WebAssembly.instantiate(buffer, info);
 
         return result.then(
           receiveInstantiationResult,
