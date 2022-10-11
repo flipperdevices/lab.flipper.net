@@ -200,8 +200,7 @@ export default defineComponent({
       this.mfkeyStatus = 'Loading user dictionary'
       res = await this.flipper.commands.storage.read('/ext/nfc/assets/mf_classic_dict_user.nfc')
         .catch(error => {
-          // this.rpcErrorHandler(error, 'storage.read')
-          console.log(error)
+          this.rpcErrorHandler(error, 'storage.read')
         })
         .finally(() => {
           this.$emit('log', {

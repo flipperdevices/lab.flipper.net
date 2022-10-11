@@ -308,14 +308,14 @@ if (ENVIRONMENT_IS_WEB || ENVIRONMENT_IS_WORKER) {
 }
 
 var out = (text) => {
-  // console.log(text)
+  console.log(text)
   self.postMessage({
     operation: 'output',
     data: text
   })
 };
 var err = (text) => {
-  // console.warn(text)
+  console.warn(text)
   self.postMessage({
     operation: 'error',
     data: text
