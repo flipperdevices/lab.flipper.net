@@ -14,6 +14,7 @@
     <div v-if="connected && !flags.rpcActive" class="full-width" style="height: calc(100vh - 50px)">
       <div id="terminal-container" class="fit bg-black"></div>
       <q-btn
+        v-if="flags.sharingEnabled"
         @click="flags.sharePopup = true"
         outline
         color="white"
@@ -92,7 +93,8 @@ export default defineComponent({
         serverActive: false,
         serverToggling: false,
         sharePopup: false,
-        allowPeerInput: false
+        allowPeerInput: false,
+        sharingEnabled: false
       }),
       terminal: ref(undefined),
       readInterval: undefined,
@@ -301,6 +303,10 @@ export default defineComponent({
   mounted () {
     if (this.connected) {
       setTimeout(this.start, 500)
+    }
+
+    if (new URLSearchParams(location.search).get('sharing') === 'true') {
+      this.flags.sharingEnabled = true
     }
   },
 
