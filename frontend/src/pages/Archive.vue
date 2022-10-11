@@ -482,6 +482,9 @@ export default defineComponent({
     },
 
     async upload () {
+      if (!this.uploadedFiles || this.uploadedFiles.length === 0) {
+        return
+      }
       this.flags.blockingOperationPopup = true
       for (const file of this.uploadedFiles) {
         this.file.name = file.name
