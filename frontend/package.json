@@ -1,8 +1,8 @@
 {
-  "name": "my.flipper.net",
+  "name": "lab.flipper.net",
   "version": "0.0.1",
   "description": "Web platform for your Flipper",
-  "productName": "my.flipper.net",
+  "productName": "lab.flipper.net",
   "author": "Slipn3r <61992469+Slipn3r@users.noreply.github.com>",
   "private": true,
   "scripts": {
