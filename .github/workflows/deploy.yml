@@ -18,7 +18,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v3
         with:
-          images: ghcr.io/flipperdevices/my.flipper.net
+          images: ghcr.io/flipperdevices/lab.flipper.net
           flavor: latest=${{ github.ref == 'refs/heads/main' }}
           tags: type=ref,event=branch
       - name: Set up Docker Buildx
@@ -37,7 +37,7 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=registry,ref=ghcr.io/flipperdevices/my.flipper.net:buildcache
-          cache-to: type=registry,ref=ghcr.io/flipperdevices/my.flipper.net:buildcache,mode=max
+          cache-from: type=registry,ref=ghcr.io/flipperdevices/lab.flipper.net:buildcache
+          cache-to: type=registry,ref=ghcr.io/flipperdevices/lab.flipper.net:buildcache,mode=max
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
