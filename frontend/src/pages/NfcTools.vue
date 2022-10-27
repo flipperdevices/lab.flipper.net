@@ -39,7 +39,7 @@
           </div>
         </q-form>
         <div v-if="result" class="q-pt-lg">
-          <span class="text-subtitle1 q-mr-sm">Key:</span>
+          <span v-if="!result.startsWith('Error')" class="text-subtitle1 q-mr-sm">Key:</span>
           <b>{{ result }}</b>
         </div>
       </q-card-section>
@@ -251,15 +251,25 @@ export default defineComponent({
       if (!args) {
         args = Object.values(this.args)
       }
-      const key = await startMfkey(args)
-        .catch(error => {
-          throw error
+      let result
+      try {
+        result = await startMfkey(args)
+        this.$emit('log', {
+          level: 'debug',
+          message: `NfcTools: cracked nonce: ${args}, key: ${result}`
         })
+      } catch (error) {
+        this.$emit('log', {
+          level: 'error',
+          message: `NfcTools: error in mfkey32v2: ${error}`
+        })
+        result = `Error: ${error}`
+      }
       if (this.flags.mfkeyManualInProgress) {
-        this.result = key
+        this.result = result
       }
       this.flags.mfkeyManualInProgress = false
-      return key
+      return result
     },
 
     forceStopMfkey () {
