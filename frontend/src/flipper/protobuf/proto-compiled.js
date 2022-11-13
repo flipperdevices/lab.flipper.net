@@ -806,6 +806,8 @@ export const PB = $root.PB = (() => {
     Main.prototype.systemPowerInfoResponse = null
     Main.prototype.storageInfoRequest = null
     Main.prototype.storageInfoResponse = null
+    Main.prototype.storageTimestampRequest = null
+    Main.prototype.storageTimestampResponse = null
     Main.prototype.storageStatRequest = null
     Main.prototype.storageStatResponse = null
     Main.prototype.storageListRequest = null
@@ -845,7 +847,7 @@ export const PB = $root.PB = (() => {
     let $oneOfFields
 
     Object.defineProperty(Main.prototype, 'content', {
-      get: $util.oneOfGetter($oneOfFields = ['empty', 'stopSession', 'systemPingRequest', 'systemPingResponse', 'systemRebootRequest', 'systemDeviceInfoRequest', 'systemDeviceInfoResponse', 'systemFactoryResetRequest', 'systemGetDatetimeRequest', 'systemGetDatetimeResponse', 'systemSetDatetimeRequest', 'systemPlayAudiovisualAlertRequest', 'systemProtobufVersionRequest', 'systemProtobufVersionResponse', 'systemUpdateRequest', 'systemUpdateResponse', 'systemPowerInfoRequest', 'systemPowerInfoResponse', 'storageInfoRequest', 'storageInfoResponse', 'storageStatRequest', 'storageStatResponse', 'storageListRequest', 'storageListResponse', 'storageReadRequest', 'storageReadResponse', 'storageWriteRequest', 'storageDeleteRequest', 'storageMkdirRequest', 'storageMd5sumRequest', 'storageMd5sumResponse', 'storageRenameRequest', 'storageBackupCreateRequest', 'storageBackupRestoreRequest', 'appStartRequest', 'appLockStatusRequest', 'appLockStatusResponse', 'appExitRequest', 'appLoadFileRequest', 'appButtonPressRequest', 'appButtonReleaseRequest', 'guiStartScreenStreamRequest', 'guiStopScreenStreamRequest', 'guiScreenFrame', 'guiSendInputEventRequest', 'guiStartVirtualDisplayRequest', 'guiStopVirtualDisplayRequest', 'gpioSetPinMode', 'gpioSetInputPull', 'gpioGetPinMode', 'gpioGetPinModeResponse', 'gpioReadPin', 'gpioReadPinResponse', 'gpioWritePin', 'appStateResponse']),
+      get: $util.oneOfGetter($oneOfFields = ['empty', 'stopSession', 'systemPingRequest', 'systemPingResponse', 'systemRebootRequest', 'systemDeviceInfoRequest', 'systemDeviceInfoResponse', 'systemFactoryResetRequest', 'systemGetDatetimeRequest', 'systemGetDatetimeResponse', 'systemSetDatetimeRequest', 'systemPlayAudiovisualAlertRequest', 'systemProtobufVersionRequest', 'systemProtobufVersionResponse', 'systemUpdateRequest', 'systemUpdateResponse', 'systemPowerInfoRequest', 'systemPowerInfoResponse', 'storageInfoRequest', 'storageInfoResponse', 'storageTimestampRequest', 'storageTimestampResponse', 'storageStatRequest', 'storageStatResponse', 'storageListRequest', 'storageListResponse', 'storageReadRequest', 'storageReadResponse', 'storageWriteRequest', 'storageDeleteRequest', 'storageMkdirRequest', 'storageMd5sumRequest', 'storageMd5sumResponse', 'storageRenameRequest', 'storageBackupCreateRequest', 'storageBackupRestoreRequest', 'appStartRequest', 'appLockStatusRequest', 'appLockStatusResponse', 'appExitRequest', 'appLoadFileRequest', 'appButtonPressRequest', 'appButtonReleaseRequest', 'guiStartScreenStreamRequest', 'guiStopScreenStreamRequest', 'guiScreenFrame', 'guiSendInputEventRequest', 'guiStartVirtualDisplayRequest', 'guiStopVirtualDisplayRequest', 'gpioSetPinMode', 'gpioSetInputPull', 'gpioGetPinMode', 'gpioGetPinModeResponse', 'gpioReadPin', 'gpioReadPinResponse', 'gpioWritePin', 'appStateResponse']),
       set: $util.oneOfSetter($oneOfFields)
     })
 
@@ -913,6 +915,8 @@ export const PB = $root.PB = (() => {
       if (message.gpioReadPinResponse != null && Object.hasOwnProperty.call(message, 'gpioReadPinResponse')) { $root.PB_Gpio.ReadPinResponse.encode(message.gpioReadPinResponse, writer.uint32(450).fork()).ldelim() }
       if (message.gpioWritePin != null && Object.hasOwnProperty.call(message, 'gpioWritePin')) { $root.PB_Gpio.WritePin.encode(message.gpioWritePin, writer.uint32(458).fork()).ldelim() }
       if (message.appStateResponse != null && Object.hasOwnProperty.call(message, 'appStateResponse')) { $root.PB_App.AppStateResponse.encode(message.appStateResponse, writer.uint32(466).fork()).ldelim() }
+      if (message.storageTimestampRequest != null && Object.hasOwnProperty.call(message, 'storageTimestampRequest')) { $root.PB_Storage.TimestampRequest.encode(message.storageTimestampRequest, writer.uint32(474).fork()).ldelim() }
+      if (message.storageTimestampResponse != null && Object.hasOwnProperty.call(message, 'storageTimestampResponse')) { $root.PB_Storage.TimestampResponse.encode(message.storageTimestampResponse, writer.uint32(482).fork()).ldelim() }
       return writer
     }
 
@@ -994,6 +998,12 @@ export const PB = $root.PB = (() => {
             break
           case 29:
             message.storageInfoResponse = $root.PB_Storage.InfoResponse.decode(reader, reader.uint32())
+            break
+          case 59:
+            message.storageTimestampRequest = $root.PB_Storage.TimestampRequest.decode(reader, reader.uint32())
+            break
+          case 60:
+            message.storageTimestampResponse = $root.PB_Storage.TimestampResponse.decode(reader, reader.uint32())
             break
           case 24:
             message.storageStatRequest = $root.PB_Storage.StatRequest.decode(reader, reader.uint32())
@@ -1311,6 +1321,22 @@ export const PB = $root.PB = (() => {
         {
           const error = $root.PB_Storage.InfoResponse.verify(message.storageInfoResponse)
           if (error) { return 'storageInfoResponse.' + error }
+        }
+      }
+      if (message.storageTimestampRequest != null && message.hasOwnProperty('storageTimestampRequest')) {
+        if (properties.content === 1) { return 'content: multiple values' }
+        properties.content = 1
+        {
+          const error = $root.PB_Storage.TimestampRequest.verify(message.storageTimestampRequest)
+          if (error) { return 'storageTimestampRequest.' + error }
+        }
+      }
+      if (message.storageTimestampResponse != null && message.hasOwnProperty('storageTimestampResponse')) {
+        if (properties.content === 1) { return 'content: multiple values' }
+        properties.content = 1
+        {
+          const error = $root.PB_Storage.TimestampResponse.verify(message.storageTimestampResponse)
+          if (error) { return 'storageTimestampResponse.' + error }
         }
       }
       if (message.storageStatRequest != null && message.hasOwnProperty('storageStatRequest')) {
@@ -1783,6 +1809,14 @@ export const PB = $root.PB = (() => {
         if (typeof object.storageInfoResponse !== 'object') { throw TypeError('.PB.Main.storageInfoResponse: object expected') }
         message.storageInfoResponse = $root.PB_Storage.InfoResponse.fromObject(object.storageInfoResponse)
       }
+      if (object.storageTimestampRequest != null) {
+        if (typeof object.storageTimestampRequest !== 'object') { throw TypeError('.PB.Main.storageTimestampRequest: object expected') }
+        message.storageTimestampRequest = $root.PB_Storage.TimestampRequest.fromObject(object.storageTimestampRequest)
+      }
+      if (object.storageTimestampResponse != null) {
+        if (typeof object.storageTimestampResponse !== 'object') { throw TypeError('.PB.Main.storageTimestampResponse: object expected') }
+        message.storageTimestampResponse = $root.PB_Storage.TimestampResponse.fromObject(object.storageTimestampResponse)
+      }
       if (object.storageStatRequest != null) {
         if (typeof object.storageStatRequest !== 'object') { throw TypeError('.PB.Main.storageStatRequest: object expected') }
         message.storageStatRequest = $root.PB_Storage.StatRequest.fromObject(object.storageStatRequest)
@@ -2156,6 +2190,14 @@ export const PB = $root.PB = (() => {
       if (message.appStateResponse != null && message.hasOwnProperty('appStateResponse')) {
         object.appStateResponse = $root.PB_App.AppStateResponse.toObject(message.appStateResponse, options)
         if (options.oneofs) { object.content = 'appStateResponse' }
+      }
+      if (message.storageTimestampRequest != null && message.hasOwnProperty('storageTimestampRequest')) {
+        object.storageTimestampRequest = $root.PB_Storage.TimestampRequest.toObject(message.storageTimestampRequest, options)
+        if (options.oneofs) { object.content = 'storageTimestampRequest' }
+      }
+      if (message.storageTimestampResponse != null && message.hasOwnProperty('storageTimestampResponse')) {
+        object.storageTimestampResponse = $root.PB_Storage.TimestampResponse.toObject(message.storageTimestampResponse, options)
+        if (options.oneofs) { object.content = 'storageTimestampResponse' }
       }
       return object
     }
@@ -2716,6 +2758,160 @@ export const PB_Storage = $root.PB_Storage = (() => {
     }
 
     return InfoResponse
+  })()
+
+  PB_Storage.TimestampRequest = (function () {
+    function TimestampRequest (properties) {
+      if (properties) {
+        for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i) {
+          if (properties[keys[i]] != null) { this[keys[i]] = properties[keys[i]] }
+        }
+      }
+    }
+
+    TimestampRequest.prototype.path = ''
+
+    TimestampRequest.create = function create (properties) {
+      return new TimestampRequest(properties)
+    }
+
+    TimestampRequest.encode = function encode (message, writer) {
+      if (!writer) { writer = $Writer.create() }
+      if (message.path != null && Object.hasOwnProperty.call(message, 'path')) { writer.uint32(10).string(message.path) }
+      return writer
+    }
+
+    TimestampRequest.encodeDelimited = function encodeDelimited (message, writer) {
+      return this.encode(message, writer).ldelim()
+    }
+
+    TimestampRequest.decode = function decode (reader, length) {
+      if (!(reader instanceof $Reader)) { reader = $Reader.create(reader) }
+      const end = length === undefined ? reader.len : reader.pos + length, message = new $root.PB_Storage.TimestampRequest()
+      while (reader.pos < end) {
+        const tag = reader.uint32()
+        switch (tag >>> 3) {
+          case 1:
+            message.path = reader.string()
+            break
+          default:
+            reader.skipType(tag & 7)
+            break
+        }
+      }
+      return message
+    }
+
+    TimestampRequest.decodeDelimited = function decodeDelimited (reader) {
+      if (!(reader instanceof $Reader)) { reader = new $Reader(reader) }
+      return this.decode(reader, reader.uint32())
+    }
+
+    TimestampRequest.verify = function verify (message) {
+      if (typeof message !== 'object' || message === null) { return 'object expected' }
+      if (message.path != null && message.hasOwnProperty('path')) {
+        if (!$util.isString(message.path)) { return 'path: string expected' }
+      }
+      return null
+    }
+
+    TimestampRequest.fromObject = function fromObject (object) {
+      if (object instanceof $root.PB_Storage.TimestampRequest) { return object }
+      const message = new $root.PB_Storage.TimestampRequest()
+      if (object.path != null) { message.path = String(object.path) }
+      return message
+    }
+
+    TimestampRequest.toObject = function toObject (message, options) {
+      if (!options) { options = {} }
+      const object = {}
+      if (options.defaults) { object.path = '' }
+      if (message.path != null && message.hasOwnProperty('path')) { object.path = message.path }
+      return object
+    }
+
+    TimestampRequest.prototype.toJSON = function toJSON () {
+      return this.constructor.toObject(this, $protobuf.util.toJSONOptions)
+    }
+
+    return TimestampRequest
+  })()
+
+  PB_Storage.TimestampResponse = (function () {
+    function TimestampResponse (properties) {
+      if (properties) {
+        for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i) {
+          if (properties[keys[i]] != null) { this[keys[i]] = properties[keys[i]] }
+        }
+      }
+    }
+
+    TimestampResponse.prototype.timestamp = 0
+
+    TimestampResponse.create = function create (properties) {
+      return new TimestampResponse(properties)
+    }
+
+    TimestampResponse.encode = function encode (message, writer) {
+      if (!writer) { writer = $Writer.create() }
+      if (message.timestamp != null && Object.hasOwnProperty.call(message, 'timestamp')) { writer.uint32(8).uint32(message.timestamp) }
+      return writer
+    }
+
+    TimestampResponse.encodeDelimited = function encodeDelimited (message, writer) {
+      return this.encode(message, writer).ldelim()
+    }
+
+    TimestampResponse.decode = function decode (reader, length) {
+      if (!(reader instanceof $Reader)) { reader = $Reader.create(reader) }
+      const end = length === undefined ? reader.len : reader.pos + length, message = new $root.PB_Storage.TimestampResponse()
+      while (reader.pos < end) {
+        const tag = reader.uint32()
+        switch (tag >>> 3) {
+          case 1:
+            message.timestamp = reader.uint32()
+            break
+          default:
+            reader.skipType(tag & 7)
+            break
+        }
+      }
+      return message
+    }
+
+    TimestampResponse.decodeDelimited = function decodeDelimited (reader) {
+      if (!(reader instanceof $Reader)) { reader = new $Reader(reader) }
+      return this.decode(reader, reader.uint32())
+    }
+
+    TimestampResponse.verify = function verify (message) {
+      if (typeof message !== 'object' || message === null) { return 'object expected' }
+      if (message.timestamp != null && message.hasOwnProperty('timestamp')) {
+        if (!$util.isInteger(message.timestamp)) { return 'timestamp: integer expected' }
+      }
+      return null
+    }
+
+    TimestampResponse.fromObject = function fromObject (object) {
+      if (object instanceof $root.PB_Storage.TimestampResponse) { return object }
+      const message = new $root.PB_Storage.TimestampResponse()
+      if (object.timestamp != null) { message.timestamp = object.timestamp >>> 0 }
+      return message
+    }
+
+    TimestampResponse.toObject = function toObject (message, options) {
+      if (!options) { options = {} }
+      const object = {}
+      if (options.defaults) { object.timestamp = 0 }
+      if (message.timestamp != null && message.hasOwnProperty('timestamp')) { object.timestamp = message.timestamp }
+      return object
+    }
+
+    TimestampResponse.prototype.toJSON = function toJSON () {
+      return this.constructor.toObject(this, $protobuf.util.toJSONOptions)
+    }
+
+    return TimestampResponse
   })()
 
   PB_Storage.StatRequest = (function () {
