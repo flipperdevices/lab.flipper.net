@@ -13,7 +13,7 @@
     </div>
     <div v-if="connected && !flags.rpcActive" class="full-width" style="height: calc(100vh - 50px)">
       <div id="terminal-container" class="fit bg-black"></div>
-      <q-btn
+      <!--<q-btn
         v-if="flags.sharingEnabled"
         @click="flags.sharePopup = true"
         outline
@@ -29,6 +29,34 @@
           color="green"
           class="q-ml-md"
         />
+      </q-btn>-->
+      <q-btn
+        color="black"
+        icon="tune"
+        class="absolute-top-right q-ma-sm z-top shadow-2"
+      >
+        <q-menu dark :offset="[0, 10]">
+          <q-list dark bordered separator style="min-width: 100px; border-width: 2px;">
+            <q-item clickable v-close-popup @click="downloadDump">
+              <q-item-section avatar><q-icon name="mdi-download" /></q-item-section>
+              <q-item-section>Download dump</q-item-section>
+            </q-item>
+            <q-item clickable v-close-popup @click="clearDump" class="text-negative">
+              <q-item-section avatar><q-icon name="mdi-delete" /></q-item-section>
+              <q-item-section>Clear history</q-item-section>
+            </q-item>
+            <q-item class="text-center">
+              <q-item-section class="col-grow">Font size</q-item-section>
+              <q-item-section>
+                <q-btn dense color="black" icon="mdi-minus" @click="fontSize--"/>
+              </q-item-section>
+              <q-item-section>{{ fontSize }}</q-item-section>
+              <q-item-section>
+                <q-btn dense color="black" icon="mdi-plus" @click="fontSize++"/>
+              </q-item-section>
+            </q-item>
+          </q-list>
+        </q-menu>
       </q-btn>
     </div>
     <q-dialog v-model="flags.sharePopup">
@@ -73,6 +101,8 @@ import { defineComponent, ref } from 'vue'
 import { Terminal } from 'xterm'
 import 'xterm/css/xterm.css'
 import { FitAddon } from 'xterm-addon-fit'
+import { SerializeAddon } from 'xterm-addon-serialize'
+import * as shajs from 'sha.js'
 import { io } from 'socket.io-client'
 
 export default defineComponent({
@@ -103,17 +133,41 @@ export default defineComponent({
       socket: ref(null),
       roomName: ref(''),
       clientsCount: ref(0),
-      clientsPollingInterval: ref(null)
+      clientsPollingInterval: ref(null),
+      fontSize: ref(14),
+      serializeAddon: null,
+      dump: ref('')
+    }
+  },
+
+  watch: {
+    async fontSize (newSize, oldInfo) {
+      if (this.terminal) {
+        this.terminal.options.fontSize = Number(newSize)
+        localStorage.setItem('cli-fontSize', newSize)
+      }
     }
   },
 
   methods: {
     init () {
       this.terminal = new Terminal({
-        scrollback: 10_000
+        scrollback: 10_000,
+        fontSize: this.fontSize,
+        allowProposedApi: true
       })
       const fitAddon = new FitAddon()
       this.terminal.loadAddon(fitAddon)
+      this.serializeAddon = new SerializeAddon()
+      this.terminal.loadAddon(this.serializeAddon)
+      if (this.dump) {
+        const motdSha256 = 'b00ef434818c0b55977f745a38327af84434bfb5a8250032b34f9332ca93d0ae'
+        if (this.dump.length === 858 && shajs('sha256').update(this.dump).digest('hex') === motdSha256) {
+          this.clearDump()
+        } else {
+          this.terminal.write(this.dump)
+        }
+      }
       this.terminal.open(document.getElementById('terminal-container'))
       document.querySelector('.xterm').setAttribute('style', 'height:' + getComputedStyle(document.querySelector('.xterm')).height)
       this.terminal.focus()
@@ -122,7 +176,14 @@ export default defineComponent({
       this.write('\x01')
       this.read()
 
+      let dumpTimeout
       this.terminal.onData(async data => {
+        if (!dumpTimeout) {
+          clearTimeout(dumpTimeout)
+        }
+        dumpTimeout = setTimeout(() => {
+          this.dump = localStorage.getItem('cli-dump')
+        }, 500)
         this.write(data)
       })
     },
@@ -133,6 +194,22 @@ export default defineComponent({
 
     read () {
       this.flipper.read('cli')
+    },
+
+    downloadDump () {
+      const text = this.serializeAddon.serialize()
+      const dl = document.createElement('a')
+      dl.setAttribute('download', 'cli-dump.txt')
+      dl.setAttribute('href', 'data:text/plain,' + text)
+      dl.style.visibility = 'hidden'
+      document.body.append(dl)
+      dl.click()
+      dl.remove()
+    },
+
+    clearDump () {
+      this.dump = ''
+      localStorage.setItem('cli-dump', '')
     },
 
     async stopRpc () {
@@ -251,6 +328,11 @@ export default defineComponent({
       if (this.rpcActive) {
         await this.stopRpc()
       }
+      if (window.innerWidth < 381) {
+        this.fontSize = 9
+      } else if (window.innerWidth < 463) {
+        this.fontSize = 11
+      }
       setTimeout(this.init, 500)
 
       let isUnicode = false,
@@ -301,8 +383,14 @@ export default defineComponent({
   },
 
   mounted () {
+    this.dump = localStorage.getItem('cli-dump')
     if (this.connected) {
       setTimeout(this.start, 500)
+    }
+
+    const savedFontSize = localStorage.getItem('cli-fontSize')
+    if (savedFontSize) {
+      this.fontSize = Number(savedFontSize)
     }
 
     if (new URLSearchParams(location.search).get('sharing') === 'true') {
@@ -311,6 +399,7 @@ export default defineComponent({
   },
 
   async beforeUnmount () {
+    localStorage.setItem('cli-dump', this.serializeAddon.serialize())
     this.unbind()
     if (this.flags.serverActive) {
       this.stopServer()
