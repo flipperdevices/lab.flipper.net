@@ -25,14 +25,6 @@
               v-if="!autoStreaming.enabled"
               @click="sendFrame"
             >Send frame</q-btn>
-            <q-input
-              v-else
-              v-model="autoStreaming.delay"
-              label="Delay, ms"
-              dense
-              class="inline-block"
-              style="width: 50px;"
-            />
           </div>
 
           <div>

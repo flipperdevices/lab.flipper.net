@@ -37,51 +37,51 @@
             icon="tune"
             :label="info.hardware_name"
           >
-          <q-menu :offset="[0, 10]">
-            <div
-              class="flex q-pa-md"
-              :style="$q.screen.width > 450 ? 'flex-direction: row; flex-wrap: nowrap' : 'flex-direction: column-reverse'"
-            >
-              <div class="column">
-                <div class="text-h6 q-mb-md">Settings</div>
-                <q-toggle
-                  v-model="flags.connectOnStart"
-                  @click="toggleConnectOnStart"
-                  label="Connect on page load"
-                ></q-toggle>
-                <q-toggle
-                  v-model="flags.autoReconnect"
-                  @click="toggleAutoReconnect"
-                  label="Auto-reconnect"
-                ></q-toggle>
-                <q-toggle
-                  v-model="flags.installFromFile"
-                  @click="toggleInstallFromFile"
-                  label="3rd party firmware install"
-                ></q-toggle>
+            <q-menu :offset="[0, 10]">
+              <div
+                class="flex q-pa-md"
+                :style="$q.screen.width > 450 ? 'flex-direction: row; flex-wrap: nowrap' : 'flex-direction: column-reverse'"
+              >
+                <div class="column">
+                  <div class="text-h6 q-mb-md">Settings</div>
+                  <q-toggle
+                    v-model="flags.connectOnStart"
+                    @click="toggleConnectOnStart"
+                    label="Connect on page load"
+                  ></q-toggle>
+                  <q-toggle
+                    v-model="flags.autoReconnect"
+                    @click="toggleAutoReconnect"
+                    label="Auto-reconnect"
+                  ></q-toggle>
+                  <q-toggle
+                    v-model="flags.installFromFile"
+                    @click="toggleInstallFromFile"
+                    label="3rd party firmware install"
+                  ></q-toggle>
+                </div>
+
+                <q-separator vertical inset class="q-mx-lg"></q-separator>
+
+                <div class="column items-center">
+                  <q-avatar size="72px" square>
+                    <img v-if="info.hardware_color === '1'" src="../assets/flipper_black.svg"/>
+                    <img v-else src="../assets/flipper_white.svg"/>
+                  </q-avatar>
+
+                  <div class="text-subtitle1 q-mb-sm">{{ info.hardware_name }}</div>
+
+                  <q-btn
+                    color="primary"
+                    label="Disconnect"
+                    size="sm"
+                    v-close-popup
+                    outline
+                    @click="disconnect"
+                  ></q-btn>
+                </div>
               </div>
-
-              <q-separator vertical inset class="q-mx-lg"></q-separator>
-
-              <div class="column items-center">
-                <q-avatar size="72px" square>
-                  <img v-if="info.hardware_color === '1'" src="../assets/flipper_black.svg"/>
-                  <img v-else src="../assets/flipper_white.svg"/>
-                </q-avatar>
-
-                <div class="text-subtitle1 q-mb-sm">{{ info.hardware_name }}</div>
-
-                <q-btn
-                  color="primary"
-                  label="Disconnect"
-                  size="sm"
-                  v-close-popup
-                  outline
-                  @click="disconnect"
-                ></q-btn>
-              </div>
-            </div>
-          </q-menu>
+            </q-menu>
           </q-btn>
           <div v-else style="margin: 0 0.85rem">{{ connectionStatus }}</div>
         </template>

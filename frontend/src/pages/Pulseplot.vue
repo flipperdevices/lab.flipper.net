@@ -65,7 +65,7 @@
           <q-btn @click="setSlicer" label="Submit" size="16px"/>
         </div>
       </div>
-      <div class="pulseplot-timings q-py-sm"></div>
+      <div class="pulseplot-timings overflow-auto q-py-sm"></div>
       <div class="pulseplot-messages q-py-sm" style="word-break: break-all;"></div>
     </div>
   </q-page>
