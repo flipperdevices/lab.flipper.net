@@ -528,7 +528,7 @@ export default defineComponent({
     onUpdateStage (stage) {
       if (stage === 'start') {
         this.flags.updateInProgress = true
-      } else if (stage === 'success') {
+      } else if (stage === 'end') {
         this.flags.updateInProgress = false
       }
     },

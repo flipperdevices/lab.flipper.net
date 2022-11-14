@@ -297,9 +297,11 @@ export default defineComponent({
       if (stage === 'start') {
         this.flags.updateInProgress = true
         this.stopScreenStream()
+        navigator.serial.addEventListener('connect', () => {
+          this.$emit('update', 'end')
+        })
       } else if (stage === 'end') {
-        this.flags.updateInProgress = false
-        this.startScreenStream()
+        this.$emit('update', 'end')
       }
     },
 

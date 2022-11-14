@@ -43,7 +43,7 @@
           v-if="installFromFile && flags.uploadEnabled"
           @click="flags.uploadPopup = true; uploadedFile = null"
           class="q-mt-lg"
-          flat
+          outline
         >Install from file</q-btn>
       </template>
       <template v-else>
