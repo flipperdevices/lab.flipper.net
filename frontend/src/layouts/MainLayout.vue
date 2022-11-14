@@ -38,7 +38,7 @@
             :label="info.hardware_name"
           >
           <q-menu :offset="[0, 10]">
-            <div class="row no-wrap q-pa-md">
+            <div class="flex q-pa-md" :style="$q.screen.width > 450 ? 'flex-direction: row; flex-wrap: nowrap' : 'flex-direction: column-reverse'">
               <div class="column">
                 <div class="text-h6 q-mb-md">Settings</div>
                 <q-toggle
@@ -73,7 +73,7 @@
                   label="Disconnect"
                   size="sm"
                   v-close-popup
-                  flat
+                  outline
                   @click="disconnect"
                 ></q-btn>
               </div>
