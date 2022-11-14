@@ -14,9 +14,9 @@
 
         <img
           v-show="!$q.screen.xs"
-          src="../assets/flipper-logo.svg"
-          class="q-ml-sm"
-          style="height: 18px;"
+          src="../assets/flipper_lab_logo_monochrome.svg"
+          class="q-ml-xs"
+          style="height: 36px;"
         />
 
         <q-space />
@@ -38,7 +38,10 @@
             :label="info.hardware_name"
           >
           <q-menu :offset="[0, 10]">
-            <div class="flex q-pa-md" :style="$q.screen.width > 450 ? 'flex-direction: row; flex-wrap: nowrap' : 'flex-direction: column-reverse'">
+            <div
+              class="flex q-pa-md"
+              :style="$q.screen.width > 450 ? 'flex-direction: row; flex-wrap: nowrap' : 'flex-direction: column-reverse'"
+            >
               <div class="column">
                 <div class="text-h6 q-mb-md">Settings</div>
                 <q-toggle
