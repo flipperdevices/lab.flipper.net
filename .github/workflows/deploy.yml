@@ -7,7 +7,6 @@ on:
       - dev
     tags:
       - '*'
-    pull_request: # temp
 
 env:
   IMAGE_NAME: "ghcr.io/flipperdevices/lab.flipper.net"
@@ -23,7 +22,7 @@ jobs:
 
       - name: 'Set image tag'
         run: |
-          IMAGE_TAG=0.0.0
+          IMAGE_TAG="0.0.0"
           if [[ "${{ github.ref }}" == "refs/tags/"* ]]; then
             REF=${{ github.ref }};
             TAG_FULL=${REF#refs/*/};
@@ -49,3 +48,11 @@ jobs:
       - name: 'Show image digest'
         run: |
           docker image inspect --format='{{index .RepoDigests 0}}' "$IMAGE_NAME:$IMAGE_TAG" | awk -F '@' '{print $2}'
+
+      - name: 'Trigger k8s to use new image'
+        uses: peter-evans/repository-dispatch@v2
+        with:
+          repository: ${{ secrets.INFRASTRUCTURE_REPO }}
+          token: ${{ K8S_GITHUB_PAT }}
+          event-type: lab-flipper-net-deploy
+          client-payload: '{"image_tag": "$IMAGE_TAG"}'
