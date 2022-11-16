@@ -53,6 +53,6 @@ jobs:
         uses: peter-evans/repository-dispatch@v2
         with:
           repository: ${{ secrets.INFRASTRUCTURE_REPO }}
-          token: ${{ K8S_GITHUB_PAT }}
+          token: ${{ secrets.K8S_GITHUB_PAT }}
           event-type: lab-flipper-net-deploy
           client-payload: '{"image_tag": "$IMAGE_TAG"}'
