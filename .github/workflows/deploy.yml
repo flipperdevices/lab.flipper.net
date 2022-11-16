@@ -57,4 +57,4 @@ jobs:
           repository: ${{ secrets.INFRASTRUCTURE_REPO }}
           token: ${{ secrets.K8S_GITHUB_PAT }}
           event-type: lab-flipper-net-deploy
-          client-payload: '{"image_tag": "${{steps.tag.outputs.image_tag}}"'
+          client-payload: '{"image_tag": "${{steps.tag.outputs.image_tag}}"}'
