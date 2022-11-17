@@ -1001,7 +1001,7 @@ class Pulseplot {
 
     if (!this.data.pulses || !this.data.pulses.length) return
     let pulses = this.data.pulses, shrinkRate = 1
-    if (this.data.pulses.length > this.width) {
+    if (this.zoom < 10 && this.data.pulses.length > this.width) {
       pulses = []
       shrinkRate = Math.ceil(this.data.pulses.length / this.width)
       for (let i = 0; i < this.width; i++) {
