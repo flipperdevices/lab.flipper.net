@@ -23,10 +23,10 @@
             <template v-slot:option="scope">
               <q-item v-bind="scope.itemProps">
                 <q-item-section class="items-start">
-                  <q-item-label v-html="scope.opt.label" />
+                  <q-item-label v-text="scope.opt.label" />
                 </q-item-section>
                 <q-item-section class="items-end">
-                  <q-item-label v-html="scope.opt.version" :class="'fw-option-label ' + scope.opt.value"/>
+                  <q-item-label v-text="scope.opt.version" :class="'fw-option-label ' + scope.opt.value"/>
                 </q-item-section>
               </q-item>
             </template>
