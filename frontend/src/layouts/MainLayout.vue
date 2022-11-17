@@ -69,7 +69,15 @@
                     <img v-else src="../assets/flipper_white.svg"/>
                   </q-avatar>
 
-                  <div class="text-subtitle1 q-mb-sm">{{ info.hardware_name }}</div>
+                  <div class="row items-center q-mb-sm">
+                    <div class="text-subtitle1" style="margin-right: 6px">{{ info.hardware_name }}</div>
+                    <q-icon
+                      :name="batteryIcon"
+                      size="20px"
+                      class="rotate-90"
+                      :color="batteryColor"
+                    ></q-icon>
+                  </div>
 
                   <q-btn
                     color="primary"
@@ -342,6 +350,27 @@ export default defineComponent({
     }
   },
 
+  computed: {
+    batteryIcon () {
+      const roundedCharge = Math.round(Number(this.info.charge_level) / 10) * 10
+      if (roundedCharge === 0) {
+        return 'mdi-battery-outline'
+      } else if (roundedCharge === 100) {
+        return 'mdi-battery'
+      }
+      return 'mdi-battery-' + roundedCharge
+    },
+    batteryColor () {
+      const charge = Number(this.info.charge_level)
+      if (charge >= 75) {
+        return 'positive'
+      } else if (charge >= 30) {
+        return 'warning'
+      }
+      return 'negativee'
+    }
+  },
+
   watch: {
     $route (to, from) {
       this.checkConnectionRequirement(to.path)
@@ -440,6 +469,17 @@ export default defineComponent({
           this.$emit('log', {
             level: 'debug',
             message: 'Main: system.deviceInfo: OK'
+          })
+        })
+      for (const line of res) {
+        this.info[line.key] = line.value
+      }
+      res = await this.flipper.commands.system.powerInfo()
+        .catch(error => this.rpcErrorHandler(error, 'system.powerInfo'))
+        .finally(() => {
+          this.$emit('log', {
+            level: 'debug',
+            message: 'Main: system.powerInfo: OK'
           })
         })
       for (const line of res) {

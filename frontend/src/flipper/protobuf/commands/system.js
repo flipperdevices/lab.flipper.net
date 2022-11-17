@@ -102,6 +102,23 @@ function deviceInfo () {
   })
 }
 
+function powerInfo () {
+  return new Promise((resolve, reject) => {
+    enqueue({
+      requestType: 'systemPowerInfoRequest',
+      args: {}
+    })
+    const unbind = emitter.on('response', res => {
+      if (res && res.error) {
+        reject(res.error, res)
+      } else {
+        resolve(res.chunks)
+      }
+      unbind()
+    })
+  })
+}
+
 function update (manifest) {
   return new Promise((resolve, reject) => {
     enqueue({
@@ -127,5 +144,6 @@ export {
   setDatetime,
   reboot,
   deviceInfo,
+  powerInfo,
   update
 }
