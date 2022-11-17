@@ -80,7 +80,7 @@
           </q-item-section>
 
           <q-item-section avatar>
-            <q-btn flat dense round icon="more_vert">
+            <q-btn v-if="path !== '/'" flat dense round icon="more_vert">
               <q-menu auto-close self="top middle">
                 <q-list style="min-width: 100px">
                   <q-item v-if="item.type === 0" clickable @click="itemClicked(item)">
@@ -107,7 +107,7 @@
                       Rename
                     </q-item-section>
                   </q-item>
-                  <q-item clickable class="text-negative" @click="remove(path + '/' + item.name, !!item.type)">
+                  <q-item clickable class="text-negative" @click="flags.deletePopup = true; itemToDelete = item">
                     <q-item-section avatar>
                       <q-icon name="mdi-delete-outline"/>
                     </q-item-section>
@@ -162,6 +162,29 @@
               label="Cancel"
               color="negative"
               v-close-popup
+            ></q-btn>
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
+      <q-dialog v-model="flags.deletePopup">
+        <q-card>
+          <q-card-section>
+            <div class="text-subtitle1">Are you sure you want to delete <b>{{ itemToDelete.name }}</b>?</div>
+            This action is permanent and can't be undone.
+          </q-card-section>
+
+          <q-card-actions align="right">
+            <q-btn
+              flat
+              label="Cancel"
+              v-close-popup
+            ></q-btn>
+            <q-btn
+              flat
+              label="Delete"
+              color="negative"
+              v-close-popup
+              @click="remove(path + '/' + itemToDelete.name, !!itemToDelete.type)"
             ></q-btn>
           </q-card-actions>
         </q-card>
@@ -325,7 +348,8 @@ export default defineComponent({
         uploadFolderPopup: false,
         renamePopup: false,
         mkdirPopup: false,
-        blockingOperationPopup: false
+        blockingOperationPopup: false,
+        deletePopup: false
       }),
       uploadedFiles: ref(null),
       editorText: ref(''),
@@ -333,7 +357,8 @@ export default defineComponent({
       file: ref({
         name: '',
         progress: 0
-      })
+      }),
+      itemToDelete: ref(null)
     }
   },
 
