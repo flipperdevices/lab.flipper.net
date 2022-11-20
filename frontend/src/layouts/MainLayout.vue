@@ -372,7 +372,7 @@ export default defineComponent({
       } else if (charge >= 30) {
         return 'warning'
       }
-      return 'negativee'
+      return 'negative'
     }
   },
 
