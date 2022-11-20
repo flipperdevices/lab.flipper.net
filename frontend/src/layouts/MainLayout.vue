@@ -149,7 +149,7 @@
           @click="flags.reportPopup = true"
         >
           <q-item-section avatar>
-            <q-icon name="info_outline"/>
+            <q-icon name="mdi-lifebuoy"/>
           </q-item-section>
 
           <q-item-section>
@@ -268,8 +268,13 @@ export default defineComponent({
           link: '/'
         },
         {
+          title: 'Catalog',
+          icon: 'mdi-storefront-outline',
+          link: '/catalog'
+        },
+        {
           title: 'Archive',
-          icon: 'inventory',
+          icon: 'mdi-folder-open-outline',
           link: '/archive'
         },
         {
@@ -284,39 +289,39 @@ export default defineComponent({
         },
         {
           title: 'Paint',
-          icon: 'draw',
+          icon: 'mdi-draw',
           link: '/paint'
         },
         {
           title: 'Pulse plotter',
-          icon: 'equalizer',
+          icon: 'mdi-broadcast',
           link: '/pulse-plotter'
         }
       ],
       extLinks: [
         {
           title: 'Home',
-          icon: 'open_in_new',
+          icon: 'mdi-home-outline',
           link: 'https://flipperzero.one/'
         },
         {
           title: 'Shop',
-          icon: 'open_in_new',
+          icon: 'mdi-cart-outline',
           link: 'https://shop.flipperzero.one/'
         },
         {
-          title: 'FAQ',
-          icon: 'open_in_new',
-          link: 'https://flipperzero.one/faq/'
+          title: 'Docs',
+          icon: 'mdi-book-open-variant',
+          link: 'https://docs.flipperzero.one/'
         },
         {
           title: 'Blog',
-          icon: 'open_in_new',
+          icon: 'mdi-newspaper-variant-outline',
           link: 'https://blog.flipperzero.one/'
         },
         {
           title: 'Forum',
-          icon: 'open_in_new',
+          icon: 'mdi-forum-outline',
           link: 'https://forum.flipperzero.one/'
         }
       ],
