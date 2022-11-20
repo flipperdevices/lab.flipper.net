@@ -8,6 +8,20 @@ const routes = [
     ]
   },
   {
+    path: '/catalog',
+    component: () => import('layouts/MainLayout.vue'),
+    children: [
+      { path: '/catalog', component: () => import('pages/Catalog.vue') }
+    ]
+  },
+  {
+    path: '/catalog/:path',
+    component: () => import('layouts/MainLayout.vue'),
+    children: [
+      { path: '/catalog/:path', component: () => import('pages/Catalog.vue') }
+    ]
+  },
+  {
     path: '/archive',
     component: () => import('layouts/MainLayout.vue'),
     children: [
