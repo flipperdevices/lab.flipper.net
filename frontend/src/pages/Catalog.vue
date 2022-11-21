@@ -1,5 +1,8 @@
 <template>
-  <q-page class="column items-center q-py-lg" :style="$q.screen.width >= 404 ? 'padding: 24px 60px' : 'padding: 24px 18px'">
+  <q-page
+    class="column items-center q-py-lg"
+    :style="$q.screen.width >= 404 ? 'padding: 24px 60px; max-width: 1400px' : 'padding: 24px 18px'"
+  >
     <div class="catalog-navbar row justify-end full-width q-mb-lg">
       <div class="text-h4 q-mr-lg">{{ title }}</div>
       <q-space />
@@ -17,67 +20,14 @@
       </div>
     </div>
     <template v-if="!currentApp">
-      <q-list class="categories full-width q-mt-sm q-mb-xl">
-        <q-item
-          v-for="category in categories"
-          :key="category.name"
-          class="row nowrap items-center q-ma-sm shadow-4 rounded-borders q-pa-none"
-          :class="currentCategory && currentCategory.name === category.name ? 'bg-primary' : 'bg-white'"
-          clickable
-          @click="currentCategory && currentCategory.name === category.name ? currentCategory = null : currentCategory = category"
-        >
-          <q-card-section avatar :class="$q.screen.width >= 990 ? 'q-px-xs' : 'q-pa-none'">
-            <q-avatar :icon="category.icon" />
-          </q-card-section>
-          <q-space />
-          <q-card-section :class="$q.screen.width >= 990 ? 'q-px-md' : 'q-px-sm'">
-            <div class="text-subtitle-1 text-center">{{ category.name }}</div>
-          </q-card-section>
-          <q-space v-if="$q.screen.width >= 1200" />
-          <q-card-section v-if="$q.screen.width >= 1200">
-            <div
-              class="text-subtitle-1"
-              :class="currentCategory && currentCategory.name === category.name ? 'text-grey-14' : 'text-grey-7'"
-            >{{ category.amount }}</div>
-          </q-card-section>
-        </q-item>
-      </q-list>
-
-      <q-list class="apps full-width q-mt-sm">
-        <div
-          v-for="app in apps.filter(e => !currentCategory || e.category === currentCategory.name)"
-          :key="app.name"
-          class="flex justify-center q-ma-md q-pa-none"
-        >
-          <q-item
-            style="width: 256px"
-            clickable
-            class="app-card"
-            @click="console.log(app)"
-          >
-            <img :src="app.screenshots[0]" class="rounded-borders q-mb-sm">
-
-            <q-card-section class="flex items-center justify-between">
-              <div class="text-h6">{{ app.name }}</div>
-              <div class="text-caption text-grey-7">
-                <q-icon :name="categories.find(e => e.name === app.category).icon" style="margin: 0 3px 2px 0" />
-                {{ app.category }}
-              </div>
-            </q-card-section>
-
-            <q-card-section class="flex no-wrap items-end justify-between">
-              <span>{{ app.description.split('\n')[0] }}</span>
-              <q-btn color="primary" label="Install" style="margin-bottom: 3px"/>
-            </q-card-section>
-          </q-item>
-        </div>
-      </q-list>
+      <AppList :categories="categories" :apps="apps" :initialCategory="initialCategory"/>
     </template>
   </q-page>
 </template>
 
 <script>
 import { defineComponent, ref } from 'vue'
+import AppList from 'components/AppList.vue'
 import asyncSleep from 'simple-async-sleep'
 
 export default defineComponent({
@@ -91,6 +41,7 @@ export default defineComponent({
   },
 
   components: {
+    AppList
   },
 
   setup () {
@@ -101,7 +52,7 @@ export default defineComponent({
         rpcToggling: false
       }),
       title: ref('Catalog'),
-      currentCategory: ref(null),
+      initialCategory: ref(null),
       currentApp: ref(null),
       apps: ref([]),
       categories: ref([
@@ -255,7 +206,8 @@ export default defineComponent({
       this.apps.push({
         name: 'Sample App ' + i,
         category: category.name,
-        stars: 12,
+        stars: Math.floor(Math.random() * 100),
+        updated: Date.now() - Math.floor(Math.random() * 1000),
         icon: 'https://cdn.flipperzero.one/dap-link-mock-icon.png',
         screenshots: [
           'https://cdn.flipperzero.one/bluetooth-remote-mock-screen.png'
@@ -266,16 +218,17 @@ export default defineComponent({
         email: 'contactdata@gmail.com'
       })
     }
+    console.log(this.apps)
 
     if (this.$route.params.path) {
       const category = this.categories.find(e => e.name.toLowerCase().replaceAll(' ', '-') === this.$route.params.path.toLowerCase().replaceAll(' ', '-'))
       if (category) {
-        this.currentCategory = category
+        this.initialCategory = category
       } else {
         const app = this.apps.find(e => e.name.toLowerCase() === this.$route.params.path.toLowerCase())
         if (app) {
           this.currentApp = app
-          this.currentCategory = this.categories.find(e => e.name === app.category)
+          this.initialCategory = this.categories.find(e => e.name === app.category)
         }
       }
     }
@@ -289,56 +242,4 @@ export default defineComponent({
     display: flex
     align-items: center
     height: 40px
-
-.categories
-  display: flex
-  flex-direction: row
-  flex-wrap: wrap
-  & > div
-    min-width: 200px
-
-.apps
-  display: grid
-  grid-template-columns: repeat(5, 1fr)
-  .app-card
-    display: flex
-    flex-direction: column
-    justify-content: center
-    padding: 0
-    border-radius: 3px
-
-    .q-card__section
-      padding: 4px
-
-@media (max-width: 1600px)
-  .categories
-    display: grid
-    grid-template-columns: repeat(5, 1fr)
-    & > div
-      min-width: auto
-  .apps
-    grid-template-columns: repeat(4, 1fr)
-
-@media (max-width: 1275px)
-  .apps
-    grid-template-columns: repeat(3, 1fr)
-
-@media (max-width: 990px)
-  .apps
-    grid-template-columns: repeat(2, 1fr)
-
-@media (max-width: 875px)
-  .categories
-    grid-template-columns: repeat(4, 1fr)
-
-@media (max-width: 675px)
-  .categories
-    grid-template-columns: repeat(3, 1fr)
-  .apps
-    grid-template-columns: 1fr
-
-@media (max-width: 545px)
-  .categories
-    grid-template-columns: repeat(2, 1fr)
-
 </style>
