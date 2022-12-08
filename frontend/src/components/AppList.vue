@@ -47,32 +47,38 @@
       <div
         v-for="app in filteredSortedApps"
         :key="app.name"
-        class="flex justify-center q-ma-md q-pa-none"
+        class="flex justify-center q-ma-sm q-pa-none card-container"
       >
-        <q-item
-          style="width: 256px"
-          clickable
+        <div
+          style="width: calc(256px + 4px + 8px)"
           class="app-card"
-          @click="$emit('showNotif', { message: app.name })"
+          @click="appClicked(app)"
         >
-          <img :src="app.screenshots[0]" class="rounded-borders q-mb-sm">
+          <div class="screenshot q-mb-sm">
+            <img :src="app.screenshots[0]" />
+          </div>
 
-          <q-card-section class="flex justify-between">
+          <div class="flex justify-between" style="padding: 0 4px">
             <div class="text-h6">{{ app.name }}</div>
-            <div class="column text-caption text-grey-7">
+            <div style="font-size: 18px; line-height: 18px;">
               <span>
-                <q-icon :name="categories.find(e => e.name === app.category).icon" style="margin: 0 3px 2px 0" />
-                {{ app.category }}
+                <q-icon :name="categories.find(e => e.name === app.category).icon" />
               </span>
-              <span class="text-right"><q-icon name="star" size="14px" /> {{ app.stars }}</span>
             </div>
-          </q-card-section>
+          </div>
 
-          <q-card-section class="flex no-wrap items-end justify-between">
-            <span>{{ app.description.split('\n')[0] }}</span>
-            <q-btn color="primary" label="Install" style="margin-bottom: 3px" class="no-shadow"/>
-          </q-card-section>
-        </q-item>
+          <div class="flex no-wrap items-end justify-between" style="padding: 0 4px">
+            <span class="desc text-grey-7">{{ app.description.split('\n')[0] }}</span>
+            <q-btn
+              flat
+              dense
+              color="white"
+              style="margin-left: 5px; padding: 0 1rem; border-radius: 5px; font-size: 15px;"
+              label="Install"
+              class="no-shadow text-pixelated bg-primary"
+            />
+          </div>
+        </div>
       </div>
     </q-list>
   </div>
@@ -160,6 +166,10 @@ export default defineComponent({
       } else {
         this.sortDirection = 'ascending'
       }
+    },
+
+    appClicked (app) {
+      this.$emit('showNotif', { message: app.name })
     }
   },
 
@@ -177,15 +187,34 @@ export default defineComponent({
 .apps
   display: grid
   grid-template-columns: repeat(4, 1fr)
+
+  .card-container
+    padding: 12px
+    border-radius: 14px
+    transition-duration: 300ms
+    cursor: pointer
+    &:hover
+      box-shadow: 0 1px 11px rgb(0 0 0 / 13%), 0 3px 6px rgb(0 0 0 / 5%), 0 3px 6px -2px rgb(0 0 0 / 8%)
   .app-card
     display: flex
     flex-direction: column
     justify-content: center
     padding: 0
     border-radius: 3px
-
-    .q-card__section
-      padding: 2px 4px
+    .screenshot
+      display: flex
+      justify-content: center
+      padding: 4px
+      background-color: $primary
+      border: 2px solid #000000
+      border-radius: 6px
+      img
+        image-rendering: pixelated
+    .text-h6
+      line-height: 1.75rem
+    .desc
+      font-size: 12px
+      line-height: 15px
 
 @media (max-width: 1275px)
   .apps
