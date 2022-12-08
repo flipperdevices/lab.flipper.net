@@ -263,13 +263,7 @@ const flipperIcons = {
   'archive:nfc': 'img:icons/flipper/nfc.svg',
   'archive:rfid': 'img:icons/flipper/rfid.svg',
   'archive:subghz': 'img:icons/flipper/subghz.svg',
-  'archive:u2f': 'img:icons/flipper/u2f.svg',
-
-  'pixel:arrow-down': 'img:icons/arrow-down.svg',
-  'pixel:arrow-up': 'img:icons/arrow-up.svg',
-  'pixel:chevron-down': 'img:icons/chevron-down.svg',
-  'pixel:chevron-up': 'img:icons/chevron-up.svg',
-  'pixel:old': 'img:icons/old.svg'
+  'archive:u2f': 'img:icons/flipper/u2f.svg'
 }
 let dismissNotif
 
@@ -298,9 +292,9 @@ export default defineComponent({
           link: '/'
         },
         {
-          title: 'Catalog',
+          title: 'Apps',
           icon: 'mdi-storefront-outline',
-          link: '/catalog'
+          link: '/apps'
         },
         {
           title: 'Archive',
@@ -358,7 +352,7 @@ export default defineComponent({
       canLoadWithoutFlipper: [
         'remote-cli',
         'pulse-plotter',
-        'catalog'
+        'apps'
       ],
       leftDrawer: ref(false),
       linksMenu: ref(false),

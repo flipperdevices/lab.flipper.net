@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="row no-wrap">
-      <q-list class="categories row full-width">
+      <q-list class="categories col-8 row">
         <div
           v-for="category in categoriesUI"
           :key="category.name"
@@ -14,24 +14,27 @@
           <span style="white-space: nowrap;">{{ category.name }}</span>
         </div>
       </q-list>
-
-      <div class="q-ml-lg">
+      <q-space />
+      <div>
         <div class="row no-wrap justify-end text-grey-7">
           <q-select
             v-model="sortModel"
             :options="sortOptions"
             dense
-            borderless
-            style="width: 120px"
+            filled
+            style="min-width: fit-content;"
             label="Sort by"
           />
           <q-btn
             flat
             class="q-ml-sm q-pa-sm"
-            :icon="sortIcon"
-            :style="sortIcon === 'mdi-sort-' + oppositeDirection ? 'transform: scale(1, -1)' : ''"
             @click="changeSortDirection"
-          />
+          >
+            <div class="flex no-wrap">
+              <q-icon name="pixel:old" size="16px"/>
+              <q-icon :name="sortIcon" size="16px"/>
+            </div>
+          </q-btn>
         </div>
       </div>
     </div>
@@ -92,11 +95,10 @@ export default defineComponent({
     return {
       currentCategory: ref(null),
       sortOptions: [
-        'Update date',
-        'Github stars',
-        'Name'
+        'Recently Updated',
+        'Recently Published'
       ],
-      sortModel: ref('Update date'),
+      sortModel: ref('Recently Updated'),
       sortDirection: ref('ascending')
     }
   },
@@ -121,14 +123,11 @@ export default defineComponent({
 
       let sortBy = ''
       switch (this.sortModel) {
-        case 'Update date':
+        case 'Recently Updated':
           sortBy = 'updated'
           break
-        case 'Github stars':
-          sortBy = 'stars'
-          break
-        case 'Name':
-          sortBy = 'name'
+        case 'Recently Published':
+          sortBy = 'published'
           break
       }
       const direction = this.sortDirection === 'descending' ? 1 : -1
@@ -142,13 +141,10 @@ export default defineComponent({
     },
 
     sortIcon () {
-      switch (this.sortModel) {
-        case 'Update date':
-          return 'mdi-sort-calendar-' + this.sortDirection
-        case 'Name':
-          return 'mdi-sort-alphabetical-' + this.sortDirection
-        default:
-          return 'mdi-sort-' + this.oppositeDirection
+      if (this.sortDirection === 'ascending') {
+        return 'pixel:arrow-up'
+      } else {
+        return 'pixel:arrow-down'
       }
     },
 

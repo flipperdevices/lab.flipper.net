@@ -3,7 +3,7 @@
     class="column items-center q-py-lg"
     :style="$q.screen.width >= 404 ? 'padding: 24px 60px; max-width: 1400px' : 'padding: 24px 18px'"
   >
-    <div class="catalog-navbar row justify-end full-width q-mb-lg">
+    <div class="apps-navbar row justify-end full-width q-mb-lg">
       <div class="text-h4 q-mr-lg">{{ title }}</div>
       <q-space />
       <div
@@ -14,10 +14,10 @@
       </div>
       <div class="q-ml-md" :style="$q.screen.width <= 365 ? 'margin-top: 16px' : ''">
         <div>
-          <q-btn flat no-caps dense color="grey-7" icon="mdi-package-down" label="Installed" :stack="$q.screen.width <= 365" />
+          <q-btn flat no-caps dense color="grey-7" icon="apps:installed" label="Installed" :stack="$q.screen.width <= 365" />
         </div>
         <div class="q-ml-md">
-          <q-btn flat no-caps dense color="grey-7" icon="mdi-github" label="How to create" :stack="$q.screen.width <= 365" />
+          <q-btn flat no-caps dense color="grey-7" icon="mdi-github" label="Contribute" :stack="$q.screen.width <= 365" />
         </div>
       </div>
     </div>
@@ -51,11 +51,16 @@ const appsIcons = {
   'apps:rfid': 'img:icons/apps/rfid.svg',
   'apps:subghz': 'img:icons/apps/subghz.svg',
   'apps:tools': 'img:icons/apps/tools.svg',
-  'apps:usb': 'img:icons/apps/usb.svg'
+  'apps:usb': 'img:icons/apps/usb.svg',
+  'pixel:arrow-down': 'img:icons/arrow-down.svg',
+  'pixel:arrow-up': 'img:icons/arrow-up.svg',
+  'pixel:chevron-down': 'img:icons/chevron-down.svg',
+  'pixel:chevron-up': 'img:icons/chevron-up.svg',
+  'pixel:old': 'img:icons/old.svg'
 }
 
 export default defineComponent({
-  name: 'Catalog',
+  name: 'Apps',
 
   props: {
     flipper: Object,
@@ -84,69 +89,69 @@ export default defineComponent({
         rpcActive: false,
         rpcToggling: false
       }),
-      title: ref('Applications'),
+      title: ref('Apps'),
       initialCategory: ref(null),
       currentApp: ref(null),
       apps: ref([]),
       categories: ref([
         {
           name: 'Sub-GHz',
-          icon: 'archive:subghz',
+          icon: 'apps:subghz',
           color: '#7fffb8',
           amount: 0
         },
         {
-          name: 'NFC',
-          icon: 'archive:nfc',
-          color: '#7fe0ff',
-          amount: 0
-        },
-        {
-          name: 'iButton',
-          icon: 'archive:ibutton',
-          color: '#f4cfb3',
-          amount: 0
-        },
-        {
-          name: 'Tools',
-          icon: 'archive:file',
-          color: '#d2d21e',
-          amount: 0
-        },
-        {
-          name: 'Media',
-          icon: 'archive:file',
-          color: '#e391ff',
-          amount: 0
-        },
-        {
           name: 'RFID 125',
-          icon: 'archive:rfid',
+          icon: 'apps:rfid',
           color: '#eef269',
           amount: 0
         },
         {
+          name: 'NFC',
+          icon: 'apps:nfc',
+          color: '#7fe0ff',
+          amount: 0
+        },
+        {
           name: 'Infrared',
-          icon: 'archive:infrared',
+          icon: 'apps:infrared',
           color: '#ff8585',
           amount: 0
         },
         {
-          name: 'Bad USB',
-          icon: 'archive:badusb',
+          name: 'GPIO',
+          icon: 'apps:gpio',
+          color: '#ff8585',
+          amount: 0
+        },
+        {
+          name: 'iButton',
+          icon: 'apps:ibutton',
+          color: '#f4cfb3',
+          amount: 0
+        },
+        {
+          name: 'USB',
+          icon: 'apps:usb',
           color: '#ffc1fe',
           amount: 0
         },
         {
           name: 'Games',
-          icon: 'archive:file',
+          icon: 'apps:games',
           color: '#ffc064',
           amount: 0
         },
         {
-          name: 'Misc',
-          icon: 'archive:file',
-          color: '#a0ffc0',
+          name: 'Media',
+          icon: 'apps:media',
+          color: '#e391ff',
+          amount: 0
+        },
+        {
+          name: 'Tools',
+          icon: 'apps:tools',
+          color: '#d2d21e',
           amount: 0
         }
       ])
@@ -225,7 +230,7 @@ export default defineComponent({
       })
       this.$emit('log', {
         level: 'error',
-        message: `Catalog: RPC error in command '${command}': ${error}`
+        message: `Apps: RPC error in command '${command}': ${error}`
       })
     },
 
@@ -251,6 +256,7 @@ export default defineComponent({
         category: category.name,
         stars: Math.floor(Math.random() * 100),
         updated: Date.now() - Math.floor(Math.random() * 1000),
+        published: Date.now() - 10000 - Math.floor(Math.random() * 1000),
         icon: 'https://cdn.flipperzero.one/dap-link-mock-icon.png',
         screenshots: [
           'https://cdn.flipperzero.one/bluetooth-remote-mock-screen.png'
@@ -280,7 +286,7 @@ export default defineComponent({
 </script>
 
 <style lang="sass" scoped>
-.catalog-navbar
+.apps-navbar
   div
     display: flex
     align-items: center

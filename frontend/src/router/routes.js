@@ -8,17 +8,17 @@ const routes = [
     ]
   },
   {
-    path: '/catalog',
+    path: '/apps',
     component: () => import('layouts/MainLayout.vue'),
     children: [
-      { path: '/catalog', component: () => import('pages/Catalog.vue') }
+      { path: '/apps', component: () => import('pages/Apps.vue') }
     ]
   },
   {
-    path: '/catalog/:path',
+    path: '/apps/:path',
     component: () => import('layouts/MainLayout.vue'),
     children: [
-      { path: '/catalog/:path', component: () => import('pages/Catalog.vue') }
+      { path: '/apps/:path', component: () => import('pages/Apps.vue') }
     ]
   },
   {
