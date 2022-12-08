@@ -7,28 +7,52 @@
       <div class="text-h4 q-mr-lg">{{ title }}</div>
       <q-space />
       <div
-        class="col-grow bg-grey-5"
+        class="col-grow"
         :style="$q.screen.width <= 353 ? 'margin-top: 16px; width: 100%' : 'max-width: 300px; min-width: 140px'"
-      >search bar</div>
+      >
+        <SearchBar :apps="apps"/>
+      </div>
       <div class="q-ml-md" :style="$q.screen.width <= 365 ? 'margin-top: 16px' : ''">
         <div>
           <q-btn flat no-caps dense color="grey-7" icon="mdi-package-down" label="Installed" :stack="$q.screen.width <= 365" />
         </div>
         <div class="q-ml-md">
-          <q-btn flat no-caps dense color="grey-7" icon="mdi-github" label="Upload guide" :stack="$q.screen.width <= 365" />
+          <q-btn flat no-caps dense color="grey-7" icon="mdi-github" label="How to create" :stack="$q.screen.width <= 365" />
         </div>
       </div>
     </div>
     <template v-if="!currentApp">
-      <AppList :categories="categories" :apps="apps" :initialCategory="initialCategory"/>
+      <AppList
+        :categories="categories"
+        :apps="apps"
+        :initialCategory="initialCategory"
+        @showNotif="passNotif"
+      />
     </template>
   </q-page>
 </template>
 
 <script>
 import { defineComponent, ref } from 'vue'
+import { useQuasar } from 'quasar'
 import AppList from 'components/AppList.vue'
+import SearchBar from 'components/SearchBar.vue'
 import asyncSleep from 'simple-async-sleep'
+
+const appsIcons = {
+  'apps:games': 'img:icons/apps/games.svg',
+  'apps:gpio': 'img:icons/apps/gpio.svg',
+  'apps:ibutton': 'img:icons/apps/ibutton.svg',
+  'apps:installed': 'img:icons/apps/installed.svg',
+  'apps:infrared': 'img:icons/apps/ir.svg',
+  'apps:media': 'img:icons/apps/media.svg',
+  'apps:new': 'img:icons/apps/nfc.svg',
+  'apps:nfc': 'img:icons/apps/nfc.svg',
+  'apps:rfid': 'img:icons/apps/rfid.svg',
+  'apps:subghz': 'img:icons/apps/subghz.svg',
+  'apps:tools': 'img:icons/apps/tools.svg',
+  'apps:usb': 'img:icons/apps/usb.svg'
+}
 
 export default defineComponent({
   name: 'Catalog',
@@ -41,17 +65,26 @@ export default defineComponent({
   },
 
   components: {
+    SearchBar,
     AppList
   },
 
   setup () {
+    const $q = useQuasar()
+
+    $q.iconMapFn = (iconName) => {
+      const icon = appsIcons[iconName]
+      if (icon !== void 0) {
+        return { icon: icon }
+      }
+    }
     return {
       flags: ref({
         restarting: false,
         rpcActive: false,
         rpcToggling: false
       }),
-      title: ref('Catalog'),
+      title: ref('Applications'),
       initialCategory: ref(null),
       currentApp: ref(null),
       apps: ref([]),
@@ -59,51 +92,61 @@ export default defineComponent({
         {
           name: 'Sub-GHz',
           icon: 'archive:subghz',
+          color: '#7fffb8',
           amount: 0
         },
         {
           name: 'NFC',
           icon: 'archive:nfc',
+          color: '#7fe0ff',
           amount: 0
         },
         {
           name: 'iButton',
           icon: 'archive:ibutton',
+          color: '#f4cfb3',
           amount: 0
         },
         {
           name: 'Tools',
           icon: 'archive:file',
+          color: '#d2d21e',
           amount: 0
         },
         {
           name: 'Media',
           icon: 'archive:file',
+          color: '#e391ff',
           amount: 0
         },
         {
           name: 'RFID 125',
           icon: 'archive:rfid',
+          color: '#eef269',
           amount: 0
         },
         {
           name: 'Infrared',
           icon: 'archive:infrared',
+          color: '#ff8585',
           amount: 0
         },
         {
           name: 'Bad USB',
           icon: 'archive:badusb',
+          color: '#ffc1fe',
           amount: 0
         },
         {
           name: 'Games',
           icon: 'archive:file',
+          color: '#ffc064',
           amount: 0
         },
         {
           name: 'Misc',
           icon: 'archive:file',
+          color: '#a0ffc0',
           amount: 0
         }
       ])

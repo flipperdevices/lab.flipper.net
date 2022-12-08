@@ -159,7 +159,7 @@
       </q-list>
     </q-drawer>
 
-    <q-page-container>
+    <q-page-container class="flex justify-center">
       <router-view
         v-if="!flags.connectionRequired || flags.updateInProgress || (flags.serialSupported && info !== null && this.info.storage_databases_present)"
         :flipper="flipper"
@@ -263,7 +263,13 @@ const flipperIcons = {
   'archive:nfc': 'img:icons/flipper/nfc.svg',
   'archive:rfid': 'img:icons/flipper/rfid.svg',
   'archive:subghz': 'img:icons/flipper/subghz.svg',
-  'archive:u2f': 'img:icons/flipper/u2f.svg'
+  'archive:u2f': 'img:icons/flipper/u2f.svg',
+
+  'pixel:arrow-down': 'img:icons/arrow-down.svg',
+  'pixel:arrow-up': 'img:icons/arrow-up.svg',
+  'pixel:chevron-down': 'img:icons/chevron-down.svg',
+  'pixel:chevron-up': 'img:icons/chevron-up.svg',
+  'pixel:old': 'img:icons/old.svg'
 }
 let dismissNotif
 
@@ -351,7 +357,8 @@ export default defineComponent({
       ],
       canLoadWithoutFlipper: [
         'remote-cli',
-        'pulse-plotter'
+        'pulse-plotter',
+        'catalog'
       ],
       leftDrawer: ref(false),
       linksMenu: ref(false),
