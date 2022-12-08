@@ -110,7 +110,7 @@ async function fetchRegions () {
   return fetch('https://update.flipperzero.one/regions/api/v0/bundle')
     .then((response) => {
       if (response.status >= 400) {
-        throw new Error('Failed to fetch firmware channels (' + response.status + ')')
+        throw new Error('Failed to fetch region (' + response.status + ')')
       }
       return response.json()
     })
