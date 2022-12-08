@@ -1,46 +1,39 @@
 <template>
   <div>
-    <q-list class="categories full-width q-mt-sm q-mb-xl">
-      <q-item
-        v-for="category in categories"
-        :key="category.name"
-        class="row nowrap items-center q-ma-sm shadow-4 rounded-borders q-pa-none"
-        :class="currentCategory && currentCategory.name === category.name ? 'bg-primary' : 'bg-white'"
-        clickable
-        @click="currentCategory && currentCategory.name === category.name ? currentCategory = null : currentCategory = category"
-      >
-        <q-card-section avatar :class="$q.screen.width >= 990 ? 'q-px-xs' : 'q-pa-none'">
-          <q-avatar :icon="category.icon" />
-        </q-card-section>
-        <q-space />
-        <q-card-section :class="$q.screen.width >= 990 ? 'q-px-md' : 'q-px-sm'">
-          <div class="text-subtitle-1 text-center">{{ category.name }}</div>
-        </q-card-section>
-        <q-space v-if="$q.screen.width >= 1200" />
-        <q-card-section v-if="$q.screen.width >= 1200">
-          <div
-            class="text-subtitle-1"
-            :class="currentCategory && currentCategory.name === category.name ? 'text-dark' : 'text-grey-7'"
-          >{{ category.amount }}</div>
-        </q-card-section>
-      </q-item>
-    </q-list>
+    <div class="row no-wrap">
+      <q-list class="categories row full-width">
+        <div
+          v-for="category in categoriesUI"
+          :key="category.name"
+          :style="`background-color: ${category.color}; opacity: ${currentCategory && currentCategory.name !== category.name ? '0.5' : '1'}`"
+          style="border-radius: 20px; padding: 4px 13px; cursor: pointer;"
+          class="row no-wrap items-center q-mr-md q-mb-md q-py-xs q-px-md"
+          @click="category.name === 'All apps' ? currentCategory = null : currentCategory = category"
+        >
+          <q-icon v-if="category.icon" :name="category.icon" size="18px" class="q-my-xs q-mr-sm"/>
+          <span style="white-space: nowrap;">{{ category.name }}</span>
+        </div>
+      </q-list>
 
-    <div class="full-width flex justify-end text-grey-7">
-      <q-select
-        v-model="sortModel"
-        :options="sortOptions"
-        dense
-        style="width: 120px"
-        label="Sort by"
-      />
-      <q-btn
-        flat
-        class="q-ml-sm q-pa-sm"
-        :icon="sortIcon"
-        :style="sortIcon === 'mdi-sort-' + oppositeDirection ? 'transform: scale(1, -1)' : ''"
-        @click="changeSortDirection"
-      />
+      <div class="q-ml-lg">
+        <div class="row no-wrap justify-end text-grey-7">
+          <q-select
+            v-model="sortModel"
+            :options="sortOptions"
+            dense
+            borderless
+            style="width: 120px"
+            label="Sort by"
+          />
+          <q-btn
+            flat
+            class="q-ml-sm q-pa-sm"
+            :icon="sortIcon"
+            :style="sortIcon === 'mdi-sort-' + oppositeDirection ? 'transform: scale(1, -1)' : ''"
+            @click="changeSortDirection"
+          />
+        </div>
+      </div>
     </div>
 
     <q-list class="apps full-width q-mt-sm">
@@ -73,7 +66,7 @@
               flat
               dense
               color="white"
-              style="margin-left: 5px; padding: 0 1rem; border-radius: 5px; font-size: 15px;"
+              style="margin-left: 5px; padding: 0 1rem; border-radius: 5px; font-size: 16px;"
               label="Install"
               class="no-shadow text-pixelated bg-primary"
             />
@@ -109,6 +102,15 @@ export default defineComponent({
   },
 
   computed: {
+    categoriesUI () {
+      const categories = this.categories
+      categories.unshift({
+        name: 'All apps',
+        color: '#ebebeb'
+      })
+      return categories
+    },
+
     filteredSortedApps () {
       let filtered
       if (this.currentCategory) {
@@ -180,10 +182,6 @@ export default defineComponent({
 </script>
 
 <style lang="sass" scoped>
-.categories
-  display: grid
-  grid-template-columns: repeat(5, 1fr)
-
 .apps
   display: grid
   grid-template-columns: repeat(4, 1fr)
