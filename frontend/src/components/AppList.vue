@@ -3,12 +3,20 @@
     <div class="row no-wrap">
       <q-list class="categories col-8 row">
         <div
-          v-for="category in categoriesUI"
+          :style="`opacity: ${currentCategory && currentCategory.name !== 'All apps' ? '0.5' : '1'}`"
+          style="background-color: #ebebeb; border-radius: 20px; padding: 4px 13px; cursor: pointer;"
+          class="row no-wrap items-center q-mr-md q-mb-md q-py-xs q-px-md"
+          @click="currentCategory = null"
+        >
+          <span style="white-space: nowrap;">All apps</span>
+        </div>
+        <div
+          v-for="category in categories"
           :key="category.name"
           :style="`background-color: ${category.color}; opacity: ${currentCategory && currentCategory.name !== category.name ? '0.5' : '1'}`"
           style="border-radius: 20px; padding: 4px 13px; cursor: pointer;"
           class="row no-wrap items-center q-mr-md q-mb-md q-py-xs q-px-md"
-          @click="category.name === 'All apps' ? currentCategory = null : currentCategory = category"
+          @click="currentCategory = category"
         >
           <q-icon v-if="category.icon" :name="category.icon" size="18px" class="q-my-xs q-mr-sm"/>
           <span style="white-space: nowrap;">{{ category.name }}</span>
@@ -21,7 +29,8 @@
             v-model="sortModel"
             :options="sortOptions"
             dense
-            filled
+            outlined
+            class="rounded-borders"
             style="min-width: fit-content;"
             label="Sort by"
           />
@@ -44,6 +53,7 @@
         v-for="app in filteredSortedApps"
         :key="app.name"
         class="flex justify-center q-ma-sm q-pa-none card-container"
+        style="width: fit-content"
       >
         <div
           style="width: calc(256px + 4px + 8px)"
@@ -88,7 +98,11 @@ export default defineComponent({
   props: {
     categories: Array,
     apps: Array,
-    initialCategory: Object
+    initialCategory: Object,
+    flipper: Object,
+    connected: Boolean,
+    rpcActive: Boolean,
+    info: Object
   },
 
   setup () {
@@ -104,15 +118,6 @@ export default defineComponent({
   },
 
   computed: {
-    categoriesUI () {
-      const categories = this.categories
-      categories.unshift({
-        name: 'All apps',
-        color: '#ebebeb'
-      })
-      return categories
-    },
-
     filteredSortedApps () {
       let filtered
       if (this.currentCategory) {
@@ -167,7 +172,7 @@ export default defineComponent({
     },
 
     appClicked (app) {
-      this.$emit('showNotif', { message: app.name })
+      this.$emit('openApp', app)
     }
   },
 

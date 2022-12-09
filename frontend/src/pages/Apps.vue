@@ -3,8 +3,8 @@
     class="column items-center q-py-lg"
     :style="$q.screen.width >= 404 ? 'padding: 24px 60px; max-width: 1400px' : 'padding: 24px 18px'"
   >
-    <div class="apps-navbar row justify-end full-width q-mb-lg">
-      <div class="text-h4 q-mr-lg">{{ title }}</div>
+    <div class="apps-navbar row justify-end full-width q-mb-xl">
+      <div class="text-h4 q-mr-lg">Apps</div>
       <q-space />
       <div
         class="col-grow"
@@ -17,7 +17,7 @@
           <q-btn flat no-caps dense color="grey-7" icon="apps:installed" label="Installed" :stack="$q.screen.width <= 365" />
         </div>
         <div class="q-ml-md">
-          <q-btn flat no-caps dense color="grey-7" icon="mdi-github" label="Contribute" :stack="$q.screen.width <= 365" />
+          <q-btn flat no-caps dense color="grey-7" icon="mdi-link-variant" label="Contribute" :stack="$q.screen.width <= 365" />
         </div>
       </div>
     </div>
@@ -26,6 +26,22 @@
         :categories="categories"
         :apps="apps"
         :initialCategory="initialCategory"
+        :flipper="flipper"
+        :connected="connected"
+        :rpcActive="rpcActive"
+        :info="info"
+        @showNotif="passNotif"
+        @openApp="openApp"
+      />
+    </template>
+    <template v-else>
+      <AppPage
+        :categories="categories"
+        :app="currentApp"
+        :flipper="flipper"
+        :connected="connected"
+        :rpcActive="rpcActive"
+        :info="info"
         @showNotif="passNotif"
       />
     </template>
@@ -34,9 +50,11 @@
 
 <script>
 import { defineComponent, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
-import AppList from 'components/AppList.vue'
 import SearchBar from 'components/SearchBar.vue'
+import AppList from 'components/AppList.vue'
+import AppPage from 'components/AppPage.vue'
 import asyncSleep from 'simple-async-sleep'
 
 const appsIcons = {
@@ -71,12 +89,13 @@ export default defineComponent({
 
   components: {
     SearchBar,
-    AppList
+    AppList,
+    AppPage
   },
 
   setup () {
+    const router = useRouter()
     const $q = useQuasar()
-
     $q.iconMapFn = (iconName) => {
       const icon = appsIcons[iconName]
       if (icon !== void 0) {
@@ -84,12 +103,12 @@ export default defineComponent({
       }
     }
     return {
+      router,
       flags: ref({
         restarting: false,
         rpcActive: false,
         rpcToggling: false
       }),
-      title: ref('Apps'),
       initialCategory: ref(null),
       currentApp: ref(null),
       apps: ref([]),
@@ -162,6 +181,11 @@ export default defineComponent({
   },
 
   methods: {
+    openApp (app) {
+      this.currentApp = app
+      this.router.push('apps/' + encodeURIComponent(app.name.toLowerCase().replaceAll(' ', '-')))
+    },
+
     async startRpc () {
       this.flags.rpcToggling = true
       const ping = await this.flipper.commands.startRpcSession(this.flipper)
@@ -234,6 +258,25 @@ export default defineComponent({
       })
     },
 
+    watchParams () {
+      this.currentApp = null
+      this.initialCategory = null
+      if (this.$route.params.path) {
+        const category = this.categories.find(e => e.name.toLowerCase().replaceAll(' ', '-') ===
+          this.$route.params.path.toLowerCase().replaceAll(' ', '-'))
+        if (category) {
+          this.initialCategory = category
+        } else {
+          const app = this.apps.find(e => e.name.toLowerCase().replaceAll(' ', '-') ===
+            this.$route.params.path.toLowerCase().replaceAll(' ', '-'))
+          if (app) {
+            this.currentApp = app
+            this.initialCategory = this.categories.find(e => e.name === app.category)
+          }
+        }
+      }
+    },
+
     async start () {
       this.flags.rpcActive = this.rpcActive
       if (this.connected && !this.rpcActive) {
@@ -257,30 +300,32 @@ export default defineComponent({
         stars: Math.floor(Math.random() * 100),
         updated: Date.now() - Math.floor(Math.random() * 1000),
         published: Date.now() - 10000 - Math.floor(Math.random() * 1000),
+        version: '1.0.0',
         icon: 'https://cdn.flipperzero.one/dap-link-mock-icon.png',
         screenshots: [
-          'https://cdn.flipperzero.one/bluetooth-remote-mock-screen.png'
+          'https://cdn.flipperzero.one/bluetooth-remote-mock-screen.png?n=1',
+          'https://cdn.flipperzero.one/bluetooth-remote-mock-screen.png?n=2',
+          'https://cdn.flipperzero.one/bluetooth-remote-mock-screen.png?n=3',
+          'https://cdn.flipperzero.one/bluetooth-remote-mock-screen.png?n=4',
+          'https://cdn.flipperzero.one/bluetooth-remote-mock-screen.png?n=5',
+          'https://cdn.flipperzero.one/bluetooth-remote-mock-screen.png?n=6',
+          'https://cdn.flipperzero.one/bluetooth-remote-mock-screen.png?n=7',
+          'https://cdn.flipperzero.one/bluetooth-remote-mock-screen.png?n=8',
+          'https://cdn.flipperzero.one/bluetooth-remote-mock-screen.png?n=9'
         ],
         description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.\nEst nullam montes, sed elementum ligula. Dignissim in dignissim pulvinar iaculis sapien egestas enim sed semper. Diam eu porttitor maecenas nisl vel aliquam ultrices nunc. Lectus velit, dapibus nunc felis maecenas egestas iaculis semper sed. Lectus tellus sed maecenas purus tincidunt hac ut. Urna odio purus condimentum tempor non ultricies. Volutpat amet, integer sem id viverra nulla pellentesque. Egestas pharetra, pharetra accumsan sit ac, arcu.',
         changelog: 'Last update Oct 20, 2022\nLorem ipsum dolor sit amet, consectetur adipiscing elit. Est nullam montes, sed elementum ligula.\nDignissim in dignissim pulvinar iaculis sapien egestas enim sed semper.\nDiam eu porttitor maecenas nisl vel aliquam ultrices nunc.\nLectus velit, dapibus nunc felis maecenas egestas iaculis semper sed.\nLectus tellus sed maecenas purus tincidunt hac ut. Urna odio purus condimentum tempor non ultricies.\nVolutpat amet, integer sem id viverra nulla pellentesque.\nEgestas pharetra, pharetra accumsan sit ac, arcu.',
         repository: 'https://github.com/developername/apprepository',
+        manifest: 'https://github.com/developername/apprepository/manifest',
         email: 'contactdata@gmail.com'
       })
     }
-    console.log(this.apps)
+    // console.log(this.apps)
+    this.watchParams()
+  },
 
-    if (this.$route.params.path) {
-      const category = this.categories.find(e => e.name.toLowerCase().replaceAll(' ', '-') === this.$route.params.path.toLowerCase().replaceAll(' ', '-'))
-      if (category) {
-        this.initialCategory = category
-      } else {
-        const app = this.apps.find(e => e.name.toLowerCase() === this.$route.params.path.toLowerCase())
-        if (app) {
-          this.currentApp = app
-          this.initialCategory = this.categories.find(e => e.name === app.category)
-        }
-      }
-    }
+  updated () {
+    this.watchParams()
   }
 })
 </script>
