@@ -117,6 +117,12 @@ export default defineComponent({
     }
   },
 
+  watch: {
+    initialCategory (newCat, oldCat) {
+      this.currentCategory = newCat
+    }
+  },
+
   computed: {
     filteredSortedApps () {
       let filtered

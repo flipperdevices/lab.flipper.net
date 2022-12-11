@@ -10,7 +10,12 @@
         class="col-grow"
         :style="$q.screen.width <= 353 ? 'margin-top: 16px; width: 100%' : 'max-width: 300px; min-width: 140px'"
       >
-        <SearchBar :apps="apps"/>
+        <SearchBar
+          :categories="categories"
+          :apps="apps"
+          @setCategory="setCategory"
+          @openApp="openApp"
+        />
       </div>
       <div class="q-ml-md" :style="$q.screen.width <= 365 ? 'margin-top: 16px' : ''">
         <div>
@@ -183,7 +188,20 @@ export default defineComponent({
   methods: {
     openApp (app) {
       this.currentApp = app
-      this.router.push('apps/' + encodeURIComponent(app.name.toLowerCase().replaceAll(' ', '-')))
+      let prefix = ''
+      if (!location.pathname.startsWith('/apps/')) {
+        prefix = 'apps/'
+      }
+      this.router.push(prefix + encodeURIComponent(app.name.toLowerCase().replaceAll(' ', '-')))
+    },
+
+    setCategory (name) {
+      const category = this.categories.find(e => e.name === name)
+      let prefix = ''
+      if (!location.pathname.startsWith('/apps/')) {
+        prefix = 'apps/'
+      }
+      this.router.push(prefix + encodeURIComponent(category.name.toLowerCase().replaceAll(' ', '-')))
     },
 
     async startRpc () {
@@ -320,7 +338,6 @@ export default defineComponent({
         email: 'contactdata@gmail.com'
       })
     }
-    // console.log(this.apps)
     this.watchParams()
   },
 
