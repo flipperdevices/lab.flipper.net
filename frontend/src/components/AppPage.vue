@@ -28,26 +28,38 @@
         style="font-size: 22px; padding: 0 60px; border-radius: 10px;"
         label="Install"
         class="no-shadow text-pixelated bg-primary"
-        :class="$q.screen.width > 670 ? '' : 'q-my-md full-width'"
+        :class="$q.screen.width > 670 ? 'q-mr-md' : 'q-my-md full-width'"
       />
     </div>
-    <div>
+    <div id="carousel" class="flex">
+      <q-btn
+        flat
+        dense
+        @click="animateScroll('backward')"
+        icon="mdi-chevron-left"
+      />
       <q-scroll-area
         ref="scrollAreaRef"
         :thumb-style="{ display: 'none' }"
-        style="height: 140px; max-width: 1280px;"
-        class="q-my-md"
+        style="height: 140px; max-width: 1280px; width: calc(100% - 65px);"
+        class="q-my-md no-pointer-events"
       >
         <div class="row no-wrap">
           <div
             v-for="screenshot in app.screenshots"
             :key="screenshot"
-            class="q-mr-sm screenshot"
+            class="q-mx-xs screenshot"
           >
             <img :src="screenshot" />
           </div>
         </div>
       </q-scroll-area>
+      <q-btn
+        flat
+        dense
+        @click="animateScroll('forward')"
+        icon="mdi-chevron-right"
+      />
     </div>
     <div class="column">
       <div class="text-h6 q-my-sm">Description</div>
@@ -88,7 +100,8 @@ export default defineComponent({
     return {
       flags: ref([]),
       category: ref({}),
-      position: ref(256 + 4 + 8 + 8),
+      screenshotWidth: 256 + 4 + 8 + 8,
+      position: ref(0),
       scrollAreaRef: ref(null)
     }
   },
@@ -101,17 +114,24 @@ export default defineComponent({
       this.category = this.categories.find(e => e.name === this.app.category)
     },
 
-    animateScrollForward () {
-      this.scrollAreaRef.setScrollPosition('horizontal', this.position, 300)
-      if (this.position < this.app.screenshots.length * (256 + 4 + 8 + 8)) {
-        this.position = this.position + 256 + 4 + 8 + 8
+    animateScroll (direction) {
+      const carousel = document.querySelector('#carousel')
+      const width = carousel.clientWidth - 2 * 32
+      if (direction === 'forward') {
+        this.position = this.position + this.screenshotWidth
+        if (this.position > width) {
+          this.position = width + this.screenshotWidth
+        }
+      } else if (direction === 'backward') {
+        if (this.position > width) {
+          this.position = Math.round((width + this.screenshotWidth) / this.screenshotWidth) * this.screenshotWidth
+        }
+        this.position = this.position - this.screenshotWidth
+        if (this.position < 0) {
+          this.position = 0
+        }
       }
-    },
-    animateScrollBackward () {
       this.scrollAreaRef.setScrollPosition('horizontal', this.position, 300)
-      if (this.position > (256 + 4 + 8 + 8)) {
-        this.position = this.position - (256 + 4 + 8 + 8)
-      }
     }
   },
 
