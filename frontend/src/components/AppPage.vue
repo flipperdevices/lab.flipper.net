@@ -96,6 +96,10 @@ export default defineComponent({
   },
 
   methods: {
+    setCategory () {
+      this.category = this.categories.find(e => e.name === this.app.category)
+    },
+
     animateScrollForward () {
       this.scrollAreaRef.setScrollPosition('horizontal', this.position, 300)
       if (this.position < this.app.screenshots.length * (256 + 4 + 8 + 8)) {
@@ -111,7 +115,11 @@ export default defineComponent({
   },
 
   mounted () {
-    this.category = this.categories.find(e => e.name === this.app.category)
+    this.setCategory()
+  },
+
+  updated () {
+    this.setCategory()
   }
 })
 </script>

@@ -3,7 +3,20 @@
     class="column items-center q-py-lg"
     :style="$q.screen.width >= 404 ? 'padding: 24px 60px; max-width: 1400px' : 'padding: 24px 18px'"
   >
-    <div class="apps-navbar row justify-end full-width q-mb-xl">
+    <div class="apps-navbar row justify-end items-center full-width q-mb-xl">
+      <q-icon
+        v-if="currentApp"
+        name="mdi-chevron-left"
+        size="50px"
+        class="cursor-pointer"
+        @click="router.push('/apps')"
+      ></q-icon>
+      <q-icon
+        v-else
+        name="svguse:common-icons.svg#apps"
+        size="56px"
+        class="q-mr-md"
+      ></q-icon>
       <div class="text-h4 q-mr-lg">Apps</div>
       <q-space />
       <div
@@ -19,10 +32,12 @@
       </div>
       <div class="q-ml-md" :style="$q.screen.width <= 365 ? 'margin-top: 16px' : ''">
         <div>
-          <q-btn flat no-caps dense color="grey-7" icon="apps:installed" label="Installed" :stack="$q.screen.width <= 365" />
+          <q-btn flat no-caps dense color="grey-7" icon="svguse:common-icons.svg#installed" :stack="$q.screen.width <= 365">
+            <span class="q-ml-sm">Installed</span>
+          </q-btn>
         </div>
         <div class="q-ml-md">
-          <q-btn flat no-caps dense color="grey-7" icon="mdi-link-variant" label="Contribute" :stack="$q.screen.width <= 365" />
+          <q-btn flat no-caps dense color="grey-7" icon="mdi-github" label="Contribute" :stack="$q.screen.width <= 365" />
         </div>
       </div>
     </div>
@@ -56,31 +71,10 @@
 <script>
 import { defineComponent, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useQuasar } from 'quasar'
 import SearchBar from 'components/SearchBar.vue'
 import AppList from 'components/AppList.vue'
 import AppPage from 'components/AppPage.vue'
 import asyncSleep from 'simple-async-sleep'
-
-const appsIcons = {
-  'apps:games': 'img:icons/apps/games.svg',
-  'apps:gpio': 'img:icons/apps/gpio.svg',
-  'apps:ibutton': 'img:icons/apps/ibutton.svg',
-  'apps:installed': 'img:icons/apps/installed.svg',
-  'apps:infrared': 'img:icons/apps/ir.svg',
-  'apps:media': 'img:icons/apps/media.svg',
-  'apps:new': 'img:icons/apps/nfc.svg',
-  'apps:nfc': 'img:icons/apps/nfc.svg',
-  'apps:rfid': 'img:icons/apps/rfid.svg',
-  'apps:subghz': 'img:icons/apps/subghz.svg',
-  'apps:tools': 'img:icons/apps/tools.svg',
-  'apps:usb': 'img:icons/apps/usb.svg',
-  'pixel:arrow-down': 'img:icons/arrow-down.svg',
-  'pixel:arrow-up': 'img:icons/arrow-up.svg',
-  'pixel:chevron-down': 'img:icons/chevron-down.svg',
-  'pixel:chevron-up': 'img:icons/chevron-up.svg',
-  'pixel:old': 'img:icons/old.svg'
-}
 
 export default defineComponent({
   name: 'Apps',
@@ -100,13 +94,6 @@ export default defineComponent({
 
   setup () {
     const router = useRouter()
-    const $q = useQuasar()
-    $q.iconMapFn = (iconName) => {
-      const icon = appsIcons[iconName]
-      if (icon !== void 0) {
-        return { icon: icon }
-      }
-    }
     return {
       router,
       flags: ref({
@@ -120,61 +107,61 @@ export default defineComponent({
       categories: ref([
         {
           name: 'Sub-GHz',
-          icon: 'apps:subghz',
+          icon: 'svguse:apps-categories.svg#subghz',
           color: '#7fffb8',
           amount: 0
         },
         {
           name: 'RFID 125',
-          icon: 'apps:rfid',
+          icon: 'svguse:apps-categories.svg#rfid',
           color: '#eef269',
           amount: 0
         },
         {
           name: 'NFC',
-          icon: 'apps:nfc',
+          icon: 'svguse:apps-categories.svg#nfc',
           color: '#7fe0ff',
           amount: 0
         },
         {
           name: 'Infrared',
-          icon: 'apps:infrared',
+          icon: 'svguse:apps-categories.svg#infrared',
           color: '#ff8585',
           amount: 0
         },
         {
           name: 'GPIO',
-          icon: 'apps:gpio',
-          color: '#ff8585',
+          icon: 'svguse:apps-categories.svg#gpio',
+          color: '#85ffe1',
           amount: 0
         },
         {
           name: 'iButton',
-          icon: 'apps:ibutton',
+          icon: 'svguse:apps-categories.svg#ibutton',
           color: '#f4cfb3',
           amount: 0
         },
         {
           name: 'USB',
-          icon: 'apps:usb',
+          icon: 'svguse:apps-categories.svg#usb',
           color: '#ffc1fe',
           amount: 0
         },
         {
           name: 'Games',
-          icon: 'apps:games',
+          icon: 'svguse:apps-categories.svg#games',
           color: '#ffc064',
           amount: 0
         },
         {
           name: 'Media',
-          icon: 'apps:media',
+          icon: 'svguse:apps-categories.svg#media',
           color: '#e391ff',
           amount: 0
         },
         {
           name: 'Tools',
-          icon: 'apps:tools',
+          icon: 'svguse:apps-categories.svg#tools',
           color: '#d2d21e',
           amount: 0
         }

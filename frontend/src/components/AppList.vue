@@ -35,12 +35,12 @@
             label="Sort by"
           />
           <q-btn
-            flat
-            class="q-ml-sm q-pa-sm"
+            outline
+            class="q-ml-sm q-pa-sm text-grey-5"
             @click="changeSortDirection"
           >
-            <div class="flex no-wrap">
-              <q-icon name="pixel:old" size="16px"/>
+            <div class="flex no-wrap text-grey-7">
+              <q-icon name="svguse:common-icons.svg#old" size="16px"/>
               <q-icon :name="sortIcon" size="16px"/>
             </div>
           </q-btn>
@@ -153,9 +153,9 @@ export default defineComponent({
 
     sortIcon () {
       if (this.sortDirection === 'ascending') {
-        return 'pixel:arrow-up'
+        return 'svguse:common-icons.svg#arrow-up'
       } else {
-        return 'pixel:arrow-down'
+        return 'svguse:common-icons.svg#arrow-down'
       }
     },
 

@@ -1,5 +1,5 @@
 <template>
-  <q-page class="column items-center q-pa-md" :class="$q.screen.width > 960 && $q.screen.height > 500 ? 'q-mt-xl' : 'q-mt-xs'">
+  <q-page class="column items-center q-pa-md full-width" :class="$q.screen.width > 960 && $q.screen.height > 500 ? 'q-mt-xl' : 'q-mt-xs'">
     <div
       v-if="!connected || !flags.rpcActive || flags.rpcToggling"
       class="column flex-center q-my-xl"
@@ -120,7 +120,7 @@
             </q-btn>
           </q-item-section>
         </q-item>
-        <q-item v-if="dir.length === 0 && path !== '/'">
+        <q-item v-if="dir.length === 0 && path !== '/'" class="text-grey-7">
           <q-item-section avatar class="q-ml-xs">
             <q-icon name="mdi-folder-outline"/>
           </q-item-section>
@@ -554,25 +554,25 @@ export default defineComponent({
 
     itemIconSwitcher (item) {
       if (this.path === '/' && item.name === 'int') {
-        return 'archive:internal'
+        return 'svguse:common-icons.svg#internal-memory'
       } else if (this.path === '/' && item.name === 'ext') {
-        return 'archive:sdcard'
+        return 'svguse:common-icons.svg#sdcard-memory'
       } else if (item.type === 1) {
         return 'mdi-folder-outline'
       } else if (item.name.endsWith('.badusb')) {
-        return 'archive:badusb'
+        return 'svguse:file-types.svg#badusb'
       } else if (item.name.endsWith('.ibtn')) {
-        return 'archive:ibutton'
+        return 'svguse:file-types.svg#ibutton'
       } else if (item.name.endsWith('.ir')) {
-        return 'archive:infrared'
+        return 'svguse:file-types.svg#infrared'
       } else if (item.name.endsWith('.nfc')) {
-        return 'archive:nfc'
+        return 'svguse:file-types.svg#nfc'
       } else if (item.name.endsWith('.rfid')) {
-        return 'archive:rfid'
+        return 'svguse:file-types.svg#rfid'
       } else if (item.name.endsWith('.sub')) {
-        return 'archive:subghz'
+        return 'svguse:file-types.svg#subghz'
       } else if (item.name.endsWith('.u2f')) {
-        return 'archive:u2f'
+        return 'svguse:file-types.svg#u2f'
       } else {
         return 'mdi-file-outline'
       }

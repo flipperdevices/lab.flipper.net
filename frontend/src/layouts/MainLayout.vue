@@ -248,23 +248,6 @@ import * as flipper from '../flipper/core'
 import asyncSleep from 'simple-async-sleep'
 import log from 'loglevel'
 
-const flipperIcons = {
-  'archive:new': 'img:icons/flipper/action-new.svg',
-  'archive:remove': 'img:icons/flipper/action-remove.svg',
-  'archive:rename': 'img:icons/flipper/action-rename.svg',
-  'archive:save': 'img:icons/flipper/action-save.svg',
-  'archive:sdcard': 'img:icons/flipper/location-sdcard.svg',
-  'archive:internal': 'img:icons/flipper/location-internal.svg',
-  'archive:file': 'img:icons/flipper/file.svg',
-  'archive:folder': 'img:icons/flipper/folder.svg',
-  'archive:badusb': 'img:icons/flipper/badusb.svg',
-  'archive:ibutton': 'img:icons/flipper/ibutton.svg',
-  'archive:infrared': 'img:icons/flipper/infrared.svg',
-  'archive:nfc': 'img:icons/flipper/nfc.svg',
-  'archive:rfid': 'img:icons/flipper/rfid.svg',
-  'archive:subghz': 'img:icons/flipper/subghz.svg',
-  'archive:u2f': 'img:icons/flipper/u2f.svg'
-}
 let dismissNotif
 
 export default defineComponent({
@@ -277,48 +260,41 @@ export default defineComponent({
 
   setup () {
     const $q = useQuasar()
-
-    $q.iconMapFn = (iconName) => {
-      const icon = flipperIcons[iconName]
-      if (icon !== void 0) {
-        return { icon: icon }
-      }
-    }
     return {
       routes: [
         {
-          title: 'Device',
-          icon: 'memory',
+          title: 'My Flipper',
+          icon: 'svguse:common-icons.svg#device',
           link: '/'
         },
         {
           title: 'Apps',
-          icon: 'mdi-storefront-outline',
+          icon: 'svguse:common-icons.svg#apps',
           link: '/apps'
         },
         {
-          title: 'Archive',
-          icon: 'mdi-folder-open-outline',
+          title: 'Files',
+          icon: 'svguse:common-icons.svg#files',
           link: '/archive'
         },
         {
           title: 'CLI',
-          icon: 'mdi-console-line',
+          icon: 'svguse:common-icons.svg#cli',
           link: '/cli'
         },
         {
           title: 'NFC tools',
-          icon: 'mdi-nfc-variant',
+          icon: 'svguse:common-icons.svg#nfctools',
           link: '/nfc-tools'
         },
         {
           title: 'Paint',
-          icon: 'mdi-draw',
+          icon: 'svguse:common-icons.svg#paint',
           link: '/paint'
         },
         {
-          title: 'Pulse plotter',
-          icon: 'mdi-broadcast',
+          title: 'Radio tools',
+          icon: 'svguse:common-icons.svg#subtools',
           link: '/pulse-plotter'
         }
       ],
