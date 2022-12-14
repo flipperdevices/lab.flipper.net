@@ -26,7 +26,7 @@
             </q-avatar>
           </q-item-section>
           <q-item-section v-else-if="categories.find(e => e.name === item)" avatar>
-            <q-icon color="primary" :name="categories.find(e => e.name === item).icon" size="24px"/>
+            <q-icon :name="categories.find(e => e.name === item).icon" size="24px"/>
           </q-item-section>
           <q-item-section>{{ item }}</q-item-section>
         </q-item>

@@ -1,5 +1,5 @@
 <template>
-  <q-page class="column items-center q-pa-md">
+  <q-page class="column items-center q-pa-md full-width">
     <div class="text-h6 q-py-sm">Mfkey32v2 NFC attack</div>
     <div class="text-subtitle-1">Crack nonces you've gathered on your Flipper</div>
 

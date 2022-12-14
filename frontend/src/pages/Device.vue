@@ -1,5 +1,5 @@
 <template>
-  <q-page class="flex-center column">
+  <q-page class="flex-center column full-width">
     <div class="flex-center column">
       <div v-show="flags.updateInProgress || (connected && info !== null && this.info.storage_databases_present && flags.rpcActive && info.hardware_name)" class="device-screen column">
         <div class="flex">

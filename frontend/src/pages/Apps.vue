@@ -1,6 +1,6 @@
 <template>
   <q-page
-    class="column items-center q-py-lg"
+    class="column items-center q-py-lg full-width"
     :style="$q.screen.width >= 404 ? 'padding: 24px 60px; max-width: 1400px' : 'padding: 24px 18px'"
   >
     <div class="apps-navbar row justify-end items-center full-width q-mb-xl">
