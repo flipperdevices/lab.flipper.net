@@ -1,7 +1,7 @@
 <template>
   <q-page
     class="column items-center q-py-lg full-width"
-    :style="$q.screen.width >= 404 ? 'padding: 24px 60px; max-width: 1400px' : 'padding: 24px 18px'"
+    :style="$q.screen.width >= 404 ? 'padding: 24px 26px; max-width: 1284px' : 'padding: 24px 6px'"
   >
     <div class="apps-navbar row justify-end items-center full-width q-mb-xl">
       <q-icon
@@ -32,9 +32,7 @@
       </div>
       <div class="q-ml-md" :style="$q.screen.width <= 365 ? 'margin-top: 16px' : ''">
         <div>
-          <q-btn flat no-caps dense color="grey-7" icon="svguse:common-icons.svg#installed" :stack="$q.screen.width <= 365">
-            <span class="q-ml-sm">Installed</span>
-          </q-btn>
+          <q-btn flat no-caps dense color="grey-7" icon="svguse:common-icons.svg#installed" label="Installed" :stack="$q.screen.width <= 365"/>
         </div>
         <div class="q-ml-md">
           <q-btn flat no-caps dense color="grey-7" icon="mdi-github" label="Contribute" :stack="$q.screen.width <= 365" />

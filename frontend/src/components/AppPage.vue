@@ -1,10 +1,10 @@
 <template>
   <div>
-    <div class="row no-wrap items-center q-mb-lg">
+    <div class="row items-center q-mb-lg" :class="$q.screen.width > 670 ? 'no-wrap' : ''">
       <div class="app-icon q-mr-md">
         <q-img :src="app.icon"/>
       </div>
-      <div>
+      <div :class="$q.screen.width > 350 ? 'q-mr-md' : ''">
         <div class="text-h6" style="line-height: 1.5em; margin-bottom: 0.25rem;">{{ app.name }}</div>
         <div class="row">
           <div
@@ -27,7 +27,8 @@
         color="white"
         style="font-size: 22px; padding: 0 60px; border-radius: 10px;"
         label="Install"
-        class="no-shadow text-pixelated bg-primary q-mr-lg"
+        class="no-shadow text-pixelated bg-primary"
+        :class="$q.screen.width > 670 ? '' : 'q-my-md full-width'"
       />
     </div>
     <div>

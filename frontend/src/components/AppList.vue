@@ -1,7 +1,7 @@
 <template>
   <div>
-    <div class="row no-wrap">
-      <q-list class="categories col-8 row">
+    <div class="row" :class="$q.screen.width > 670 ? 'no-wrap' : 'justify-center'">
+      <q-list class="categories row" :class="$q.screen.width > 670 ? 'col-8' : 'justify-center'">
         <div
           :style="`opacity: ${currentCategory && currentCategory.name !== 'All apps' ? '0.5' : '1'}`"
           style="background-color: #ebebeb; border-radius: 20px; padding: 4px 13px; cursor: pointer;"
@@ -22,7 +22,7 @@
           <span style="white-space: nowrap;">{{ category.name }}</span>
         </div>
       </q-list>
-      <q-space />
+      <q-space v-if="$q.screen.width > 670"/>
       <div>
         <div class="row no-wrap justify-end text-grey-7">
           <q-select
@@ -221,11 +221,11 @@ export default defineComponent({
       font-size: 12px
       line-height: 15px
 
-@media (max-width: 1275px)
+@media (max-width: 1340px)
   .apps
     grid-template-columns: repeat(3, 1fr)
 
-@media (max-width: 990px)
+@media (max-width: 1032px)
   .apps
     grid-template-columns: repeat(2, 1fr)
 
@@ -233,11 +233,14 @@ export default defineComponent({
   .categories
     grid-template-columns: repeat(4, 1fr)
 
-@media (max-width: 675px)
+@media (max-width: 670px)
   .categories
     grid-template-columns: repeat(3, 1fr)
   .apps
-    grid-template-columns: 1fr
+    display: flex
+    flex-direction: column
+    flex-wrap: nowrap
+    align-items: center
 
 @media (max-width: 545px)
   .categories
