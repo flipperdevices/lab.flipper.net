@@ -3,7 +3,7 @@
     clickable
     tag="router-link"
     :to="link"
-    :style="`color: ${isActive ? '#ff8200' : ''}`"
+    :style="`color: ${isActive ? '#ff8200' : ''}; background: ${isActive ? '#ff820026' : ''}`"
   >
     <q-item-section
       v-if="icon"

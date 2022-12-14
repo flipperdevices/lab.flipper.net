@@ -30,67 +30,23 @@
           >
             Connect
           </q-btn>
-          <q-btn
-            v-else-if="this.info"
-            outline
-            class="q-mx-sm"
-            icon="tune"
-            :label="info.hardware_name"
-          >
-            <q-menu :offset="[0, 10]">
-              <div
-                class="flex q-pa-md"
-                :style="$q.screen.width > 450 ? 'flex-direction: row; flex-wrap: nowrap' : 'flex-direction: column-reverse'"
-              >
-                <div class="column">
-                  <div class="text-h6 q-mb-md">Settings</div>
-                  <q-toggle
-                    v-model="flags.connectOnStart"
-                    @click="toggleConnectOnStart"
-                    label="Connect on page load"
-                  ></q-toggle>
-                  <q-toggle
-                    v-model="flags.autoReconnect"
-                    @click="toggleAutoReconnect"
-                    label="Auto-reconnect"
-                  ></q-toggle>
-                  <q-toggle
-                    v-model="flags.installFromFile"
-                    @click="toggleInstallFromFile"
-                    label="3rd party firmware install"
-                  ></q-toggle>
-                </div>
+          <div v-else-if="this.info" class="flex items-center">
+            <q-avatar style="width: 68px" square>
+              <img v-if="info.hardware_color === '1'" src="../assets/flipper_black.svg"/>
+              <img v-else src="../assets/flipper_white.svg"/>
+            </q-avatar>
 
-                <q-separator vertical inset class="q-mx-lg"></q-separator>
-
-                <div class="column items-center">
-                  <q-avatar size="72px" square>
-                    <img v-if="info.hardware_color === '1'" src="../assets/flipper_black.svg"/>
-                    <img v-else src="../assets/flipper_white.svg"/>
-                  </q-avatar>
-
-                  <div class="row items-center q-mb-sm">
-                    <div class="text-subtitle1" style="margin-right: 6px">{{ info.hardware_name }}</div>
-                    <q-icon
-                      :name="batteryIcon"
-                      size="20px"
-                      class="rotate-90"
-                      :color="batteryColor"
-                    ></q-icon>
-                  </div>
-
-                  <q-btn
-                    color="primary"
-                    label="Disconnect"
-                    size="sm"
-                    v-close-popup
-                    outline
-                    @click="disconnect"
-                  ></q-btn>
-                </div>
-              </div>
-            </q-menu>
-          </q-btn>
+            <div class="column items-start q-ml-sm">
+              <q-icon
+                :name="batteryIcon"
+                size="20px"
+                style="height: 11px;"
+                class="rotate-90"
+                :color="batteryColor"
+              ></q-icon>
+              <div style="line-height: 21px;">{{ info.hardware_name }}</div>
+            </div>
+          </div>
           <div v-else style="margin: 0 0.85rem">{{ connectionStatus }}</div>
         </template>
 
@@ -129,12 +85,12 @@
     <q-drawer
       v-model="leftDrawer"
       show-if-above
-      :mini="miniState"
+      :mini="$q.screen.gt.md ? false : miniState"
       @mouseover="miniState = false"
       @mouseout="miniState = true"
-      mini-to-overlay
-      bordered
-      :width="180"
+      :mini-to-overlay="!$q.screen.gt.md"
+      style="border-right: 1px solid #ff8200;"
+      :width="175"
       :breakpoint="750"
     >
       <q-list>
@@ -146,14 +102,14 @@
         <q-item
           clickable
           class="absolute-bottom"
-          @click="flags.reportPopup = true"
+          @click="flags.settingsPopup = true"
         >
           <q-item-section avatar>
-            <q-icon name="mdi-lifebuoy"/>
+            <q-icon name="svguse:common-icons.svg#settings"/>
           </q-item-section>
 
           <q-item-section>
-            <q-item-label>View logs</q-item-label>
+            <q-item-label>Settings</q-item-label>
           </q-item-section>
         </q-item>
       </q-list>
@@ -206,18 +162,46 @@
           </p>
         </div>
       </q-page>
-      <q-dialog v-model="flags.reportPopup">
+      <q-dialog v-model="flags.settingsPopup">
         <q-card>
           <q-card-section class="row items-center q-pb-none">
-            <div class="text-h6">Logs</div>
+            <div class="text-h6">Settings</div>
             <q-space />
             <q-btn icon="close" flat round dense v-close-popup />
           </q-card-section>
 
           <q-card-section>
+            <div class="column">
+              <q-toggle
+                v-model="flags.connectOnStart"
+                @click="toggleConnectOnStart"
+                label="Connect on page load"
+              ></q-toggle>
+              <q-toggle
+                v-model="flags.autoReconnect"
+                @click="toggleAutoReconnect"
+                label="Auto-reconnect"
+              ></q-toggle>
+              <q-toggle
+                v-model="flags.installFromFile"
+                @click="toggleInstallFromFile"
+                label="3rd party firmware install"
+              ></q-toggle>
+            </div>
+          </q-card-section>
+
+          <q-card-section class="q-pb-none">
+            <div class="text-h6">Logs</div>
+          </q-card-section>
+
+          <q-card-section>
             <p>You can report bugs <a href="https://forum.flipperzero.one/c/web-app/22" target="blank_">here</a>. Attached logs may be helpful.</p>
-            <q-scroll-area style="height: 300px; min-width: 280px; width: calc(min(80vw, 500px));" class="bg-grey-12 q-px-sm q-py-xs rounded-borders">
+            <q-scroll-area
+              style="height: 300px; min-width: 280px; width: calc(min(80vw, 500px));"
+              class="bg-grey-12 q-px-sm q-py-xs rounded-borders"
+            >
               <code>
+                <span v-if="!history.length">Logs will appear here...</span>
                 <span v-for="line in history" :key="line.timestamp">
                   {{ `${line.time.padEnd(8)} [${line.level.toUpperCase()}] ${line.message}` }}
                   <br />
@@ -345,7 +329,7 @@ export default defineComponent({
         autoReconnect: false,
         updateInProgress: false,
         installFromFile: false,
-        reportPopup: false
+        settingsPopup: false
       }),
       reconnectLoop: ref(null),
       connectionStatus: ref('Ready to connect'),
@@ -689,8 +673,11 @@ export default defineComponent({
   async mounted () {
     this.checkConnectionRequirement()
     if ('serial' in navigator) {
-      if (localStorage.getItem('connectOnStart') !== 'false' && this.flags.connectionRequired) {
-        await this.start()
+      if (localStorage.getItem('connectOnStart') !== 'false') {
+        this.flags.connectOnStart = true
+        if (this.flags.connectionRequired) {
+          await this.start()
+        }
       } else {
         this.flags.connectOnStart = false
       }
