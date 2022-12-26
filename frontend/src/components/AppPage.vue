@@ -26,9 +26,9 @@
         flat
         color="white"
         style="font-size: 22px; padding: 0 60px; border-radius: 10px;"
-        label="Install"
-        class="no-shadow text-pixelated bg-primary"
-        :class="$q.screen.width > 670 ? 'q-mr-md' : 'q-my-md full-width'"
+        :label="actionButton().text"
+        class="no-shadow text-pixelated"
+        :class="actionButton().class + ' ' + ($q.screen.width > 670 ? 'q-mr-md' : 'q-my-md full-width')"
       />
     </div>
     <div id="carousel" class="flex">
@@ -84,6 +84,7 @@
 
 <script>
 import { defineComponent, ref } from 'vue'
+import semver from 'semver'
 
 export default defineComponent({
   name: 'AppPage',
@@ -132,6 +133,25 @@ export default defineComponent({
         }
       }
       this.scrollAreaRef.setScrollPosition('horizontal', this.position, 300)
+    },
+
+    actionButton () {
+      if (this.app.isInstalled) {
+        if (this.app.installedVersion && semver.lt(this.app.installedVersion, this.app.version)) {
+          return {
+            text: 'Update',
+            class: 'bg-positive'
+          }
+        }
+        return {
+          text: 'Installed',
+          class: 'bg-grey-6'
+        }
+      }
+      return {
+        text: 'Install',
+        class: 'bg-primary'
+      }
     }
   },
 

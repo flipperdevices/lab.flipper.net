@@ -5,11 +5,11 @@
   >
     <div class="apps-navbar row justify-end items-center full-width q-mb-xl">
       <q-icon
-        v-if="currentApp"
+        v-if="currentApp || flags.installedPage"
         name="mdi-chevron-left"
         size="50px"
         class="cursor-pointer"
-        @click="router.push('/apps')"
+        @click="flags.installedPage = false; router.push('/apps')"
       ></q-icon>
       <q-icon
         v-else
@@ -32,14 +32,39 @@
       </div>
       <div class="q-ml-md" :style="$q.screen.width <= 365 ? 'margin-top: 16px' : ''">
         <div>
-          <q-btn flat no-caps dense color="grey-7" icon="svguse:common-icons.svg#installed" label="Installed" :stack="$q.screen.width <= 365"/>
+          <q-btn
+            flat
+            no-caps
+            dense
+            :color="flags.installedPage ? 'primary' : 'grey-7'"
+            icon="svguse:common-icons.svg#installed"
+            label="Installed"
+            :stack="$q.screen.width <= 365"
+            @click="toggleInstalled"
+          />
         </div>
         <div class="q-ml-md">
-          <q-btn flat no-caps dense color="grey-7" icon="mdi-github" label="Contribute" :stack="$q.screen.width <= 365" />
+          <q-btn
+            flat
+            no-caps
+            dense
+            color="grey-7"
+            icon="mdi-github"
+            label="Contribute"
+            :stack="$q.screen.width <= 365"
+          />
         </div>
       </div>
     </div>
-    <template v-if="!currentApp">
+    <template v-if="flags.installedPage">
+      <InstalledApps
+        :apps="apps"
+        :flipper="flipper"
+        @showNotif="passNotif"
+        @openApp="openApp"
+      />
+    </template>
+    <template v-else-if="!currentApp">
       <AppList
         :categories="categories"
         :apps="apps"
@@ -72,6 +97,7 @@ import { useRouter } from 'vue-router'
 import SearchBar from 'components/SearchBar.vue'
 import AppList from 'components/AppList.vue'
 import AppPage from 'components/AppPage.vue'
+import InstalledApps from 'components/InstalledApps.vue'
 import asyncSleep from 'simple-async-sleep'
 
 export default defineComponent({
@@ -87,7 +113,8 @@ export default defineComponent({
   components: {
     SearchBar,
     AppList,
-    AppPage
+    AppPage,
+    InstalledApps
   },
 
   setup () {
@@ -97,7 +124,8 @@ export default defineComponent({
       flags: ref({
         restarting: false,
         rpcActive: false,
-        rpcToggling: false
+        rpcToggling: false,
+        installedPage: false
       }),
       initialCategory: ref(null),
       currentApp: ref(null),
@@ -106,62 +134,52 @@ export default defineComponent({
         {
           name: 'Sub-GHz',
           icon: 'svguse:apps-categories.svg#subghz',
-          color: '#7fffb8',
-          amount: 0
+          color: '#7fffb8'
         },
         {
           name: 'RFID 125',
           icon: 'svguse:apps-categories.svg#rfid',
-          color: '#eef269',
-          amount: 0
+          color: '#eef269'
         },
         {
           name: 'NFC',
           icon: 'svguse:apps-categories.svg#nfc',
-          color: '#7fe0ff',
-          amount: 0
+          color: '#7fe0ff'
         },
         {
           name: 'Infrared',
           icon: 'svguse:apps-categories.svg#infrared',
-          color: '#ff8585',
-          amount: 0
+          color: '#ff8585'
         },
         {
           name: 'GPIO',
           icon: 'svguse:apps-categories.svg#gpio',
-          color: '#85ffe1',
-          amount: 0
+          color: '#85ffe1'
         },
         {
           name: 'iButton',
           icon: 'svguse:apps-categories.svg#ibutton',
-          color: '#f4cfb3',
-          amount: 0
+          color: '#f4cfb3'
         },
         {
           name: 'USB',
           icon: 'svguse:apps-categories.svg#usb',
-          color: '#ffc1fe',
-          amount: 0
+          color: '#ffc1fe'
         },
         {
           name: 'Games',
           icon: 'svguse:apps-categories.svg#games',
-          color: '#ffc064',
-          amount: 0
+          color: '#ffc064'
         },
         {
           name: 'Media',
           icon: 'svguse:apps-categories.svg#media',
-          color: '#e391ff',
-          amount: 0
+          color: '#e391ff'
         },
         {
           name: 'Tools',
           icon: 'svguse:apps-categories.svg#tools',
-          color: '#d2d21e',
-          amount: 0
+          color: '#d2d21e'
         }
       ])
     }
@@ -265,18 +283,32 @@ export default defineComponent({
       this.currentApp = null
       this.initialCategory = null
       if (this.$route.params.path) {
-        const category = this.categories.find(e => e.name.toLowerCase().replaceAll(' ', '-') ===
-          this.$route.params.path.toLowerCase().replaceAll(' ', '-'))
-        if (category) {
-          this.initialCategory = category
+        if (this.$route.params.path === 'installed') {
+          this.flags.installedPage = true
         } else {
-          const app = this.apps.find(e => e.name.toLowerCase().replaceAll(' ', '-') ===
+          this.flags.installedPage = false
+          const category = this.categories.find(e => e.name.toLowerCase().replaceAll(' ', '-') ===
             this.$route.params.path.toLowerCase().replaceAll(' ', '-'))
-          if (app) {
-            this.currentApp = app
-            this.initialCategory = this.categories.find(e => e.name === app.category)
+          if (category) {
+            this.initialCategory = category
+          } else {
+            const app = this.apps.find(e => e.name.toLowerCase().replaceAll(' ', '-') ===
+              this.$route.params.path.toLowerCase().replaceAll(' ', '-'))
+            if (app) {
+              this.currentApp = app
+              this.initialCategory = this.categories.find(e => e.name === app.category)
+            }
           }
         }
+      }
+    },
+
+    toggleInstalled () {
+      if (this.flags.installedPage) {
+        this.flags.installedPage = false
+        this.router.push('/apps')
+      } else {
+        this.router.push('/apps/installed')
       }
     },
 
@@ -296,14 +328,13 @@ export default defineComponent({
   mounted () {
     for (let i = 0; i < 30; i++) {
       const category = this.categories[Math.floor(Math.random() * this.categories.length)]
-      category.amount++
       this.apps.push({
         name: 'Sample App ' + i,
         category: category.name,
         stars: Math.floor(Math.random() * 100),
         updated: Date.now() - Math.floor(Math.random() * 1000),
         published: Date.now() - 10000 - Math.floor(Math.random() * 1000),
-        version: '1.0.0',
+        version: '1.0.1',
         icon: 'https://cdn.flipperzero.one/dap-link-mock-icon.png',
         screenshots: [
           'https://cdn.flipperzero.one/bluetooth-remote-mock-screen.png?n=1',
@@ -322,6 +353,13 @@ export default defineComponent({
         manifest: 'https://github.com/developername/apprepository/manifest',
         email: 'contactdata@gmail.com'
       })
+    }
+    for (let i = 0; i < 10; i++) {
+      const app = this.apps[i * 3]
+      if (Math.random() > 0.6) {
+        app.installedVersion = '1.0.0'
+      }
+      app.isInstalled = true
     }
     this.watchParams()
   },

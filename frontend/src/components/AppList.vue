@@ -65,15 +65,18 @@
           </div>
 
           <div class="flex no-wrap items-end justify-between" style="padding: 0 4px">
-            <span class="desc text-grey-7">{{ app.description.split('\n')[0] }}</span>
-            <q-btn
-              flat
-              dense
-              color="white"
-              style="margin-left: 5px; padding: 0 1rem; border-radius: 5px; font-size: 16px;"
-              label="Install"
-              class="no-shadow text-pixelated bg-primary"
-            />
+            <span class="col-shrink desc text-grey-7">{{ app.description.split('\n')[0] }}</span>
+            <div class="col-grow" style="width: 80px;">
+              <q-btn
+                flat
+                dense
+                color="white"
+                style="margin-left: 5px; padding: 0; border-radius: 5px; font-size: 16px; line-height: 16px;"
+                :label="actionButton(app).text"
+                class="fit no-shadow text-pixelated"
+                :class="actionButton(app).class"
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -83,6 +86,7 @@
 
 <script>
 import { defineComponent, ref } from 'vue'
+import semver from 'semver'
 
 export default defineComponent({
   name: 'AppList',
@@ -154,6 +158,25 @@ export default defineComponent({
   methods: {
     appClicked (app) {
       this.$emit('openApp', app)
+    },
+
+    actionButton (app) {
+      if (app.isInstalled) {
+        if (app.installedVersion && semver.lt(app.installedVersion, app.version)) {
+          return {
+            text: 'Update',
+            class: 'bg-positive'
+          }
+        }
+        return {
+          text: 'Installed',
+          class: 'bg-grey-6'
+        }
+      }
+      return {
+        text: 'Install',
+        class: 'bg-primary'
+      }
     }
   },
 
