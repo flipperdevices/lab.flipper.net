@@ -1,12 +1,12 @@
 <template>
   <div>
-    <div class="row" :class="$q.screen.width > 670 ? 'no-wrap' : 'justify-center'">
+    <div class="row q-pr-md" :class="$q.screen.width > 670 ? 'no-wrap' : 'justify-center'">
       <q-list class="categories row" :class="$q.screen.width > 670 ? 'col-8' : 'justify-center'">
         <div
           :style="`opacity: ${currentCategory && currentCategory.name !== 'All apps' ? '0.5' : '1'}`"
           style="background-color: #ebebeb; border-radius: 20px; padding: 4px 13px; cursor: pointer;"
           class="row no-wrap items-center q-mr-md q-mb-md q-py-xs q-px-md"
-          @click="currentCategory = null"
+          @click="currentCategory = null; $router.push('/apps')"
         >
           <span style="white-space: nowrap;">All apps</span>
         </div>
@@ -34,16 +34,6 @@
             style="min-width: fit-content;"
             label="Sort by"
           />
-          <q-btn
-            outline
-            class="q-ml-sm q-pa-sm text-grey-5"
-            @click="changeSortDirection"
-          >
-            <div class="flex no-wrap text-grey-7">
-              <q-icon name="svguse:common-icons.svg#old" size="16px"/>
-              <q-icon :name="sortIcon" size="16px"/>
-            </div>
-          </q-btn>
         </div>
       </div>
     </div>
@@ -52,7 +42,7 @@
       <div
         v-for="app in filteredSortedApps"
         :key="app.name"
-        class="flex justify-center q-ma-sm q-pa-none card-container"
+        class="flex justify-center q-pa-none card-container"
         style="width: fit-content"
       >
         <div
@@ -68,7 +58,8 @@
             <div class="text-h6">{{ app.name }}</div>
             <div style="font-size: 18px; line-height: 18px;">
               <span>
-                <q-icon :name="categories.find(e => e.name === app.category).icon" />
+                <q-icon :name="categories.find(e => e.name === app.category).icon" class="q-mr-sm"/>
+                <span style="font-size: 13px">{{ app.category }}</span>
               </span>
             </div>
           </div>
@@ -110,10 +101,11 @@ export default defineComponent({
       currentCategory: ref(null),
       sortOptions: [
         'Recently Updated',
-        'Recently Published'
+        'Updated a long time ago',
+        'Recently Published',
+        'Published a long time ago'
       ],
-      sortModel: ref('Recently Updated'),
-      sortDirection: ref('ascending')
+      sortModel: ref('Recently Updated')
     }
   },
 
@@ -132,16 +124,23 @@ export default defineComponent({
         filtered = this.apps
       }
 
-      let sortBy = ''
+      let sortBy = '', direction = -1
       switch (this.sortModel) {
         case 'Recently Updated':
           sortBy = 'updated'
           break
+        case 'Updated a long time ago':
+          sortBy = 'updated'
+          direction = 1
+          break
         case 'Recently Published':
           sortBy = 'published'
           break
+        case 'Published a long time ago':
+          sortBy = 'published'
+          direction = 1
+          break
       }
-      const direction = this.sortDirection === 'descending' ? 1 : -1
 
       return filtered.sort((a, b) => {
         if (a[sortBy] >= b[sortBy]) {
@@ -149,34 +148,10 @@ export default defineComponent({
         }
         return -1 * direction
       })
-    },
-
-    sortIcon () {
-      if (this.sortDirection === 'ascending') {
-        return 'svguse:common-icons.svg#arrow-up'
-      } else {
-        return 'svguse:common-icons.svg#arrow-down'
-      }
-    },
-
-    oppositeDirection () {
-      if (this.sortDirection === 'ascending') {
-        return 'descending'
-      } else {
-        return 'ascending'
-      }
     }
   },
 
   methods: {
-    changeSortDirection () {
-      if (this.sortDirection === 'ascending') {
-        this.sortDirection = 'descending'
-      } else {
-        this.sortDirection = 'ascending'
-      }
-    },
-
     appClicked (app) {
       this.$emit('openApp', app)
     }
