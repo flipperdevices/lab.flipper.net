@@ -3,11 +3,12 @@
     clickable
     tag="router-link"
     :to="link"
-    :style="`color: ${isActive ? '#ff8200' : ''}; background: ${isActive ? '#ff820026' : ''}`"
+    :style="`color: ${isActive ? '#ff8200' : ''}}`"
   >
     <q-item-section
       v-if="icon"
       avatar
+      style="min-width: initial;"
     >
       <q-icon :name="icon"/>
     </q-item-section>

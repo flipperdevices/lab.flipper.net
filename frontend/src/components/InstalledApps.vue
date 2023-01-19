@@ -47,8 +47,9 @@
         <q-btn
           flat
           round
+          dense
           color="negative"
-          icon="mdi-delete-outline"
+          icon="svguse:common-icons.svg#delete"
           class="q-ml-md"
         />
       </div>
@@ -89,8 +90,9 @@
         <q-btn
           flat
           round
+          dense
           color="negative"
-          icon="mdi-delete-outline"
+          icon="svguse:common-icons.svg#delete"
           class="q-ml-md"
         />
       </div>

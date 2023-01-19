@@ -21,35 +21,6 @@
 
         <q-space />
 
-        <template v-if="flags.serialSupported">
-          <q-btn
-            v-if="flags.portSelectRequired || !flags.connected && !flags.portSelectRequired"
-            @click="flags.portSelectRequired ? selectPort() : start(true)"
-            outline
-            class="q-mx-sm"
-          >
-            Connect
-          </q-btn>
-          <div v-else-if="this.info" class="flex items-center">
-            <q-avatar style="width: 68px" square>
-              <img v-if="info.hardware_color === '1'" src="../assets/flipper_black.svg"/>
-              <img v-else src="../assets/flipper_white.svg"/>
-            </q-avatar>
-
-            <div class="column items-start q-ml-sm">
-              <q-icon
-                :name="batteryIcon"
-                size="20px"
-                style="height: 11px;"
-                class="rotate-90"
-                :color="batteryColor"
-              ></q-icon>
-              <div style="line-height: 21px;">{{ info.hardware_name }}</div>
-            </div>
-          </div>
-          <div v-else style="margin: 0 0.85rem">{{ connectionStatus }}</div>
-        </template>
-
         <q-btn
           v-if="$q.screen.width <= 750"
           @click="linksMenu = !linksMenu"
@@ -70,7 +41,6 @@
           </q-menu>
         </q-btn>
         <template v-else>
-          <q-separator v-if="flags.serialSupported" dark vertical inset class="q-mx-lg"></q-separator>
           <div class="nav-links">
             <a v-for="link in extLinks"
               :key="link.title"
@@ -89,7 +59,7 @@
       @mouseover="miniState = false"
       @mouseout="miniState = true"
       :mini-to-overlay="!$q.screen.gt.md"
-      style="border-right: 1px solid #ff8200;"
+      class="bg-grey-2"
       :width="175"
       :breakpoint="750"
     >
@@ -98,20 +68,67 @@
           v-for="link in routes"
           :key="link.title"
           v-bind="link"
+          class="q-px-lg q-py-md"
         />
-        <q-item
-          clickable
-          class="absolute-bottom"
-          @click="flags.settingsPopup = true"
-        >
-          <q-item-section avatar>
-            <q-icon name="svguse:common-icons.svg#settings"/>
-          </q-item-section>
 
-          <q-item-section>
-            <q-item-label>Settings</q-item-label>
-          </q-item-section>
-        </q-item>
+        <div :class="$q.screen.height > 545 ? 'absolute-bottom' : ''">
+          <q-item
+            clickable
+            class="q-px-lg q-py-md"
+            @click="flags.settingsPopup = true"
+          >
+            <q-item-section avatar style="min-width: initial;">
+              <q-icon name="svguse:common-icons.svg#settings"/>
+            </q-item-section>
+
+            <q-item-section>
+              <q-item-label>Settings</q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-separator style="width: 85%; margin: auto;"/>
+          <q-item
+            v-if="flags.portSelectRequired || !flags.connected && !flags.portSelectRequired"
+            clickable
+            class="q-px-md q-py-sm"
+            @click="flags.portSelectRequired ? selectPort() : start(true)"
+          >
+            <q-item-section avatar style="min-width: initial; position: relative; right: -3px;">
+              <q-icon name="svguse:common-icons.svg#connect" size="32px"/>
+            </q-item-section>
+
+            <q-item-section>
+              <q-item-label>Connect</q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-item
+            v-else-if="this.info"
+            clickable
+            class="q-px-md q-py-sm"
+            @click="disconnect"
+          >
+            <q-item-section avatar style="min-width: initial; position: relative; right: -3px;">
+              <q-icon name="svguse:common-icons.svg#connected" size="32px"/>
+            </q-item-section>
+
+            <q-item-section>
+              <q-item-label>Connected</q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-item
+            v-else
+            clickable
+            class="q-px-md q-py-sm"
+            @click="flags.portSelectRequired ? selectPort() : start(true)"
+          >
+            <q-item-section avatar style="min-width: initial; position: relative; right: -3px;">
+              <q-icon name="svguse:common-icons.svg#connect" size="32px"/>
+            </q-item-section>
+
+            <q-item-section>
+              <q-item-label>Connecting...</q-item-label>
+            </q-item-section>
+          </q-item>
+        </div>
       </q-list>
     </q-drawer>
 

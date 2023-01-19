@@ -7,8 +7,8 @@
       <q-icon
         v-if="currentApp || flags.installedPage"
         name="mdi-chevron-left"
-        size="50px"
-        class="cursor-pointer"
+        size="56px"
+        class="cursor-pointer q-mr-md"
         @click="flags.installedPage = false; router.push('/apps')"
       ></q-icon>
       <q-icon
@@ -36,19 +36,28 @@
             flat
             no-caps
             dense
-            :color="flags.installedPage ? 'primary' : 'grey-7'"
+            :color="flags.installedPage ? 'primary' : 'black'"
+            style="font-weight: 400"
             icon="svguse:common-icons.svg#installed"
-            label="Installed"
             :stack="$q.screen.width <= 365"
             @click="toggleInstalled"
-          />
+            label="Installed"
+          >
+            <q-badge
+              v-if="$q.screen.width > 365"
+              color="positive"
+              floating
+              class="outdated-badge"
+            >{{ outdatedAppsAmount }}</q-badge>
+          </q-btn>
         </div>
         <div class="q-ml-md">
           <q-btn
             flat
             no-caps
             dense
-            color="grey-7"
+            color="black"
+            style="font-weight: 400"
             icon="mdi-github"
             label="Contribute"
             :stack="$q.screen.width <= 365"
@@ -99,6 +108,7 @@ import AppList from 'components/AppList.vue'
 import AppPage from 'components/AppPage.vue'
 import InstalledApps from 'components/InstalledApps.vue'
 import asyncSleep from 'simple-async-sleep'
+import semver from 'semver'
 
 export default defineComponent({
   name: 'Apps',
@@ -134,58 +144,61 @@ export default defineComponent({
         {
           name: 'Sub-GHz',
           icon: 'svguse:apps-categories.svg#subghz',
-          color: '#7fffb8'
+          color: '#A5F4BE'
         },
         {
           name: 'RFID 125',
           icon: 'svguse:apps-categories.svg#rfid',
-          color: '#eef269'
+          color: '#FFF493'
         },
         {
           name: 'NFC',
           icon: 'svguse:apps-categories.svg#nfc',
-          color: '#7fe0ff'
+          color: '#98CEFE'
         },
         {
           name: 'Infrared',
           icon: 'svguse:apps-categories.svg#infrared',
-          color: '#ff8585'
+          color: '#FE938C'
         },
         {
           name: 'GPIO',
           icon: 'svguse:apps-categories.svg#gpio',
-          color: '#85ffe1'
+          color: '#A7F2EA'
         },
         {
           name: 'iButton',
           icon: 'svguse:apps-categories.svg#ibutton',
-          color: '#f4cfb3'
+          color: '#E1BBA6'
         },
         {
           name: 'USB',
           icon: 'svguse:apps-categories.svg#usb',
-          color: '#ffc1fe'
+          color: '#FFBEE9'
         },
         {
           name: 'Games',
           icon: 'svguse:apps-categories.svg#games',
-          color: '#ffc064'
+          color: '#FFC486'
         },
         {
           name: 'Media',
           icon: 'svguse:apps-categories.svg#media',
-          color: '#e391ff'
+          color: '#DFB5FF'
         },
         {
           name: 'Tools',
           icon: 'svguse:apps-categories.svg#tools',
-          color: '#d2d21e'
+          color: '#DFF159'
         }
       ])
     }
   },
 
   computed: {
+    outdatedAppsAmount () {
+      return this.apps.filter(e => e.isInstalled === true && e.installedVersion && semver.lt(e.installedVersion, e.version)).length
+    }
   },
 
   methods: {
@@ -376,4 +389,13 @@ export default defineComponent({
     display: flex
     align-items: center
     height: 40px
+
+.outdated-badge
+  height: 17px !important
+  position: relative
+  top: -11px
+  left: -72px
+  font-size: 10px
+  border: 1px #ffffff solid
+  border-radius: 17px
 </style>

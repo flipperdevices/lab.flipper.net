@@ -29,10 +29,9 @@
             v-model="sortModel"
             :options="sortOptions"
             dense
-            outlined
-            class="rounded-borders"
-            style="min-width: fit-content;"
-            label="Sort by"
+            standout="bg-primary text-white no-shadow"
+            rounded
+            style="min-width: fit-content; border-radius: 20px;"
           />
         </div>
       </div>
@@ -104,10 +103,10 @@ export default defineComponent({
     return {
       currentCategory: ref(null),
       sortOptions: [
-        'Recently Updated',
-        'Updated a long time ago',
-        'Recently Published',
-        'Published a long time ago'
+        'New Updates',
+        'New Releases',
+        'Old Updates',
+        'Old Releases'
       ],
       sortModel: ref('Recently Updated')
     }
@@ -130,17 +129,17 @@ export default defineComponent({
 
       let sortBy = '', direction = -1
       switch (this.sortModel) {
-        case 'Recently Updated':
+        case 'New Updates':
           sortBy = 'updated'
           break
-        case 'Updated a long time ago':
+        case 'Old Updates':
           sortBy = 'updated'
           direction = 1
           break
-        case 'Recently Published':
+        case 'New Releases':
           sortBy = 'published'
           break
-        case 'Published a long time ago':
+        case 'Old Releases':
           sortBy = 'published'
           direction = 1
           break
