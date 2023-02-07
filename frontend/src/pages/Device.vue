@@ -14,7 +14,7 @@
             </p>
             <p>
               <span>SD card:</span>
-              <span>{{ info.storage_sdcard_present }}</span>
+              <span>{{ sdCardUsage }}</span>
             </p>
             <p>
               <span>Databases:</span>
@@ -79,6 +79,7 @@
 import { defineComponent, ref } from 'vue'
 import Updater from 'components/Updater.vue'
 import asyncSleep from 'simple-async-sleep'
+import { bytesToSize } from '../util/util'
 
 export default defineComponent({
   name: 'PageDevice',
@@ -167,6 +168,10 @@ export default defineComponent({
         default:
           return this.info.radio_stack_type
       }
+    },
+
+    sdCardUsage () {
+      return `${bytesToSize(this.info.storage_sdcard_totalSpace - this.info.storage_sdcard_freeSpace)} / ${bytesToSize(this.info.storage_sdcard_totalSpace)}`
     }
   },
 
