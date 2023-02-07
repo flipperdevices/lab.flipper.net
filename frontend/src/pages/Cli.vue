@@ -37,9 +37,13 @@
       >
         <q-menu dark :offset="[0, 10]">
           <q-list dark bordered separator style="min-width: 100px; border-width: 2px;">
+            <q-item v-if="flags.foundDumpOnStartup" clickable v-close-popup @click="terminal.write(dump)">
+              <q-item-section avatar><q-icon name="mdi-history" /></q-item-section>
+              <q-item-section>Restore history</q-item-section>
+            </q-item>
             <q-item clickable v-close-popup @click="downloadDump">
               <q-item-section avatar><q-icon name="mdi-download" /></q-item-section>
-              <q-item-section>Download dump</q-item-section>
+              <q-item-section>Download history</q-item-section>
             </q-item>
             <q-item clickable v-close-popup @click="clearDump" class="text-negative">
               <q-item-section avatar><q-icon name="mdi-delete" /></q-item-section>
@@ -102,7 +106,6 @@ import { Terminal } from 'xterm'
 import 'xterm/css/xterm.css'
 import { FitAddon } from 'xterm-addon-fit'
 import { SerializeAddon } from 'xterm-addon-serialize'
-import * as shajs from 'sha.js'
 import { io } from 'socket.io-client'
 
 export default defineComponent({
@@ -124,7 +127,8 @@ export default defineComponent({
         serverToggling: false,
         sharePopup: false,
         allowPeerInput: false,
-        sharingEnabled: false
+        sharingEnabled: false,
+        foundDumpOnStartup: false
       }),
       terminal: ref(undefined),
       readInterval: undefined,
@@ -161,12 +165,7 @@ export default defineComponent({
       this.serializeAddon = new SerializeAddon()
       this.terminal.loadAddon(this.serializeAddon)
       if (this.dump) {
-        const motdSha256 = 'b00ef434818c0b55977f745a38327af84434bfb5a8250032b34f9332ca93d0ae'
-        if (this.dump.length === 858 && shajs('sha256').update(this.dump).digest('hex') === motdSha256) {
-          this.clearDump()
-        } else {
-          this.terminal.write(this.dump)
-        }
+        this.flags.foundDumpOnStartup = true
       }
       this.terminal.open(document.getElementById('terminal-container'))
       document.querySelector('.xterm').setAttribute('style', 'height:' + getComputedStyle(document.querySelector('.xterm')).height)
