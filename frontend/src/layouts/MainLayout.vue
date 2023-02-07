@@ -3,7 +3,7 @@
     <q-header>
       <q-toolbar>
         <q-btn
-          v-if="$q.screen.width <= 750"
+          v-if="$q.screen.width <= 900"
           @click="leftDrawer = !leftDrawer"
           icon="menu"
           dense
@@ -54,82 +54,171 @@
 
     <q-drawer
       v-model="leftDrawer"
-      show-if-above
-      :mini="$q.screen.gt.md ? false : miniState"
-      @mouseover="miniState = false"
-      @mouseout="miniState = true"
-      :mini-to-overlay="!$q.screen.gt.md"
       class="bg-grey-2"
+      style="overflow-x: hidden"
       :width="175"
-      :breakpoint="750"
+      :breakpoint="900"
     >
-      <q-list>
-        <RouterLink
-          v-for="link in routes"
-          :key="link.title"
-          v-bind="link"
-          class="q-px-lg q-py-md"
-        />
-
-        <div :class="$q.screen.height > 545 ? 'absolute-bottom' : ''">
-          <q-item
-            clickable
+      <div
+        class="full-height relative-position"
+        style="width: 200%; display: grid; grid-template-rows: 1fr; grid-template-columns: 175px 175px; transition-duration: 300ms;"
+        :style="`left: ${flags.settingsView ? '-175px' : '0'}`"
+      >
+        <q-list style="width: 175px">
+          <RouterLink
+            v-for="link in routes"
+            :key="link.title"
+            v-bind="link"
             class="q-px-lg q-py-md"
-            @click="flags.settingsPopup = true"
-          >
-            <q-item-section avatar style="min-width: initial;">
-              <q-icon name="svguse:common-icons.svg#settings"/>
-            </q-item-section>
+          />
 
-            <q-item-section>
-              <q-item-label>Settings</q-item-label>
-            </q-item-section>
-          </q-item>
-          <q-separator style="width: 85%; margin: auto;"/>
-          <q-item
-            v-if="flags.portSelectRequired || !flags.connected && !flags.portSelectRequired"
-            clickable
-            class="q-px-md q-py-sm"
-            @click="flags.portSelectRequired ? selectPort() : start(true)"
-          >
-            <q-item-section avatar style="min-width: initial; position: relative; right: -3px;">
-              <q-icon name="svguse:common-icons.svg#connect" size="32px"/>
-            </q-item-section>
+          <div :class="$q.screen.height > 545 ? 'absolute-bottom' : ''" style="width: 175px">
+            <q-item
+              clickable
+              class="q-px-lg q-py-md"
+              @click="flags.settingsView = true"
+            >
+              <q-item-section avatar style="min-width: initial;">
+                <q-icon name="svguse:common-icons.svg#settings"/>
+              </q-item-section>
 
-            <q-item-section>
-              <q-item-label>Connect</q-item-label>
-            </q-item-section>
-          </q-item>
-          <q-item
-            v-else-if="this.info"
-            clickable
-            class="q-px-md q-py-sm"
-            @click="disconnect"
-          >
-            <q-item-section avatar style="min-width: initial; position: relative; right: -3px;">
-              <q-icon name="svguse:common-icons.svg#connected" size="32px"/>
-            </q-item-section>
+              <q-item-section>
+                <q-item-label>Settings</q-item-label>
+              </q-item-section>
+            </q-item>
+            <q-separator style="width: 85%; margin: auto;"/>
+            <q-item
+              v-if="flags.portSelectRequired || !flags.connected && !flags.portSelectRequired"
+              clickable
+              class="q-px-md q-py-sm"
+              @click="flags.portSelectRequired ? selectPort() : start(true)"
+            >
+              <q-item-section avatar style="min-width: initial; position: relative; right: -3px;">
+                <q-icon name="svguse:common-icons.svg#connect" size="32px"/>
+              </q-item-section>
 
-            <q-item-section>
-              <q-item-label>Connected</q-item-label>
-            </q-item-section>
-          </q-item>
-          <q-item
-            v-else
-            clickable
-            class="q-px-md q-py-sm"
-            @click="flags.portSelectRequired ? selectPort() : start(true)"
-          >
-            <q-item-section avatar style="min-width: initial; position: relative; right: -3px;">
-              <q-icon name="svguse:common-icons.svg#connect" size="32px"/>
-            </q-item-section>
+              <q-item-section>
+                <q-item-label>Connect</q-item-label>
+              </q-item-section>
+            </q-item>
+            <q-item
+              v-else-if="this.info"
+              clickable
+              class="q-px-md q-py-sm"
+              @click="disconnect"
+            >
+              <q-item-section avatar style="min-width: initial; position: relative; right: -3px;">
+                <q-icon name="svguse:common-icons.svg#connected" size="32px"/>
+              </q-item-section>
 
-            <q-item-section>
-              <q-item-label>Connecting...</q-item-label>
-            </q-item-section>
-          </q-item>
+              <q-item-section>
+                <q-item-label>Connected</q-item-label>
+              </q-item-section>
+            </q-item>
+            <q-item
+              v-else
+              clickable
+              class="q-px-md q-py-sm"
+              @click="flags.portSelectRequired ? selectPort() : start(true)"
+            >
+              <q-item-section avatar style="min-width: initial; position: relative; right: -3px;">
+                <q-icon name="svguse:common-icons.svg#connect" size="32px"/>
+              </q-item-section>
+
+              <q-item-section>
+                <q-item-label>Connecting...</q-item-label>
+              </q-item-section>
+            </q-item>
+          </div>
+        </q-list>
+        <div class="relative-position flex justify-end" style="width: 175px">
+          <div class="column justify-end no-wrap">
+            <div class="column items-center">
+              <div v-if="info" class="flex justify-center q-px-md">
+                <img v-if="info.hardware_color === '1'" src="../assets/flipper_black.svg" style="width: 100%"/>
+                <img v-else src="../assets/flipper_white.svg" style="width: 100%"/>
+                <div class="flex full-width justify-between items-center q-mt-md q-mb-sm">
+                  <div style="font-size: 1rem; font-weight: 600;">{{ info.hardware_name }}</div>
+                  <div class="flex flex-center">
+                    <q-icon
+                      :name="batteryIcon"
+                      size="22px"
+                      class="rotate-90"
+                      :color="batteryColor"
+                    ></q-icon>
+                    <div class="q-ml-xs text-caption">{{ this.info.charge_level }}%</div>
+                  </div>
+                </div>
+
+                <div class="flex full-width justify-between items-center q-mt-sm q-mb-xs">
+                  <div>Internal used:</div>
+                  <div class="text-bold">{{ internalUsed }}%</div>
+                </div>
+                <q-linear-progress style="height: 8px; border-radius: 8px;" :value="internalUsed / 100" class="q-mb-sm"/>
+
+                <div class="flex full-width justify-between items-center q-mt-xs">
+                  <div>SD card used:</div>
+                  <div class="text-bold">{{ sdCardUsed }}%</div>
+                </div>
+                <q-linear-progress style="height: 8px; border-radius: 8px;" :value="Math.ceil(sdCardUsed/2)*2 / 100" class="q-mb-sm"/>
+              </div>
+
+              <div class="q-my-md q-px-md">
+                <q-toggle
+                  size="2.25rem"
+                  dense
+                  class="q-my-sm"
+                  v-model="flags.connectOnStart"
+                  @click="toggleConnectOnStart"
+                  label="Connect on load"
+                ></q-toggle>
+                <q-toggle
+                  size="2.25rem"
+                  dense
+                  class="q-my-sm"
+                  v-model="flags.autoReconnect"
+                  @click="toggleAutoReconnect"
+                  label="Auto reconnect"
+                ></q-toggle>
+                <q-toggle
+                  size="2.25rem"
+                  dense
+                  class="q-my-sm"
+                  v-model="flags.installFromFile"
+                  @click="toggleInstallFromFile"
+                  label="Third-party FW"
+                ></q-toggle>
+              </div>
+            </div>
+            <q-item
+              clickable
+              class="q-px-lg q-py-sm"
+              @click="flags.logsPopup = true"
+            >
+              <q-item-section avatar style="min-width: initial;">
+                <q-icon name="svguse:common-icons.svg#logs"/>
+              </q-item-section>
+
+              <q-item-section>
+                <q-item-label>View logs</q-item-label>
+              </q-item-section>
+            </q-item>
+            <q-item
+              clickable
+              class="q-px-lg q-py-sm"
+              @click="flags.settingsView = false"
+            >
+              <q-item-section avatar style="min-width: initial;">
+                <q-icon name="mdi-chevron-left" size="2rem" style="margin-left: -4px; margin-right: -4px;"/>
+              </q-item-section>
+
+              <q-item-section>
+                <q-item-label>Back</q-item-label>
+              </q-item-section>
+            </q-item>
+          </div>
         </div>
-      </q-list>
+      </div>
     </q-drawer>
 
     <q-page-container class="flex justify-center">
@@ -179,36 +268,12 @@
           </p>
         </div>
       </q-page>
-      <q-dialog v-model="flags.settingsPopup">
+      <q-dialog v-model="flags.logsPopup">
         <q-card>
           <q-card-section class="row items-center q-pb-none">
-            <div class="text-h6">Settings</div>
+            <div class="text-h6">Logs</div>
             <q-space />
             <q-btn icon="close" flat round dense v-close-popup />
-          </q-card-section>
-
-          <q-card-section>
-            <div class="column">
-              <q-toggle
-                v-model="flags.connectOnStart"
-                @click="toggleConnectOnStart"
-                label="Connect on page load"
-              ></q-toggle>
-              <q-toggle
-                v-model="flags.autoReconnect"
-                @click="toggleAutoReconnect"
-                label="Auto-reconnect"
-              ></q-toggle>
-              <q-toggle
-                v-model="flags.installFromFile"
-                @click="toggleInstallFromFile"
-                label="3rd party firmware install"
-              ></q-toggle>
-            </div>
-          </q-card-section>
-
-          <q-card-section class="q-pb-none">
-            <div class="text-h6">Logs</div>
           </q-card-section>
 
           <q-card-section>
@@ -331,9 +396,8 @@ export default defineComponent({
         'pulse-plotter',
         'apps'
       ],
-      leftDrawer: ref(false),
+      leftDrawer: ref(true),
       linksMenu: ref(false),
-      miniState: ref(true),
       flipper: ref(flipper),
       info: ref(null),
       flags: ref({
@@ -346,7 +410,8 @@ export default defineComponent({
         autoReconnect: false,
         updateInProgress: false,
         installFromFile: false,
-        settingsPopup: false
+        logsPopup: false,
+        settingsView: false
       }),
       reconnectLoop: ref(null),
       connectionStatus: ref('Ready to connect'),
@@ -375,6 +440,20 @@ export default defineComponent({
         return 'warning'
       }
       return 'negative'
+    },
+    sdCardUsed () {
+      if (this.info.storage_sdcard_freeSpace) {
+        return 100 - Math.floor(this.info.storage_sdcard_freeSpace / (this.info.storage_sdcard_totalSpace / 100))
+      } else {
+        return 1
+      }
+    },
+    internalUsed () {
+      if (this.info.storage_internal_freeSpace) {
+        return 100 - Math.floor(this.info.storage_internal_freeSpace / (this.info.storage_internal_totalSpace / 100))
+      } else {
+        return 1
+      }
     }
   },
 
@@ -492,6 +571,7 @@ export default defineComponent({
       for (const line of res) {
         this.info[line.key] = line.value
       }
+
       await asyncSleep(300)
       res = await this.flipper.commands.storage.list('/ext')
         .catch(error => this.rpcErrorHandler(error, 'storage.list'))
@@ -517,11 +597,25 @@ export default defineComponent({
               message: 'Main: storage.info: /ext'
             })
           })
-        this.info.storage_sdcard_present = Math.floor(res.freeSpace / (res.totalSpace / 100)) + '% free'
+        this.info.storage_sdcard_present = 'installed'
+        this.info.storage_sdcard_totalSpace = res.totalSpace
+        this.info.storage_sdcard_freeSpace = res.freeSpace
       } else {
         this.info.storage_sdcard_present = 'missing'
         this.info.storage_databases_present = 'missing'
       }
+
+      await asyncSleep(200)
+      res = await this.flipper.commands.storage.info('/int')
+        .catch(error => this.rpcErrorHandler(error, 'storage.info'))
+        .finally(() => {
+          this.$emit('log', {
+            level: 'debug',
+            message: 'Main: storage.info: /int'
+          })
+        })
+      this.info.storage_internal_totalSpace = res.totalSpace
+      this.info.storage_internal_freeSpace = res.freeSpace
       this.log({
         level: 'info',
         message: 'Main: Fetched device info'
