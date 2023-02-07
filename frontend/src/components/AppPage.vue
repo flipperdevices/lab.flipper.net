@@ -79,6 +79,61 @@
         </a>
       </p>
     </div>
+
+    <q-dialog v-model="flags.noFreeSpaceDialog">
+      <q-card class="dialog">
+        <q-btn icon="close" flat round dense v-close-popup class="dialog-close-btn"/>
+
+        <q-card-section class="q-pa-none q-ma-md" align="center">
+          <q-icon name="svguse:common-icons.svg#fw-conflict-icon" size="64px" />
+          <div class="text-h6 q-my-sm">No Free Space</div>
+          <p>There is no empty space to install this application.<br />Use archive to delete needless files.</p>
+        </q-card-section>
+
+        <q-card-section class="q-pt-none" align="center">
+          <q-btn
+            outline
+            color="primary"
+            label="Open Archive"
+          ></q-btn>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
+    <q-dialog v-model="flags.deleteConfirmationDialog">
+      <q-card class="dialog">
+        <q-card-section class="q-pb-none">
+          <div class="text-h6">Delete this app?</div>
+        </q-card-section>
+
+        <q-card-section class="q-pt-none q-my-md text-center">
+          <div class="flex no-wrap items-center">
+            <div class="app-icon q-mr-md">
+              <q-img :src="app.icon" width="50px"/>
+            </div>
+            <div class="column items-start">
+              <div class="text-h6" style="line-height: 1.5em; margin-bottom: 0.25rem;">{{ app.name }}</div>
+              <div class="text-grey-7"><b>v{{ app.version }}</b></div>
+            </div>
+          </div>
+        </q-card-section>
+
+        <q-card-section class="q-pt-none flex justify-between">
+          <q-btn
+            unelevated
+            color="grey-4"
+            text-color="dark"
+            label="Cancel"
+            v-close-popup
+          ></q-btn>
+          <q-btn
+            outline
+            color="negative"
+            label="Delete"
+            v-close-popup
+          ></q-btn>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
   </div>
 </template>
 
@@ -99,7 +154,10 @@ export default defineComponent({
 
   setup () {
     return {
-      flags: ref([]),
+      flags: ref({
+        noFreeSpaceDialog: false,
+        deleteConfirmationDialog: false
+      }),
       category: ref({}),
       screenshotWidth: 256 + 4 + 8 + 8,
       position: ref(0),
@@ -182,4 +240,13 @@ export default defineComponent({
   border-radius: 6px
   img
     image-rendering: pixelated
+
+// Dialogs
+.dialog
+  border-radius: 20px
+  padding: 16px
+.dialog-close-btn
+  position: absolute
+  top: 0.5rem
+  right: 0.5rem
 </style>

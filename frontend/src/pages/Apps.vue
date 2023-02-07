@@ -97,6 +97,86 @@
         @showNotif="passNotif"
       />
     </template>
+
+    <q-dialog v-model="flags.outdatedFirmwareDialog">
+      <q-card class="dialog">
+        <q-btn icon="close" flat round dense v-close-popup class="dialog-close-btn"/>
+
+        <q-card-section class="q-pa-none q-ma-md" align="center">
+          <q-icon name="mdi-alert-circle" color="negative" size="64px" />
+          <div class="text-h6 q-my-sm">Outdated Firmware Version</div>
+          <p>Firmware version on your Flipper is not supported.<br />Click the link below to update your device.</p>
+        </q-card-section>
+
+        <q-card-section class="q-pt-none" align="center">
+          <q-btn
+            outline
+            color="primary"
+            label="Update"
+          ></q-btn>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
+    <q-dialog v-model="flags.outdatedAPIDialog">
+      <q-card class="dialog">
+        <q-btn icon="close" flat round dense v-close-popup class="dialog-close-btn"/>
+
+        <q-card-section class="q-pa-none q-ma-md" align="center">
+          <q-icon name="mdi-alert-circle" color="negative" size="64px" />
+          <div class="text-h6 q-my-sm">Outdated API Version</div>
+          <p>Firmware on your Flipper is outdated.<br />Click the link below to update your device.</p>
+        </q-card-section>
+
+        <q-card-section class="q-pt-none" align="center">
+          <q-btn
+            outline
+            color="primary"
+            label="Update"
+          ></q-btn>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
+    <q-dialog v-model="flags.TOSDialog">
+      <q-card class="dialog">
+        <q-card-section>
+          <div class="text-h6">Terms of Service</div>
+        </q-card-section>
+
+        <q-card-section class="q-pt-none">
+          <p>You accept our full Terms of Service by pressing Agree button.<br />The main ideas and rules fot this platform are listed below:</p>
+          <ul>
+            <li>Adipiscing ut tellus nibh pulvinar massa blandit. Ut rhoncus mi pulvinar nec nibh tortor turpis turpis.</li>
+            <li>Et diam nisl tempor morbi mattis turpis gravida congue nisi.  nibh euismod tristique. </li>
+            <li>Id quisque enim dictum gravida non fames semper at.</li>
+            <li>Adipiscing ut tellus nibh pulvinar massa blandit. Ut rhoncus mi pulvinar nec nibh tortor turpis turpis.</li>
+            <li>Et diam nisl tempor morbi mattis turpis gravida congue nisi.  nibh euismod tristique.</li>
+            <li>Id quisque enim dictum gravida non fames semper at.</li>
+          </ul>
+        </q-card-section>
+
+        <q-card-section class="q-pt-none text-center">
+          <a href="" class="text-dark" style="text-decoration: none">
+            <q-icon name="svguse:common-icons.svg#link" style="position: relative; top: -2px; left: -2px"/>
+            Open Full Terms of Service
+          </a>
+        </q-card-section>
+
+        <q-card-section class="q-pt-none flex justify-between">
+          <q-btn
+            outline
+            color="primary"
+            label="Reject"
+            v-close-popup
+          ></q-btn>
+          <q-btn
+            unelevated
+            color="primary"
+            label="Agree"
+            v-close-popup
+          ></q-btn>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 
@@ -135,7 +215,10 @@ export default defineComponent({
         restarting: false,
         rpcActive: false,
         rpcToggling: false,
-        installedPage: false
+        installedPage: false,
+        outdatedFirmwareDialog: false,
+        outdatedAPIDialog: false,
+        TOSDialog: false
       }),
       initialCategory: ref(null),
       currentApp: ref(null),
@@ -398,4 +481,13 @@ export default defineComponent({
   font-size: 10px
   border: 1px #ffffff solid
   border-radius: 17px
+
+// Dialogs
+.dialog
+  border-radius: 20px
+  padding: 16px
+.dialog-close-btn
+  position: absolute
+  top: 0.5rem
+  right: 0.5rem
 </style>

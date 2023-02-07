@@ -51,6 +51,7 @@
           color="negative"
           icon="svguse:common-icons.svg#delete"
           class="q-ml-md"
+          @click="appToDelete = app; flags.deleteConfirmationDialog = true"
         />
       </div>
 
@@ -94,9 +95,46 @@
           color="negative"
           icon="svguse:common-icons.svg#delete"
           class="q-ml-md"
+          @click="appToDelete = app; flags.deleteConfirmationDialog = true"
         />
       </div>
     </div>
+
+    <q-dialog v-model="flags.deleteConfirmationDialog">
+      <q-card class="dialog">
+        <q-card-section class="q-pb-none">
+          <div class="text-h6">Delete this app?</div>
+        </q-card-section>
+
+        <q-card-section class="q-pt-none q-my-md text-center">
+          <div class="flex no-wrap items-center">
+            <div class="app-icon q-mr-md">
+              <q-img :src="appToDelete.icon"/>
+            </div>
+            <div class="column items-start">
+              <div class="text-h6" style="line-height: 1.5em; margin-bottom: 0.25rem;">{{ appToDelete.name }}</div>
+              <div class="text-grey-7"><b>v{{ appToDelete.version }}</b></div>
+            </div>
+          </div>
+        </q-card-section>
+
+        <q-card-section class="q-pt-none flex justify-between">
+          <q-btn
+            unelevated
+            color="grey-4"
+            text-color="dark"
+            label="Cancel"
+            v-close-popup
+          ></q-btn>
+          <q-btn
+            outline
+            color="negative"
+            label="Delete"
+            v-close-popup
+          ></q-btn>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
   </div>
 </template>
 
@@ -113,7 +151,10 @@ export default defineComponent({
 
   setup () {
     return {
-      flags: ref([])
+      flags: ref({
+        deleteConfirmationDialog: false
+      }),
+      appToDelete: ref(null)
     }
   },
 
