@@ -44,7 +44,7 @@
 import { defineComponent, ref } from 'vue'
 
 export default defineComponent({
-  name: 'AppList',
+  name: 'SearchBar',
   props: {
     categories: Array,
     apps: Array
