@@ -422,6 +422,9 @@ export default defineComponent({
   },
 
   mounted () {
+    if (localStorage.getItem('dev') !== 'true') {
+      this.$router.push('/')
+    }
     for (let i = 0; i < 30; i++) {
       const category = this.categories[Math.floor(Math.random() * this.categories.length)]
       this.apps.push({
