@@ -1,5 +1,5 @@
 <template>
-  <q-page class="column items-center q-pa-md">
+  <q-page class="column no-wrap items-center q-pa-md full-width">
     <div class="text-h6">Sub-GHz/Infrared pulse plotter</div>
     <q-file
       outlined

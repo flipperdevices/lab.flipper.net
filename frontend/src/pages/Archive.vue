@@ -1,5 +1,5 @@
 <template>
-  <q-page class="column items-center q-pa-md" :class="$q.screen.width > 960 && $q.screen.height > 500 ? 'q-mt-xl' : 'q-mt-xs'">
+  <q-page class="column items-center q-pa-md full-width" :class="$q.screen.width > 960 && $q.screen.height > 500 ? 'q-mt-xl' : 'q-mt-xs'">
     <div
       v-if="!connected || !flags.rpcActive || flags.rpcToggling"
       class="column flex-center q-my-xl"
@@ -120,7 +120,7 @@
             </q-btn>
           </q-item-section>
         </q-item>
-        <q-item v-if="dir.length === 0 && path !== '/'">
+        <q-item v-if="dir.length === 0 && path !== '/'" class="text-grey-7">
           <q-item-section avatar class="q-ml-xs">
             <q-icon name="mdi-folder-outline"/>
           </q-item-section>
@@ -295,26 +295,9 @@
 
 <script>
 import { defineComponent, ref } from 'vue'
-import { exportFile, useQuasar } from 'quasar'
+import { exportFile } from 'quasar'
 import ProgressBar from 'components/ProgressBar.vue'
 import asyncSleep from 'simple-async-sleep'
-const flipperIcons = {
-  'archive:new': 'img:icons/flipper/action-new.svg',
-  'archive:remove': 'img:icons/flipper/action-remove.svg',
-  'archive:rename': 'img:icons/flipper/action-rename.svg',
-  'archive:save': 'img:icons/flipper/action-save.svg',
-  'archive:sdcard': 'img:icons/flipper/location-sdcard.svg',
-  'archive:internal': 'img:icons/flipper/location-internal.svg',
-  'archive:file': 'img:icons/flipper/file.svg',
-  'archive:folder': 'img:icons/flipper/folder.svg',
-  'archive:badusb': 'img:icons/flipper/badusb.svg',
-  'archive:ibutton': 'img:icons/flipper/ibutton.svg',
-  'archive:infrared': 'img:icons/flipper/infrared.svg',
-  'archive:nfc': 'img:icons/flipper/nfc.svg',
-  'archive:rfid': 'img:icons/flipper/rfid.svg',
-  'archive:subghz': 'img:icons/flipper/subghz.svg',
-  'archive:u2f': 'img:icons/flipper/u2f.svg'
-}
 
 export default defineComponent({
   name: 'PageArchive',
@@ -330,14 +313,6 @@ export default defineComponent({
   },
 
   setup () {
-    const $q = useQuasar()
-
-    $q.iconMapFn = (iconName) => {
-      const icon = flipperIcons[iconName]
-      if (icon !== void 0) {
-        return { icon: icon }
-      }
-    }
     return {
       path: ref('/'),
       dir: ref([]),
@@ -579,25 +554,25 @@ export default defineComponent({
 
     itemIconSwitcher (item) {
       if (this.path === '/' && item.name === 'int') {
-        return 'archive:internal'
+        return 'svguse:common-icons.svg#internal-memory'
       } else if (this.path === '/' && item.name === 'ext') {
-        return 'archive:sdcard'
+        return 'svguse:common-icons.svg#sdcard-memory'
       } else if (item.type === 1) {
         return 'mdi-folder-outline'
       } else if (item.name.endsWith('.badusb')) {
-        return 'archive:badusb'
+        return 'svguse:file-types.svg#badusb'
       } else if (item.name.endsWith('.ibtn')) {
-        return 'archive:ibutton'
+        return 'svguse:file-types.svg#ibutton'
       } else if (item.name.endsWith('.ir')) {
-        return 'archive:infrared'
+        return 'svguse:file-types.svg#infrared'
       } else if (item.name.endsWith('.nfc')) {
-        return 'archive:nfc'
+        return 'svguse:file-types.svg#nfc'
       } else if (item.name.endsWith('.rfid')) {
-        return 'archive:rfid'
+        return 'svguse:file-types.svg#rfid'
       } else if (item.name.endsWith('.sub')) {
-        return 'archive:subghz'
+        return 'svguse:file-types.svg#subghz'
       } else if (item.name.endsWith('.u2f')) {
-        return 'archive:u2f'
+        return 'svguse:file-types.svg#u2f'
       } else {
         return 'mdi-file-outline'
       }

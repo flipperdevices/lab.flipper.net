@@ -1,5 +1,5 @@
 <template>
-  <q-page class="column items-center q-pa-md">
+  <q-page class="column items-center q-pa-md full-width">
     <div
       v-if="!connected || !flags.rpcActive || flags.rpcToggling"
       class="column flex-center q-my-xl"

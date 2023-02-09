@@ -3,16 +3,18 @@
     clickable
     tag="router-link"
     :to="link"
+    :style="`color: ${isActive ? '#ff8200' : ''}}`"
   >
     <q-item-section
       v-if="icon"
       avatar
+      style="min-width: initial;"
     >
-      <q-icon :name="icon" :color="link === this.$route.path ? '#ff8200' : ''"/>
+      <q-icon :name="icon"/>
     </q-item-section>
 
     <q-item-section>
-      <q-item-label :class="link === this.$route.path ? 'text-orange' : ''">{{ title }}</q-item-label>
+      <q-item-label>{{ title }}</q-item-label>
     </q-item-section>
   </q-item>
 </template>
@@ -22,6 +24,7 @@ import { defineComponent } from 'vue'
 
 export default defineComponent({
   name: 'RouterLink',
+
   props: {
     title: {
       type: String,
@@ -34,6 +37,15 @@ export default defineComponent({
     icon: {
       type: String,
       default: ''
+    }
+  },
+
+  computed: {
+    isActive () {
+      if (this.link.startsWith('/apps') && this.$route.path.startsWith('/apps')) {
+        return true
+      }
+      return this.link === this.$route.path
     }
   }
 })

@@ -8,6 +8,20 @@ const routes = [
     ]
   },
   {
+    path: '/apps',
+    component: () => import('layouts/MainLayout.vue'),
+    children: [
+      { path: '/apps', component: () => import('pages/Apps.vue') }
+    ]
+  },
+  {
+    path: '/apps/:path',
+    component: () => import('layouts/MainLayout.vue'),
+    children: [
+      { path: '/apps/:path', component: () => import('pages/Apps.vue') }
+    ]
+  },
+  {
     path: '/archive',
     component: () => import('layouts/MainLayout.vue'),
     children: [
