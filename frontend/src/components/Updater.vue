@@ -44,6 +44,7 @@
           @click="flags.uploadPopup = true; uploadedFile = null"
           class="q-mt-lg"
           outline
+          color="grey-8"
         >Install from file</q-btn>
       </template>
       <template v-else>

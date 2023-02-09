@@ -3,7 +3,7 @@
     <q-header>
       <q-toolbar>
         <q-btn
-          v-if="$q.screen.width <= 750"
+          v-if="$q.screen.width <= 900"
           @click="leftDrawer = !leftDrawer"
           icon="menu"
           dense
@@ -20,79 +20,6 @@
         />
 
         <q-space />
-
-        <template v-if="flags.serialSupported">
-          <q-btn
-            v-if="flags.portSelectRequired || !flags.connected && !flags.portSelectRequired"
-            @click="flags.portSelectRequired ? selectPort() : start(true)"
-            outline
-            class="q-mx-sm"
-          >
-            Connect
-          </q-btn>
-          <q-btn
-            v-else-if="this.info"
-            outline
-            class="q-mx-sm"
-            icon="tune"
-            :label="info.hardware_name"
-          >
-            <q-menu :offset="[0, 10]">
-              <div
-                class="flex q-pa-md"
-                :style="$q.screen.width > 450 ? 'flex-direction: row; flex-wrap: nowrap' : 'flex-direction: column-reverse'"
-              >
-                <div class="column">
-                  <div class="text-h6 q-mb-md">Settings</div>
-                  <q-toggle
-                    v-model="flags.connectOnStart"
-                    @click="toggleConnectOnStart"
-                    label="Connect on page load"
-                  ></q-toggle>
-                  <q-toggle
-                    v-model="flags.autoReconnect"
-                    @click="toggleAutoReconnect"
-                    label="Auto-reconnect"
-                  ></q-toggle>
-                  <q-toggle
-                    v-model="flags.installFromFile"
-                    @click="toggleInstallFromFile"
-                    label="3rd party firmware install"
-                  ></q-toggle>
-                </div>
-
-                <q-separator vertical inset class="q-mx-lg"></q-separator>
-
-                <div class="column items-center">
-                  <q-avatar size="72px" square>
-                    <img v-if="info.hardware_color === '1'" src="../assets/flipper_black.svg"/>
-                    <img v-else src="../assets/flipper_white.svg"/>
-                  </q-avatar>
-
-                  <div class="row items-center q-mb-sm">
-                    <div class="text-subtitle1" style="margin-right: 6px">{{ info.hardware_name }}</div>
-                    <q-icon
-                      :name="batteryIcon"
-                      size="20px"
-                      class="rotate-90"
-                      :color="batteryColor"
-                    ></q-icon>
-                  </div>
-
-                  <q-btn
-                    color="primary"
-                    label="Disconnect"
-                    size="sm"
-                    v-close-popup
-                    outline
-                    @click="disconnect"
-                  ></q-btn>
-                </div>
-              </div>
-            </q-menu>
-          </q-btn>
-          <div v-else style="margin: 0 0.85rem">{{ connectionStatus }}</div>
-        </template>
 
         <q-btn
           v-if="$q.screen.width <= 750"
@@ -114,7 +41,6 @@
           </q-menu>
         </q-btn>
         <template v-else>
-          <q-separator v-if="flags.serialSupported" dark vertical inset class="q-mx-lg"></q-separator>
           <div class="nav-links">
             <a v-for="link in extLinks"
               :key="link.title"
@@ -128,38 +54,174 @@
 
     <q-drawer
       v-model="leftDrawer"
-      show-if-above
-      :mini="miniState"
-      @mouseover="miniState = false"
-      @mouseout="miniState = true"
-      mini-to-overlay
-      bordered
-      :width="180"
-      :breakpoint="750"
+      class="bg-grey-2"
+      style="overflow-x: hidden"
+      :width="175"
+      :breakpoint="900"
     >
-      <q-list>
-        <RouterLink
-          v-for="link in routes"
-          :key="link.title"
-          v-bind="link"
-        />
-        <q-item
-          clickable
-          class="absolute-bottom"
-          @click="flags.reportPopup = true"
-        >
-          <q-item-section avatar>
-            <q-icon name="info_outline"/>
-          </q-item-section>
+      <div
+        class="full-height relative-position"
+        style="width: 200%; display: grid; grid-template-rows: 1fr; grid-template-columns: 175px 175px; transition-duration: 300ms;"
+        :style="`left: ${flags.settingsView ? '-175px' : '0'}`"
+      >
+        <q-list style="width: 175px">
+          <RouterLink
+            v-for="link in routes"
+            :key="link.title"
+            v-bind="link"
+            class="q-px-lg q-py-md"
+          />
 
-          <q-item-section>
-            <q-item-label>View logs</q-item-label>
-          </q-item-section>
-        </q-item>
-      </q-list>
+          <div :class="$q.screen.height > 545 ? 'absolute-bottom' : ''" style="width: 175px">
+            <q-item
+              clickable
+              class="q-px-lg q-py-md"
+              @click="flags.settingsView = true"
+            >
+              <q-item-section avatar style="min-width: initial;">
+                <q-icon name="svguse:common-icons.svg#settings"/>
+              </q-item-section>
+
+              <q-item-section>
+                <q-item-label>Settings</q-item-label>
+              </q-item-section>
+            </q-item>
+            <q-separator style="width: 85%; margin: auto;"/>
+            <q-item
+              v-if="flags.portSelectRequired || !flags.connected && !flags.portSelectRequired"
+              clickable
+              class="q-px-md q-py-sm"
+              @click="flags.portSelectRequired ? selectPort() : start(true)"
+            >
+              <q-item-section avatar style="min-width: initial; position: relative; right: -3px;">
+                <q-icon name="svguse:common-icons.svg#connect" size="32px"/>
+              </q-item-section>
+
+              <q-item-section>
+                <q-item-label>Connect</q-item-label>
+              </q-item-section>
+            </q-item>
+            <q-item
+              v-else-if="this.info"
+              clickable
+              class="q-px-md q-py-sm"
+              @click="disconnect"
+            >
+              <q-item-section avatar style="min-width: initial; position: relative; right: -3px;">
+                <q-icon name="svguse:common-icons.svg#connected" size="32px"/>
+              </q-item-section>
+
+              <q-item-section>
+                <q-item-label>Connected</q-item-label>
+              </q-item-section>
+            </q-item>
+            <q-item
+              v-else
+              clickable
+              class="q-px-md q-py-sm"
+              @click="flags.portSelectRequired ? selectPort() : start(true)"
+            >
+              <q-item-section avatar style="min-width: initial; position: relative; right: -3px;">
+                <q-icon name="svguse:common-icons.svg#connect" size="32px"/>
+              </q-item-section>
+
+              <q-item-section>
+                <q-item-label>Connecting...</q-item-label>
+              </q-item-section>
+            </q-item>
+          </div>
+        </q-list>
+        <div class="relative-position flex justify-end" style="width: 175px">
+          <div class="column justify-end no-wrap">
+            <div class="column items-center">
+              <div v-if="info" class="flex justify-center q-px-md">
+                <img v-if="info.hardware_color === '1'" src="../assets/flipper_black.svg" style="width: 100%"/>
+                <img v-else src="../assets/flipper_white.svg" style="width: 100%"/>
+                <div class="flex full-width justify-between items-center q-mt-md q-mb-sm">
+                  <div style="font-size: 1rem; font-weight: 600;">{{ info.hardware_name }}</div>
+                  <div class="flex flex-center">
+                    <q-icon
+                      :name="batteryIcon"
+                      size="22px"
+                      class="rotate-90"
+                      :color="batteryColor"
+                    ></q-icon>
+                    <div class="q-ml-xs text-caption">{{ this.info.charge_level }}%</div>
+                  </div>
+                </div>
+
+                <div class="flex full-width justify-between items-center q-mt-sm q-mb-xs">
+                  <div>Internal used:</div>
+                  <div class="text-bold">{{ internalUsed }}%</div>
+                </div>
+                <q-linear-progress style="height: 8px; border-radius: 8px;" :value="internalUsed / 100" class="q-mb-sm"/>
+
+                <div class="flex full-width justify-between items-center q-mt-xs">
+                  <div>SD card used:</div>
+                  <div class="text-bold">{{ sdCardUsed }}%</div>
+                </div>
+                <q-linear-progress style="height: 8px; border-radius: 8px;" :value="Math.ceil(sdCardUsed/2)*2 / 100" class="q-mb-sm"/>
+              </div>
+
+              <div class="q-my-md q-px-md">
+                <q-toggle
+                  size="2.25rem"
+                  dense
+                  class="q-my-sm"
+                  v-model="flags.connectOnStart"
+                  @click="toggleConnectOnStart"
+                  label="Connect on load"
+                ></q-toggle>
+                <q-toggle
+                  size="2.25rem"
+                  dense
+                  class="q-my-sm"
+                  v-model="flags.autoReconnect"
+                  @click="toggleAutoReconnect"
+                  label="Auto reconnect"
+                ></q-toggle>
+                <q-toggle
+                  size="2.25rem"
+                  dense
+                  class="q-my-sm"
+                  v-model="flags.installFromFile"
+                  @click="toggleInstallFromFile"
+                  label="Third-party FW"
+                ></q-toggle>
+              </div>
+            </div>
+            <q-item
+              clickable
+              class="q-px-lg q-py-sm"
+              @click="flags.logsPopup = true"
+            >
+              <q-item-section avatar style="min-width: initial;">
+                <q-icon name="svguse:common-icons.svg#logs"/>
+              </q-item-section>
+
+              <q-item-section>
+                <q-item-label>View logs</q-item-label>
+              </q-item-section>
+            </q-item>
+            <q-item
+              clickable
+              class="q-px-lg q-py-sm"
+              @click="flags.settingsView = false"
+            >
+              <q-item-section avatar style="min-width: initial;">
+                <q-icon name="mdi-chevron-left" size="2rem" style="margin-left: -4px; margin-right: -4px;"/>
+              </q-item-section>
+
+              <q-item-section>
+                <q-item-label>Back</q-item-label>
+              </q-item-section>
+            </q-item>
+          </div>
+        </div>
+      </div>
     </q-drawer>
 
-    <q-page-container>
+    <q-page-container class="flex justify-center">
       <router-view
         v-if="!flags.connectionRequired || flags.updateInProgress || (flags.serialSupported && info !== null && this.info.storage_databases_present)"
         :flipper="flipper"
@@ -206,7 +268,7 @@
           </p>
         </div>
       </q-page>
-      <q-dialog v-model="flags.reportPopup">
+      <q-dialog v-model="flags.logsPopup">
         <q-card>
           <q-card-section class="row items-center q-pb-none">
             <div class="text-h6">Logs</div>
@@ -216,8 +278,12 @@
 
           <q-card-section>
             <p>You can report bugs <a href="https://forum.flipperzero.one/c/web-app/22" target="blank_">here</a>. Attached logs may be helpful.</p>
-            <q-scroll-area style="height: 300px; min-width: 280px; width: calc(min(80vw, 500px));" class="bg-grey-12 q-px-sm q-py-xs rounded-borders">
+            <q-scroll-area
+              style="height: 300px; min-width: 280px; width: calc(min(80vw, 500px));"
+              class="bg-grey-12 q-px-sm q-py-xs rounded-borders"
+            >
               <code>
+                <span v-if="!history.length">Logs will appear here...</span>
                 <span v-for="line in history" :key="line.timestamp">
                   {{ `${line.time.padEnd(8)} [${line.level.toUpperCase()}] ${line.message}` }}
                   <br />
@@ -263,70 +329,75 @@ export default defineComponent({
     return {
       routes: [
         {
-          title: 'Device',
-          icon: 'memory',
+          title: 'My Flipper',
+          icon: 'svguse:common-icons.svg#device',
           link: '/'
         },
         {
-          title: 'Archive',
-          icon: 'inventory',
+          title: 'Apps',
+          icon: 'svguse:common-icons.svg#apps',
+          link: '/apps'
+        },
+        {
+          title: 'Files',
+          icon: 'svguse:common-icons.svg#files',
           link: '/archive'
         },
         {
           title: 'CLI',
-          icon: 'terminal',
+          icon: 'svguse:common-icons.svg#cli',
           link: '/cli'
         },
         {
           title: 'NFC tools',
-          icon: 'mdi-nfc-variant',
+          icon: 'svguse:common-icons.svg#nfctools',
           link: '/nfc-tools'
         },
         {
           title: 'Paint',
-          icon: 'draw',
+          icon: 'svguse:common-icons.svg#paint',
           link: '/paint'
         },
         {
-          title: 'Pulse plotter',
-          icon: 'equalizer',
+          title: 'Radio tools',
+          icon: 'svguse:common-icons.svg#subtools',
           link: '/pulse-plotter'
         }
       ],
       extLinks: [
         {
           title: 'Home',
-          icon: 'open_in_new',
+          icon: 'mdi-home-outline',
           link: 'https://flipperzero.one/'
         },
         {
           title: 'Shop',
-          icon: 'open_in_new',
+          icon: 'mdi-cart-outline',
           link: 'https://shop.flipperzero.one/'
         },
         {
-          title: 'FAQ',
-          icon: 'open_in_new',
-          link: 'https://flipperzero.one/faq/'
+          title: 'Docs',
+          icon: 'mdi-book-open-variant',
+          link: 'https://docs.flipperzero.one/'
         },
         {
           title: 'Blog',
-          icon: 'open_in_new',
+          icon: 'mdi-newspaper-variant-outline',
           link: 'https://blog.flipperzero.one/'
         },
         {
           title: 'Forum',
-          icon: 'open_in_new',
+          icon: 'mdi-forum-outline',
           link: 'https://forum.flipperzero.one/'
         }
       ],
       canLoadWithoutFlipper: [
         'remote-cli',
-        'pulse-plotter'
+        'pulse-plotter',
+        'apps'
       ],
-      leftDrawer: ref(false),
+      leftDrawer: ref(true),
       linksMenu: ref(false),
-      miniState: ref(true),
       flipper: ref(flipper),
       info: ref(null),
       flags: ref({
@@ -339,7 +410,8 @@ export default defineComponent({
         autoReconnect: false,
         updateInProgress: false,
         installFromFile: false,
-        reportPopup: false
+        logsPopup: false,
+        settingsView: false
       }),
       reconnectLoop: ref(null),
       connectionStatus: ref('Ready to connect'),
@@ -367,7 +439,21 @@ export default defineComponent({
       } else if (charge >= 30) {
         return 'warning'
       }
-      return 'negativee'
+      return 'negative'
+    },
+    sdCardUsed () {
+      if (this.info.storage_sdcard_freeSpace) {
+        return 100 - Math.floor(this.info.storage_sdcard_freeSpace / (this.info.storage_sdcard_totalSpace / 100))
+      } else {
+        return 1
+      }
+    },
+    internalUsed () {
+      if (this.info.storage_internal_freeSpace) {
+        return 100 - Math.floor(this.info.storage_internal_freeSpace / (this.info.storage_internal_totalSpace / 100))
+      } else {
+        return 1
+      }
     }
   },
 
@@ -485,6 +571,7 @@ export default defineComponent({
       for (const line of res) {
         this.info[line.key] = line.value
       }
+
       await asyncSleep(300)
       res = await this.flipper.commands.storage.list('/ext')
         .catch(error => this.rpcErrorHandler(error, 'storage.list'))
@@ -510,11 +597,25 @@ export default defineComponent({
               message: 'Main: storage.info: /ext'
             })
           })
-        this.info.storage_sdcard_present = Math.floor(res.freeSpace / (res.totalSpace / 100)) + '% free'
+        this.info.storage_sdcard_present = 'installed'
+        this.info.storage_sdcard_totalSpace = res.totalSpace
+        this.info.storage_sdcard_freeSpace = res.freeSpace
       } else {
         this.info.storage_sdcard_present = 'missing'
         this.info.storage_databases_present = 'missing'
       }
+
+      await asyncSleep(200)
+      res = await this.flipper.commands.storage.info('/int')
+        .catch(error => this.rpcErrorHandler(error, 'storage.info'))
+        .finally(() => {
+          this.$emit('log', {
+            level: 'debug',
+            message: 'Main: storage.info: /int'
+          })
+        })
+      this.info.storage_internal_totalSpace = res.totalSpace
+      this.info.storage_internal_freeSpace = res.freeSpace
       this.log({
         level: 'info',
         message: 'Main: Fetched device info'
@@ -683,8 +784,11 @@ export default defineComponent({
   async mounted () {
     this.checkConnectionRequirement()
     if ('serial' in navigator) {
-      if (localStorage.getItem('connectOnStart') !== 'false' && this.flags.connectionRequired) {
-        await this.start()
+      if (localStorage.getItem('connectOnStart') !== 'false') {
+        this.flags.connectOnStart = true
+        if (this.flags.connectionRequired) {
+          await this.start()
+        }
       } else {
         this.flags.connectOnStart = false
       }
@@ -693,6 +797,12 @@ export default defineComponent({
       }
       if (localStorage.getItem('installFromFile') === 'true') {
         this.flags.installFromFile = true
+      }
+      if (localStorage.getItem('dev') !== 'true') {
+        const i = this.routes.findIndex(e => e.title === 'Apps')
+        if (i > -1) {
+          this.routes.splice(i, 1)
+        }
       }
       navigator.serial.addEventListener('disconnect', e => {
         this.autoReconnect()
