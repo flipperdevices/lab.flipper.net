@@ -146,6 +146,10 @@ export default defineComponent({
       }
       const text = new TextDecoder().decode(buffer).split(/\r?\n/)
 
+      if (text[0].startsWith('RIFL')) {
+        return this.processRfid(new Uint8Array(buffer))
+      }
+
       switch (text[0]) {
         case 'Filetype: Flipper SubGhz RAW File':
           return this.processSubGhz(text)
@@ -226,6 +230,65 @@ export default defineComponent({
 
       this.signals = signals
       this.currentSignal = signals[0]
+    },
+
+    processRfid (data) {
+      function sliceView (from, to) {
+        const view = new DataView(new ArrayBuffer(to - from))
+        data.slice(from, to).reverse().forEach((b, i) => {
+          view.setUint8(i, b)
+        })
+        return view
+      }
+
+      const header = {
+        magic: sliceView(0, 4).getUint32(),
+        version: sliceView(4, 8).getUint32(),
+        frequency: sliceView(8, 12).getFloat32(0),
+        dutyCycle: sliceView(12, 16).getFloat32(0),
+        maxBufferSize: sliceView(16, 20).getUint32()
+      }
+      console.log(header)
+
+      function readVarInt (buffer) {
+        let value = 0
+        let length = 0
+        let currentByte
+
+        while (true) {
+          currentByte = buffer[length]
+          value |= (currentByte & 0x7F) << (length * 7)
+          length += 1
+          if (length > 5) {
+            throw new Error('VarInt exceeds allowed bounds.')
+          }
+          if ((currentByte & 0x80) !== 0x80) break
+        }
+        return { value, length }
+      }
+
+      let dataOffset = 20, bufferSize = sliceView(dataOffset, dataOffset + 4).getUint32()
+      const varints = []
+      if (bufferSize > header.maxBufferSize) {
+        throw new Error(`Buffer size (${bufferSize}) exceeds max_buffer_size (${header.maxBufferSize})`)
+      }
+      while (data.length > dataOffset) {
+        const buffer = data.slice(dataOffset, dataOffset + bufferSize)
+        let bufferOffset = 4
+        while (bufferOffset < buffer.length) {
+          const varint = readVarInt(buffer.slice(bufferOffset))
+          bufferOffset += varint.length
+          varints.push(varint.value)
+        }
+        dataOffset += bufferSize + 4
+        bufferSize = sliceView(dataOffset, dataOffset + 4).getUint32()
+      }
+
+      this.data = {
+        centerfreq_Hz: header.frequency,
+        pulses: varints
+      }
+      this.draw()
     },
 
     draw () {
