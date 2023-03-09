@@ -140,6 +140,9 @@ class Pulseplot {
         @param {string|Object} [options.theme] - Theme name or options, see {@link setTheme}
     */
   constructor (options = {}) {
+    this.offscreen = this.canvasNode.transferControlToOffscreen()
+    this.worker = new Worker(new URL('./worker.js', import.meta.url))
+    this.worker.postMessage({ message: 'getCanvas', canvas: this.offscreen }, [this.offscreen])
     this.constrain = {
       histogram: value => parseInt(value, 10) || 0,
       slicer: value => lookup(Slicers, value) || '',
@@ -354,6 +357,7 @@ class Pulseplot {
         Release all event handlers and resources.
     */
   destroy () {
+    this.worker.terminate()
     // this.dropZone?.destroy() // if we had optional chaining
     if (this.dropZone) {
       this.dropZone.destroy()
@@ -534,7 +538,8 @@ class Pulseplot {
   }
 
   get canvasNode () {
-    return this.parent.getElementsByClassName('pulseplot-canvas')[0] || this.parent.getElementsByTagName('canvas')[0]
+    // return this.parent.getElementsByClassName('pulseplot-canvas')[0] || this.parent.getElementsByTagName('canvas')[0]
+    return document.querySelector('.pulseplot-canvas')
   }
 
   get fileinfoNode () {
@@ -609,7 +614,7 @@ class Pulseplot {
 
     // zoom (y)
     const zoomMin = 0.5
-    const zoomMax = this.data.width / this.width * 10 > 2048 ? 2048 : this.data.width / this.width * 10
+    const zoomMax = this.data.width / this.width * 10 > 4096 ? 4096 : this.data.width / this.width * 10
 
     let zoom
     if (e.deltaY < 0) {
@@ -790,313 +795,85 @@ class Pulseplot {
     this.redrawCanvas()
   }
 
+  getWorkerContext () {
+    if (!this.data) {
+      return
+    }
+    const workerContext = {
+      width: this.width,
+      height: this.height,
+      scroll: this.scroll,
+      zoom: this.zoom,
+      yHi: this.yHi,
+      yLo: this.yLo,
+      yHintLo: this.yHintLo,
+      yHintHi: this.yHintHi,
+      data: {
+        width: this.data.width,
+        time: this.data.time,
+        format: this.data.format,
+        mod: this.data.mod,
+        pulses: this.data.pulses ? JSON.parse(JSON.stringify(this.data.pulses)) : undefined,
+        rate_Hz: this.data.rate_Hz,
+        samplerate_Hz: this.data.samplerate_Hz,
+        rate: this.data.rate,
+        samplerate: this.data.samplerate,
+        freq_Hz: this.data.freq_Hz,
+        centerfreq_Hz: this.data.centerfreq_Hz,
+        centerfreq: this.data.centerfreq,
+        freq1_Hz: this.data.freq1_Hz,
+        freq1: this.data.freq1,
+        freq2_Hz: this.data.freq2_Hz,
+        freq2: this.data.freq2,
+        range_dB: this.data.range_dB,
+        range: this.data.range,
+        rssi_dB: this.data.rssi_dB,
+        rssi: this.data.rssi,
+        snr_dB: this.data.snr_dB,
+        snr: this.data.snr,
+        noise_dB: this.data.noise_dB,
+        noise: this.data.noise,
+        hints: this.data.hints ? JSON.parse(JSON.stringify(this.data.hints)) : undefined
+      },
+      theme: {
+        font: this.theme.font,
+        timeLabelFill: this.theme.timeLabelFill,
+        timeMinorFill: this.theme.timeMinorFill,
+        timeMajorFill: this.theme.timeMajorFill,
+        hiLine: this.theme.hiLine,
+        hiStroke: this.theme.hiStroke,
+        hiDash: JSON.parse(JSON.stringify(this.theme.hiDash)),
+        hiFill: this.theme.hiFill,
+        loLine: this.theme.loLine,
+        loStroke: this.theme.loStroke,
+        loDash: JSON.parse(JSON.stringify(this.theme.loDash)),
+        loFill: this.theme.loFill,
+        hintLine: this.theme.hintLine,
+        hintStroke: this.theme.hintStroke,
+        hintDash: JSON.parse(JSON.stringify(this.theme.hintDash)),
+        hintAltLine: this.theme.hintAltLine,
+        hintAltStroke: this.theme.hintAltStroke,
+        hintAltDash: JSON.parse(JSON.stringify(this.theme.hintAltDash)),
+        hintFill: this.theme.hintFill,
+        edgeLine: this.theme.edgeLine,
+        edgeStroke: this.theme.edgeStroke,
+        edgeDash: JSON.parse(JSON.stringify(this.theme.edgeDash)),
+        textFill: this.theme.textFill,
+        dotFill: this.theme.dotFill
+      }
+    }
+    return workerContext
+  }
+
   redrawCanvas () {
-    window.requestAnimationFrame(this.drawCanvas.bind(this))
+    if (!this.getWorkerContext()) {
+      return
+    }
+    this.worker.postMessage({ message: 'redrawCanvas', context: this.getWorkerContext() })
   }
 
   drawCanvas () {
-    this.width = this.opts.width || this.parent.clientWidth
-    // this.width = this.opts.width || document.documentElement.clientWidth
-    const width = this.width
-    const height = this.height
-
-    const canvas = this.canvasNode
-    canvas.width = width
-    canvas.height = height
-    // canvas.style.width = canvas.width + 'px'
-    // canvas.parentNode.style.width = canvas.width + 'px'
-    // canvas.style.height = canvas.height + 'px'
-    const ctx = canvas.getContext('2d', {
-      alpha: false,
-      desynchronized: true
-    })
-
-    if (this.scroll <= -10) {
-      this.scroll = -10
-    } else if (this.scroll > width * this.zoom) {
-      this.scroll = width * this.zoom
-    }
-
-    const scroll = -this.scroll
-    const scale = width * this.zoom / this.data.width
-    const yHi = this.yHi + 0.5
-    const yLo = this.yLo + 0.5
-
-    ctx.fillStyle = '#ffffff'
-    ctx.fillRect(0, 0, canvas.width, canvas.height)
-
-    // time axis
-    ctx.font = this.theme.font
-    const textMeasure = ctx.measureText('8')
-    const fontX = textMeasure.width
-    const fontY = textMeasure.actualBoundingBoxAscent + textMeasure.actualBoundingBoxDescent
-
-    const total_time = this.data.width / 1000000 / this.zoom
-    const time_offset = scroll / width * total_time
-    const time_scale = autorange(total_time, 10.0)
-    const total_time_scaled = total_time / time_scale.scale
-    const time_offset_scaled = time_offset / time_scale.scale
-
-    ctx.fillStyle = this.theme.timeLabelFill
-    ctx.fillText(`t[${time_scale.prefix}s]`, 32, fontY)
-
-    // extra info
-    if (this.data.time) { ctx.fillText(`${this.data.time}`, 100, fontY) }
-    if (this.data.format || this.data.mod) { ctx.fillText(`${(this.data.format || this.data.mod).toUpperCase()}`, 300, fontY) }
-    if (this.data.pulses) { ctx.fillText(`${this.data.pulses.length / 2} pulses`, 330, fontY) }
-    const rate_Hz = this.data.rate_Hz || this.data.samplerate_Hz || this.data.rate || this.data.samplerate
-    if (rate_Hz) {
-      const scale = autorange(rate_Hz, 10.0)
-      ctx.fillText(`${rate_Hz / scale.scale} ${scale.prefix}Hz`, 400, fontY)
-    }
-    const freq_Hz = this.data.freq_Hz || this.data.centerfreq_Hz || this.data.centerfreq
-    const freq1_Hz = this.data.freq1_Hz || this.data.freq1
-    if (freq1_Hz) {
-      const scale = autorange(freq1_Hz, 10.0)
-      ctx.fillText(`${(freq1_Hz / scale.scale).toFixed(3)} ${scale.prefix}Hz`, 500, fontY)
-    }
-    if (freq_Hz && freq1_Hz) {
-      ctx.fillStyle = this.theme.timeMinorFill
-      ctx.fillRect(700, ~~(fontY / 2), 100, 1)
-      ctx.fillStyle = this.theme.timeLabelFill
-
-      const fr = (freq1_Hz - this.data.freq_Hz) * 100 / rate_Hz + 50
-      ctx.lineWidth = this.theme.hiLine
-      ctx.strokeStyle = this.theme.hiStroke
-      ctx.beginPath()
-      ctx.moveTo(700 + fr, 0)
-      ctx.lineTo(700 + fr, fontY)
-      ctx.stroke()
-    }
-    const freq2_Hz = this.data.freq2_Hz || this.data.freq2
-    if (freq2_Hz) {
-      const scale = autorange(freq2_Hz, 10.0)
-      ctx.fillText(`${(freq2_Hz / scale.scale).toFixed(3)} ${scale.prefix}Hz`, 600, fontY)
-    }
-    if (freq_Hz && freq2_Hz) {
-      const fr = (freq2_Hz - this.data.freq_Hz) * 100 / rate_Hz + 50
-      ctx.lineWidth = this.theme.loLine
-      ctx.strokeStyle = this.theme.loStroke
-      ctx.beginPath()
-      ctx.moveTo(700 + fr, 0)
-      ctx.lineTo(700 + fr, fontY)
-      ctx.stroke()
-    }
-    const range_dB = this.data.range_dB || this.data.range || 66
-    const rssi_dB = this.data.rssi_dB || this.data.rssi
-    const snr_dB = this.data.snr_dB || this.data.snr
-    const noise_dB = this.data.noise_dB || this.data.noise
-    if (rssi_dB && snr_dB && noise_dB) {
-      ctx.lineWidth = 1
-      ctx.strokeStyle = this.theme.loStroke
-      ctx.beginPath()
-      ctx.moveTo(900, fontY)
-      ctx.lineTo(1000, fontY)
-      ctx.stroke()
-
-      ctx.lineWidth = this.theme.hiLine
-      ctx.strokeStyle = this.theme.hiStroke
-      ctx.beginPath()
-      ctx.moveTo(1000 + noise_dB * 100 / range_dB, fontY)
-      ctx.lineTo(1000 + rssi_dB * 100 / range_dB, fontY)
-      ctx.stroke()
-
-      ctx.fillText(`RSSI ${noise_dB.toFixed(1)} ${snr_dB.toFixed(1)} ${rssi_dB.toFixed(1)} dB`, 900, fontY)
-    }
-
-    // want a time marker for about every 85 pixels
-    const num_time_markers = width / 85
-    let time_markers_step = total_time_scaled / num_time_markers
-    // round to 5
-    time_markers_step = ~~(time_markers_step / 5) * 5
-    if (time_markers_step < 1.0) time_markers_step = 1.0
-
-    const time_per_pixel = width / total_time_scaled
-    // console.log({ time_offset_scaled, total_time_scaled, time_markers_step, time_per_pixel })
-
-    const y = 18
-    ctx.fillStyle = this.theme.timeMinorFill
-    for (let t = time_offset_scaled; t < total_time_scaled; t += time_markers_step / 5) {
-      if (t >= total_time_scaled - time_markers_step) { t = total_time_scaled }
-      const x = ~~(t * time_per_pixel)
-      ctx.fillRect(x, y + 10, 1, 5)
-    }
-
-    ctx.fillStyle = this.theme.timeMajorFill
-    for (let t = time_offset_scaled; t < total_time_scaled; t += time_markers_step) {
-      if (t >= total_time_scaled - time_markers_step) { t = total_time_scaled }
-      const x = ~~(t * time_per_pixel)
-      ctx.fillRect(x, y + 5, 1, 10)
-
-      const label = (t - time_offset_scaled).toFixed(0)
-      let x1 = x - 3 * label.length
-      if (t >= total_time_scaled) { x1 = x - 6 * fontX }
-      // ctx.fillText(`${t.toFixed(0)}${time_scale.prefix}s`, x1, 18)
-      ctx.fillText(label, x1, 20)
-    }
-
-    // hints
-    ctx.lineWidth = this.theme.hintLine
-    ctx.strokeStyle = this.theme.hintStroke
-    ctx.setLineDash(this.theme.hintDash)
-    ctx.beginPath()
-    let xp // previous hint (end)
-    for (let j = 0; this.data.hints && j < this.data.hints.length; j += 1) {
-      const hint = this.data.hints[j]
-      const x0 = hint[0] * scale + scroll // start pos
-      const x1 = hint[1] * scale + scroll // end pos
-      if (xp !== x0 && x0 >= 0 && x0 < width) {
-        ctx.moveTo(~~x0 - 0.5, this.yHintLo - 0.5)
-        ctx.lineTo(~~x0 - 0.5, this.yHintHi + 0.5)
-      }
-      if (x1 >= 0 && x1 < width) {
-        ctx.moveTo(~~x1 - 0.5, this.yHintLo - 0.5)
-        ctx.lineTo(~~x1 - 0.5, this.yHintHi + 0.5)
-      }
-      xp = x1
-    }
-    ctx.stroke()
-    ctx.setLineDash([])
-
-    // alt (error) hints
-    ctx.lineWidth = this.theme.hintAltLine
-    ctx.strokeStyle = this.theme.hintAltStroke
-    ctx.setLineDash(this.theme.hintAltDash)
-    ctx.beginPath()
-    xp = null // previous hint (end)
-    for (let j = 0; this.data.hints && j < this.data.hints.length; j += 1) {
-      const hint = this.data.hints[j]
-      const x0 = hint[0] * scale + scroll // start pos
-      const x1 = hint[1] * scale + scroll // end pos
-      if (xp !== x0) {
-        if (xp && xp >= 0 && xp < width) {
-          ctx.moveTo(~~xp - 0.5, this.yHintLo - 0.5)
-          ctx.lineTo(~~xp - 0.5, this.yHintHi + 0.5)
-        }
-        if (x0 >= 0 && x0 < width) {
-          ctx.moveTo(~~x0 - 0.5, this.yHintLo - 0.5)
-          ctx.lineTo(~~x0 - 0.5, this.yHintHi + 0.5)
-        }
-      }
-      xp = x1
-    }
-    ctx.stroke()
-    ctx.setLineDash([])
-
-    // hints text
-    ctx.fillStyle = this.theme.hintFill
-    ctx.beginPath()
-    for (let j = 0; this.data.hints && j < this.data.hints.length; j += 1) {
-      const hint = this.data.hints[j]
-      const x0 = hint[0] * scale + scroll // start pos
-      const x1 = hint[1] * scale + scroll // end pos
-      const t = hint[2] // text
-      const w = x1 - x0
-      if (w > fontX) {
-        const xt = x0 + w / 2
-        if (xt >= 0 && xt < width) { ctx.fillText(t, xt - 5, this.yHintText) }
-      }
-    }
-    ctx.stroke()
-
-    if (!this.data.pulses || !this.data.pulses.length) return
-    let pulses = this.data.pulses, shrinkRate = 1
-    if (this.zoom < 10 && this.data.pulses.length > this.width) {
-      pulses = []
-      shrinkRate = Math.ceil(this.data.pulses.length / this.width)
-      for (let i = 0; i < this.width; i++) {
-        pulses.push(this.data.pulses[i * shrinkRate])
-      }
-    }
-
-    // marks
-    let x = scroll
-    ctx.lineWidth = this.theme.hiLine
-    ctx.strokeStyle = this.theme.hiStroke
-    ctx.setLineDash(this.theme.hiDash)
-    ctx.fillStyle = this.theme.hiFill
-    ctx.beginPath()
-    for (let j = 0; j < pulses.length; j += 2) {
-      const x0 = x
-      x += pulses[j] * scale * shrinkRate // mark
-      if ((x0 >= 0 && x0 < width) || (x >= 0 && x < width) || (x0 < 0 && x > width)) {
-        ctx.fillRect(~~x0, yHi, ~~(x - x0), yLo - yHi)
-        ctx.moveTo(~~x0 - 1, yHi)
-        ctx.lineTo(~~x + 0, yHi)
-      }
-      x += pulses[j + 1] * scale * shrinkRate // space
-    }
-    ctx.stroke()
-
-    // spaces
-    x = scroll
-    ctx.lineWidth = this.theme.loLine
-    ctx.strokeStyle = this.theme.loStroke
-    ctx.setLineDash(this.theme.loDash)
-    ctx.fillStyle = this.theme.loFill
-    ctx.beginPath()
-    for (let j = 0; j < this.data.pulses.length; j += 2) {
-      x += pulses[j] * scale * shrinkRate // mark
-      const x0 = x
-      x += pulses[j + 1] * scale * shrinkRate // space
-      if ((x0 >= 0 && x0 < width) || (x >= 0 && x < width) || (x0 < 0 && x > width)) {
-        ctx.fillRect(~~x0, yHi, ~~(x - x0), yLo - yHi)
-        ctx.moveTo(~~x0 - 1, yLo)
-        ctx.lineTo(~~x + 0, yLo)
-      }
-    }
-    ctx.stroke()
-
-    // edges
-    x = scroll
-    ctx.lineWidth = this.theme.edgeLine
-    ctx.strokeStyle = this.theme.edgeStroke
-    ctx.setLineDash(this.theme.edgeDash)
-    ctx.beginPath()
-    for (let j = 0; j < pulses.length; j += 1) {
-      if (x >= 0 && x < width) {
-        ctx.moveTo(~~x - 0.5, yLo - 0.5)
-        ctx.lineTo(~~x - 0.5, yHi + 0.5)
-      }
-      x += pulses[j] * scale * shrinkRate // mark or space
-    }
-    ctx.stroke()
-
-    // text
-    x = scroll
-    ctx.fillStyle = this.theme.textFill
-    const textY = yHi + (yLo - yHi + fontY) / 2
-    for (let j = 0; j < pulses.length; j += 1) {
-      const p = pulses[j] // mark or space
-      const w = p * scale * shrinkRate
-      if (w > 30) {
-        const x0 = x + w / 2
-        if (x0 >= 0 && x0 < width) { ctx.fillText(p, x0 - 10, textY) }
-      }
-      x += w
-    }
-
-    // dots
-    const rate = 1000000 / this.data.rate * scale
-    x = scroll
-    if (rate > 2) {
-      const dotW = rate > 4 ? 2 : 1
-      ctx.fillStyle = this.theme.dotFill
-      for (let j = 0; j < this.data.pulses.length; j += 2) {
-        const mark = this.data.pulses[j] * scale // mark
-        for (let k = 0; k < mark - rate; k += rate) {
-          const x0 = ~~(x + k)
-          if (x0 >= 0 && x0 < width) { ctx.fillRect(x0, yHi + 0.5, dotW, 3) }
-        }
-        x += mark
-        const space = this.data.pulses[j + 1] * scale // space
-        for (let k = 0; k < space - rate; k += rate) {
-          const x0 = ~~(x + k)
-          if (x0 >= 0 && x0 < width) { ctx.fillRect(x0, yLo - 3.5, dotW, 3) }
-        }
-        x += space
-      }
-    }
+    this.worker.postMessage({ message: 'drawCanvas', context: this.getWorkerContext() })
   }
 }
 
