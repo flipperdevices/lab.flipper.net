@@ -24,6 +24,9 @@
     />
 
     <div class="pulseplot fit" v-show="!flags.wrongFileType">
+      <q-scroll-area class="scroll-area">
+        <div class="control-layer"></div>
+      </q-scroll-area>
       <canvas class="pulseplot-canvas" style="image-rendering: pixelated;"></canvas>
       <div v-show="plot" class="flex q-py-sm">
         <q-select
@@ -73,6 +76,7 @@
 
 <script>
 import { defineComponent, ref } from 'vue'
+import { Pulseplot as PulseplotOffscreen } from '../pulseplot/pulseplot-offscreen'
 import { Pulseplot } from '../pulseplot/pulseplot'
 
 export default defineComponent({
@@ -85,7 +89,8 @@ export default defineComponent({
   setup () {
     return {
       flags: ref({
-        wrongFileType: false
+        wrongFileType: false,
+        offscreenCanvasSupported: true
       }),
       uploadedFile: ref(null),
       plot: ref(null),
@@ -292,11 +297,16 @@ export default defineComponent({
     },
 
     draw () {
-      this.plot = new Pulseplot({
+      const config = {
         parent: '.pulseplot',
         data: this.data,
         height: 300
-      })
+      }
+      if (this.flags.offscreenCanvasSupported) {
+        this.plot = new PulseplotOffscreen(config)
+      } else {
+        this.plot = new Pulseplot(config)
+      }
       this.plot.enableScrollZoom()
       if (this.plot.slicer.name !== 'No clue...' && this.plot.slicer.modulation) {
         this.slicer.modulation = this.plot.slicer.modulation
@@ -317,6 +327,20 @@ export default defineComponent({
     if (this.passedFile) {
       this.switchFiletype(this.passedFile.data, true)
     }
+    if (typeof OffscreenCanvas !== 'undefined') {
+      this.flags.offscreenCanvasSupported = true
+    } else {
+      this.flags.offscreenCanvasSupported = false
+    }
   }
 })
 </script>
+
+<style lang="sass" scoped>
+.scroll-area
+  width: 100%
+  height: 316px
+  position: absolute
+  .control-layer
+    height: 316px
+</style>
