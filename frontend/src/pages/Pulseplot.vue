@@ -156,10 +156,7 @@ export default defineComponent({
   computed: {
     zoomLimit () {
       const min = 1
-      let max = 2048
-      if (this.flags.offscreenCanvasSupported) {
-        max = 4096
-      }
+      const max = 2048
       return { min, max }
     }
   },
