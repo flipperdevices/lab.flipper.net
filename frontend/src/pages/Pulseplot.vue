@@ -1,6 +1,6 @@
 <template>
   <q-page class="column no-wrap items-center q-pa-md full-width">
-    <div class="text-h6">Sub-GHz/Infrared pulse plotter</div>
+    <div class="text-h6">Raw Sub-GHz/Infrared/RFID pulse plotter</div>
     <q-file
       outlined
       v-model="uploadedFile"
@@ -12,7 +12,7 @@
         <q-icon name="file_upload"></q-icon>
       </template>
     </q-file>
-    <p v-if="flags.wrongFileType">Wrong file type. Only <b>SubGhz RAW</b> and <b>Infrared RAW</b> files are accepted.</p>
+    <p v-if="flags.wrongFileType">Wrong file type. Only <b>SubGhz RAW</b>, <b>Infrared RAW</b> and <b>RFID RAW</b> files are accepted.</p>
 
     <q-select
       v-if="currentSignal"
