@@ -23,11 +23,24 @@
       style="min-width: 200px;"
     />
 
-    <div class="pulseplot fit" v-show="!flags.wrongFileType">
-      <q-scroll-area class="scroll-area">
-        <div class="control-layer"></div>
+    <div class="pulseplot fit position-relative" v-show="!flags.wrongFileType">
+      <q-scroll-area ref="scrollAreaRef" v-if="plot" visible class="scroll-area" @scroll="scroll">
+        <div
+          class="control-layer"
+          :style="`width: ${Math.round(plot.width * plot.zoom + 20)}px`"
+        ></div>
       </q-scroll-area>
       <canvas class="pulseplot-canvas" style="image-rendering: pixelated;"></canvas>
+      <div v-if="plot" class="flex justify-end">
+        <div class="q-mr-md">
+          <div class="flex q-px-sm">
+            <q-btn flat dense icon="mdi-magnify-minus-outline" class="q-px-sm" @click="zoom({ mul: 0.5 })" :disable="plot.zoom <= zoomLimit.min"></q-btn>
+            <q-input dense outlined v-model="plot.zoom" style="width: 100px" label="Scale" class="q-mx-sm"/>
+            <q-btn flat dense icon="mdi-magnify-plus-outline" class="q-px-sm" @click="zoom({ mul: 2 })" :disable="plot.zoom >= zoomLimit.max"></q-btn>
+          </div>
+          <q-slider label switch-label-side v-model="sliderZoom" :min="zoomLimit.min" :max="zoomLimit.max" @change="zoom({ val: sliderZoom })"/>
+        </div>
+      </div>
       <div v-show="plot" class="flex q-py-sm">
         <q-select
           v-model="slicer.modulation"
@@ -113,7 +126,21 @@ export default defineComponent({
         'NRZI',
         'CMI',
         'PIWM'
-      ]
+      ],
+      scrollAreaRef: ref(null),
+      nextScrollPercentage: ref(null),
+      sliderZoom: ref(1)
+    }
+  },
+
+  computed: {
+    zoomLimit () {
+      const min = 0.5
+      let max = 2048
+      if (this.flags.offscreenCanvasSupported) {
+        max = 4096
+      }
+      return { min, max }
     }
   },
 
@@ -307,6 +334,7 @@ export default defineComponent({
       } else {
         this.plot = new Pulseplot(config)
       }
+      // console.log(this.plot)
       this.plot.enableScrollZoom()
       if (this.plot.slicer.name !== 'No clue...' && this.plot.slicer.modulation) {
         this.slicer.modulation = this.plot.slicer.modulation
@@ -320,6 +348,35 @@ export default defineComponent({
 
     setSlicer () {
       this.plot.setSlicer(this.slicer)
+    },
+
+    scroll (e) {
+      if (this.nextScrollPercentage) {
+        this.scrollAreaRef.setScrollPercentage('horizontal', this.nextScrollPercentage)
+        this.nextScrollPercentage = null
+        return
+      }
+      // console.log(`%: ${e.horizontalPercentage}, pos: ${e.horizontalPosition}, size: ${e.horizontalSize}, zoom: ${this.plot.zoom}`)
+      this.plot.scroll = e.horizontalPosition - 10
+      this.plot.redrawCanvas()
+    },
+
+    zoom ({ mul, val }) {
+      this.nextScrollPercentage = this.scrollAreaRef.getScroll().horizontalPercentage
+      let result
+      if (mul) {
+        result = this.plot.zoom * mul
+      } else if (val) {
+        result = val
+      }
+      if (result <= this.zoomLimit.min) {
+        this.plot.zoom = this.zoomLimit.min
+      } else if (result >= this.zoomLimit.max) {
+        this.plot.zoom = this.zoomLimit.max
+      } else {
+        this.plot.zoom = result
+      }
+      this.sliderZoom = result
     }
   },
 
@@ -338,7 +395,7 @@ export default defineComponent({
 
 <style lang="sass" scoped>
 .scroll-area
-  width: 100%
+  width: calc(100% - 32px)
   height: 316px
   position: absolute
   .control-layer

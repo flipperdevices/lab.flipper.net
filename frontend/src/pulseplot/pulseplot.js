@@ -609,7 +609,7 @@ class Pulseplot {
 
     // zoom (y)
     const zoomMin = 0.5
-    const zoomMax = this.data.width / this.width * 10 > 2000 ? 2000 : this.data.width / this.width * 10
+    const zoomMax = this.data.width / this.width * 10 > 2048 ? 2048 : this.data.width / this.width * 10
 
     let zoom
     if (e.deltaY < 0) {

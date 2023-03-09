@@ -615,7 +615,7 @@ class Pulseplot {
 
     // zoom (y)
     const zoomMin = 0.5
-    const zoomMax = this.data.width / this.width * 10 > 2000 ? 2000 : this.data.width / this.width * 10
+    const zoomMax = this.data.width / this.width * 10 > 4096 ? 4096 : this.data.width / this.width * 10
 
     let zoom
     if (e.deltaY < 0) {
@@ -818,7 +818,7 @@ class Pulseplot {
         time: this.data.time,
         format: this.data.format,
         mod: this.data.mod,
-        pulses: JSON.parse(JSON.stringify(this.data.pulses)),
+        pulses: this.data.pulses ? JSON.parse(JSON.stringify(this.data.pulses)) : undefined,
         rate_Hz: this.data.rate_Hz,
         samplerate_Hz: this.data.samplerate_Hz,
         rate: this.data.rate,
@@ -838,7 +838,7 @@ class Pulseplot {
         snr: this.data.snr,
         noise_dB: this.data.noise_dB,
         noise: this.data.noise,
-        hints: JSON.parse(JSON.stringify(this.data.hints))
+        hints: this.data.hints ? JSON.parse(JSON.stringify(this.data.hints)) : undefined
       },
       theme: {
         font: this.theme.font,
