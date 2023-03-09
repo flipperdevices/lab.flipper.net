@@ -297,7 +297,6 @@ class Pulseplot {
     return defaults
   }
 
-  // ! =================================================================================================
   /**
         Enables mouse and touch scroll zoom on double click.
     */
@@ -353,12 +352,12 @@ class Pulseplot {
     }
     events.forEach(evt => canvas.removeEventListener(evt, this, false))
   }
-  // ! =================================================================================================
 
   /**
         Release all event handlers and resources.
     */
   destroy () {
+    this.worker.terminate()
     // this.dropZone?.destroy() // if we had optional chaining
     if (this.dropZone) {
       this.dropZone.destroy()
@@ -795,10 +794,6 @@ class Pulseplot {
     // TODO: Y for zoom
     this.redrawCanvas()
   }
-
-  // ! =================================================================================================
-  // ! ====================================== this goes to worker ======================================
-  // ! =================================================================================================
 
   getWorkerContext () {
     if (!this.data) {
