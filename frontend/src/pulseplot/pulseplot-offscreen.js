@@ -394,7 +394,7 @@ class Pulseplot {
       const timings = this.timingsNode
       const messages = this.messagesNode
       this.analyzer.print(timings, messages)
-      console.log(slice.bits.toHexString())
+      // console.log(slice.bits.toHexString())
       if (messages) {
         messages.innerHTML += `<div>Bits: <strong>${slice.bits.toHexString()}</strong></div>`
       }
@@ -613,8 +613,8 @@ class Pulseplot {
     }
 
     // zoom (y)
-    const zoomMin = 0.5
-    const zoomMax = this.data.width / this.width * 10 > 4096 ? 4096 : this.data.width / this.width * 10
+    const zoomMin = 1
+    const zoomMax = this.data.width / this.width * 10 > 2048 ? 2048 : this.data.width / this.width * 10
 
     let zoom
     if (e.deltaY < 0) {
@@ -777,7 +777,7 @@ class Pulseplot {
     this.data.hints = slice.hints
     this.data.bits = slice.bits
     if (slice.bits) {
-      console.log(slice.bits.toHexString())
+      // console.log(slice.bits.toHexString())
       if (messages) {
         messages.innerHTML += `<div>Bits: <strong>${slice.bits.toHexString()}</strong></div>`
       }

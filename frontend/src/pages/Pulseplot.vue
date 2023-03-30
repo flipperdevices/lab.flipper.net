@@ -27,13 +27,17 @@
       <q-scroll-area
         ref="scrollAreaRef"
         v-if="plot"
-        :visible="!this.flags.dragging"
+        :visible="!flags.dragging && !nextVanityScroll.percentage"
+        :vertical-bar-style="{ display: 'none' }"
+        :vertical-thumb-style="{ display: 'none' }"
         class="scroll-area"
         @scroll="scroll"
       >
         <div
           class="control-layer"
-          :style="`width: ${Math.round(plot.width * plot.zoom + 20)}px; cursor: ${flags.dragging ? 'grabbing' : 'default'};`"
+          :style="`width: ${Math.round(plot.width * plot.zoom + 20)}px;
+            height: ${zoomLimit.max + 308}px;
+            cursor: ${flags.dragging ? 'grabbing' : 'default'};`"
           @mousedown="dragStart"
           @mouseup="dragEnd"
           @mousemove="drag"
@@ -141,6 +145,7 @@ export default defineComponent({
         'PIWM'
       ],
       scrollAreaRef: ref(null),
+      prevScroll: ref(null),
       nextVanityScroll: ref({
         percentage: null,
         position: null
@@ -352,6 +357,11 @@ export default defineComponent({
 
       if (this.plot) {
         this.plot.destroy()
+        this.prevScroll = null
+        this.nextVanityScroll = {
+          percentage: null,
+          position: null
+        }
         const oldCanvas = document.querySelector('.pulseplot-canvas')
         oldCanvas.remove()
         const canvas = document.createElement('canvas')
@@ -383,17 +393,32 @@ export default defineComponent({
     },
 
     scroll (e) {
+      // console.log(e)
       if (this.nextVanityScroll.percentage) {
         this.scrollAreaRef.setScrollPercentage('horizontal', this.nextVanityScroll.percentage)
         this.nextVanityScroll.percentage = null
-        return
       } else if (this.nextVanityScroll.position) {
-        this.scrollAreaRef.setScrollPosition('horizontal', this.nextVanityScroll.position)
         this.nextVanityScroll.position = null
+        this.prevScroll = e
+        this.plot.scroll = e.horizontalPosition - 10
+        this.plot.redrawCanvas()
+      } else if (!this.prevScroll) {
+        this.scrollAreaRef.setScrollPercentage('vertical', 1)
+        this.prevScroll = e
+      } else {
+        const dy = e.verticalPosition - this.prevScroll.verticalPosition
+        const dx = e.horizontalPosition - this.prevScroll.horizontalPosition
+        this.prevScroll = e
+        if (dx !== 0) {
+          this.plot.scroll = e.horizontalPosition - 10
+        }
+        if (dy !== 0 && dy !== this.zoomLimit.max) {
+          const val = (this.zoomLimit.max - e.verticalPosition) > 0 ? this.zoomLimit.max - e.verticalPosition : this.zoomLimit.min
+          this.zoom({ val })
+        } else {
+          this.plot.redrawCanvas()
+        }
       }
-      // console.log(`%: ${e.horizontalPercentage}, pos: ${e.horizontalPosition}, size: ${e.horizontalSize}, zoom: ${this.plot.zoom}`)
-      this.plot.scroll = e.horizontalPosition - 10
-      this.plot.redrawCanvas()
     },
 
     zoom ({ mul, val }, offset) {
@@ -416,15 +441,13 @@ export default defineComponent({
         this.plot.zoom = result
       }
       this.sliderZoom = result
+      this.plot.redrawCanvas()
     },
     dblClick (e) {
       this.zoom({ mul: 2 }, e.offsetX)
     },
 
     dragStart (e) {
-      if (!e.ctrlKey && !e.metaKey) {
-        return
-      }
       this.flags.dragging = true
       this.dragStartPos = {
         offset: e.offsetX,
@@ -433,9 +456,6 @@ export default defineComponent({
       this.plot.mousedown(e)
     },
     drag (e) {
-      if ((!e.ctrlKey && !e.metaKey) || !this.flags.dragging) {
-        return this.dragEnd(e)
-      }
       this.plot.mousemove(e)
     },
     dragEnd (e) {
