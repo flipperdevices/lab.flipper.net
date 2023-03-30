@@ -114,17 +114,20 @@
           <div
             v-if="flags.pixelGrid"
             class="pixel-grid"
+            :style="`width: ${256}px; height: ${128}px;`"
             @mousedown="mouseDown"
             @mouseup="mouseUp"
             @mousemove="mouseMove"
+            @mouseleave="mouseUp"
           ></div>
           <canvas
-            width="256"
-            height="128"
+            :width="256"
+            :height="128"
             ref="mainCanvas"
             @mousedown="mouseDown"
             @mouseup="mouseUp"
             @mousemove="mouseMove"
+            @mouseleave="mouseUp"
           ></canvas>
         </div>
       </div>
@@ -359,16 +362,20 @@ export default defineComponent({
       this.ctx.beginPath()
     },
     mouseUp (e) {
+      if (!this.flags.painting) {
+        return
+      }
       this.stroke(e)
       this.flags.painting = false
       this.save()
     },
     mouseMove (e) {
-      if (this.flags.painting) {
-        this.stroke(e)
-        this.ctx.beginPath()
-        this.ctx.moveTo(e.offsetX + e.offsetX % 2 - 1, e.offsetY + e.offsetY % 2 - 1)
+      if (!this.flags.painting) {
+        return
       }
+      this.stroke(e)
+      this.ctx.beginPath()
+      this.ctx.moveTo(e.offsetX + e.offsetX % 2 - 1, e.offsetY + e.offsetY % 2 - 1)
     },
     stroke (e) {
       this.ctx.lineTo(e.offsetX + e.offsetX % 2 - 1, e.offsetY + e.offsetY % 2 - 1)
@@ -494,8 +501,6 @@ canvas {
 }
 .pixel-grid {
   position: absolute;
-  width: 256px;
-  height: 128px;
   background-size: 4px 4px;
   background-position: 0px 0px;
   background-image: repeating-conic-gradient( #fff0 0deg 90deg, #00000017 0 180deg);
