@@ -1,0 +1,237 @@
+<template>
+  <div class="fit flex justify-center paint">
+    <div v-if="pe" class="controls q-pa-xs rounded-borders bg-grey-2">
+      <q-btn-toggle
+        v-model="toolModel"
+        flat
+        dense
+        :options="[
+          { value: 'pencil', slot: 'pencil' },
+          { value: 'eraser', slot: 'eraser' },
+          { value: 'line', slot: 'line' },
+          { value: 'rectangle', slot: 'rectangle' },
+          { value: 'fill', slot: 'fill' },
+        ]"
+      >
+        <template v-slot:pencil><q-icon name="mdi-pencil" class="q-px-sm" /></template>
+        <template v-slot:eraser><q-icon name="mdi-eraser" class="q-px-sm" /></template>
+        <template v-slot:line><q-icon name="mdi-vector-line" class="q-px-sm" /></template>
+        <template v-slot:rectangle><q-icon name="mdi-vector-rectangle" class="q-px-sm" /></template>
+        <template v-slot:fill><q-icon name="mdi-format-color-fill" class="q-px-sm q-pt-xs" /></template>
+      </q-btn-toggle>
+
+      <q-btn
+        flat
+        dense
+        :color="flags.checkerboard ? 'primary' : 'black'"
+        icon="mdi-checkerboard"
+        class="q-px-sm"
+        @click="flags.checkerboard = !flags.checkerboard"
+      ></q-btn>
+
+      <q-separator vertical class="q-mx-xs"></q-separator>
+
+      <q-btn flat dense icon="mdi-undo" class="q-px-sm" @click="undo"></q-btn>
+      <q-btn flat dense icon="mdi-redo" class="q-px-sm" @click="redo"></q-btn>
+
+      <q-separator vertical class="q-mx-xs"></q-separator>
+
+      <div>
+        <div class="flex no-wrap">
+          <q-btn flat icon="mdi-magnify-minus-outline" class="q-px-sm" @click="zoom({ offset: -1 })"></q-btn>
+          <!--<q-input
+            dense
+            outlined
+            :model-value="zoomModel"
+            @change="val => { zoomModel = /^[0-9]*$/.test(val) ? Number(val) : zoomModel }"
+            @update:modelValue="val => { zoomModel = Number(val); zoom({ val }) }"
+            :rules="[val => /^[0-9]*$/.test(val)]"
+            hide-bottom-space
+            style="width: 52px"
+            label="Zoom"
+            class="q-mx-xs"
+          />-->
+          <q-btn flat icon="mdi-magnify-plus-outline" class="q-px-sm" @click="zoom({ offset: 1 })"></q-btn>
+        </div>
+      </div>
+
+      <q-separator vertical class="q-mx-xs"></q-separator>
+
+      <q-btn flat icon="mdi-delete-outline" class="q-px-sm" color="negative" @click="clear"></q-btn>
+    </div>
+
+    <div class="drawing-board fit flex flex-center">
+      <div class="pe-container">
+        <div v-if="flags.checkerboard" class="checkerboard" :style="`background-size: ${zoomModel * 2}px ${zoomModel * 2}px`"></div>
+      </div>
+    </div>
+
+    <canvas class="mirror" width="128" height="64"></canvas>
+  </div>
+</template>
+
+<script>
+import { defineComponent, ref } from 'vue'
+import PixelEditor from '../util/pixeleditor/pixeleditor'
+
+export default defineComponent({
+  name: 'PixelEditor',
+
+  props: {
+  },
+
+  setup () {
+    return {
+      flags: ref({
+        checkerboard: false
+      }),
+      zoomModel: ref(4),
+      toolModel: ref('pencil'),
+      pe: ref(null)
+    }
+  },
+
+  watch: {
+    zoomModel (newValue, oldValue) {
+      if (!/^[0-9]*$/.test(newValue)) {
+        return
+      }
+      this.pe.resize({ zoom: newValue })
+    },
+    toolModel (newValue, oldValue) {
+      switch (newValue) {
+        case 'pencil':
+          this.pe.currentColor = 1
+          this.pe.mode = 'draw'
+          break
+        case 'eraser':
+          this.pe.currentColor = 0
+          this.pe.mode = 'draw'
+          break
+        case 'line':
+          this.pe.currentColor = 1
+          this.pe.mode = 'line'
+          break
+        case 'rectangle':
+          this.pe.currentColor = 1
+          this.pe.mode = 'rect'
+          break
+        case 'fill':
+          this.pe.currentColor = 1
+          this.pe.mode = 'fill'
+          break
+      }
+    }
+  },
+
+  computed: {
+    zoomLimit () {
+      /* const containerWidth = document.querySelector('.paint').clientWidth
+      const containerHeight = document.querySelector('.paint').clientHeight
+      let max = 10
+      if (containerWidth) {
+        max = Math.round(Math.min(containerWidth / 128, containerHeight / 64))
+      } */
+      return {
+        min: 1,
+        max: 10
+      }
+    }
+  },
+
+  methods: {
+    zoom ({ mul, val, offset }) {
+      let result
+      if (mul) {
+        result = this.zoomModel * mul
+      } else if (val) {
+        result = val
+      } else if (offset) {
+        result = this.zoomModel + offset
+      }
+      if (result < this.zoomLimit.min) {
+        this.zoomModel = this.zoomLimit.min
+      } else if (result > this.zoomLimit.max) {
+        this.zoomModel = this.zoomLimit.max
+      } else {
+        this.zoomModel = result
+      }
+    },
+
+    undo () {
+      this.pe.undo()
+    },
+    redo () {
+      this.pe.redo()
+    },
+    clear () {
+      this.pe.clear()
+      this.updateMirror()
+    },
+
+    updateMirror () {
+      const mirror = document.querySelector('.mirror')
+      const imageData = this.pe.toImageData()
+      mirror.getContext('2d').putImageData(imageData, 0, 0)
+    },
+
+    createEditor () {
+      this.pe = new PixelEditor({
+        width: 128,
+        height: 64,
+        container: document.querySelector('.pe-container'),
+        onUpdate: this.updateMirror
+      })
+      console.log(this.pe)
+    }
+  },
+
+  mounted () {
+    this.createEditor()
+  }
+})
+</script>
+
+<style src="../util/pixeleditor/pixeleditor.css"></style>
+<style lang="sass">
+.paint
+  .controls
+    display: flex
+    position: absolute
+    z-index: 1
+
+  .mirror
+    position: fixed
+    bottom: 8px
+    right: 8px
+    border: 1px solid
+    background: #fff
+    z-index: 1
+
+  .drawing-board
+    padding: 48px 8px 80px 8px
+    background: #00000014
+
+  .pe-container
+    position: relative
+    .checkerboard
+      width: calc(100% - 1px)
+      height: calc(100% - 1px)
+      position: absolute
+      top: 1px
+      left: 1px
+      background-position: 0px 0px
+      background-image: repeating-conic-gradient( #fff0 0deg 90deg, #00000012 0 180deg)
+      pointer-events: none
+      z-index: 1
+
+  .pixeleditor
+    width: fit-content
+    display: flex
+    padding: 0
+    align-items: center
+    justify-content: center
+
+  .pE
+    border: none
+</style>
