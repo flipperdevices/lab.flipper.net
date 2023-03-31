@@ -1,6 +1,6 @@
 <template>
   <q-page class="column items-center full-width">
-    <PixelEditor />
+    <PixelEditor ref="editor" />
   </q-page>
 </template>
 
@@ -8,6 +8,7 @@
 import { defineComponent, ref } from 'vue'
 import PixelEditor from 'src/components/PixelEditor.vue'
 import asyncSleep from 'simple-async-sleep'
+import { imageDataToXBM } from '../util/pixeleditor/xbm'
 
 export default defineComponent({
   name: 'Paint',
@@ -30,6 +31,11 @@ export default defineComponent({
         rpcActive: false,
         rpcToggling: false,
         pixelGrid: false
+      }),
+      autoStreaming: ref({
+        enabled: true,
+        interval: null,
+        delay: 500
       }),
       backlightInterval: null
     }
@@ -100,8 +106,12 @@ export default defineComponent({
 
       await this.enableBacklight()
       this.backlightInterval = setInterval(this.enableBacklight, 15000)
+
+      if (this.autoStreaming.enabled) {
+        this.autoStream()
+      }
     },
-    async stopSession () {
+    async stopVirtualDisplay () {
       await this.flipper.commands.gui.stopVirtualDisplay()
         .catch(error => this.rpcErrorHandler(error, 'gui.stopVirtualDisplay'))
     },
@@ -112,6 +122,22 @@ export default defineComponent({
         .catch(error => this.rpcErrorHandler(error, 'gui.sendInputEvent'))
       await this.flipper.commands.gui.sendInputEvent(4, 1)
         .catch(error => this.rpcErrorHandler(error, 'gui.sendInputEvent'))
+    },
+    async sendFrame () {
+      const imageData = this.$refs.editor.pe.toImageData()
+      const xbmBytes = imageDataToXBM(imageData)
+      this.flipper.commands.gui.screenFrame(new Uint8Array(xbmBytes))
+        .catch(error => this.rpcErrorHandler(error, 'gui.screenFrame'))
+    },
+    autoStream () {
+      if (this.autoStreaming.enabled) {
+        if (this.autoStreaming.interval) {
+          clearInterval(this.autoStreaming.interval)
+        }
+        this.autoStreaming.interval = setInterval(this.sendFrame, this.autoStreaming.delay)
+      } else {
+        clearInterval(this.autoStreaming.interval)
+      }
     },
 
     rpcErrorHandler (error, command) {
@@ -148,17 +174,11 @@ export default defineComponent({
   },
 
   beforeUnmount () {
+    if (this.autoStreaming.interval) {
+      clearInterval(this.autoStreaming.interval)
+    }
     clearInterval(this.backlightInterval)
-    this.stopSession()
+    this.stopVirtualDisplay()
   }
 })
 </script>
-
-<style lang="scss" scoped>
-.pixel-grid {
-  position: absolute;
-  background-size: 4px 4px;
-  background-position: 0px 0px;
-  background-image: repeating-conic-gradient( #fff0 0deg 90deg, #00000017 0 180deg);
-}
-</style>

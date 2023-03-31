@@ -182,7 +182,6 @@ export default defineComponent({
         container: document.querySelector('.pe-container'),
         onUpdate: this.updateMirror
       })
-      console.log(this.pe)
     }
   },
 
