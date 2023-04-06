@@ -13,12 +13,15 @@
           { value: 'fill', slot: 'fill' },
         ]"
       >
-        <template v-slot:pencil><q-icon name="mdi-pencil" class="q-px-sm" /></template>
-        <template v-slot:eraser><q-icon name="mdi-eraser" class="q-px-sm" /></template>
-        <template v-slot:line><q-icon name="mdi-vector-line" class="q-px-sm" /></template>
-        <template v-slot:rectangle><q-icon name="mdi-vector-rectangle" class="q-px-sm" /></template>
-        <template v-slot:fill><q-icon name="mdi-format-color-fill" class="q-px-sm q-pt-xs" /></template>
+        <template v-slot:pencil><q-icon name="mdi-pencil" class="q-px-sm"/></template>
+        <template v-slot:eraser><q-icon name="mdi-eraser" class="q-px-sm"/></template>
+        <template v-slot:line><q-icon name="mdi-vector-line" class="q-px-sm"/></template>
+        <template v-slot:rectangle><q-icon name="mdi-vector-rectangle" class="q-px-sm"/></template>
+        <template v-slot:fill><q-icon name="mdi-format-color-fill" class="q-px-sm q-pt-xs"/></template>
       </q-btn-toggle>
+
+      <input type="file" class="file-upload hidden" @change="upload"/>
+      <q-btn flat dense @click="triggerUpload" :loading="flags.imageFileLoading" class="q-px-sm" icon="mdi-file-image-outline"></q-btn>
 
       <q-btn
         flat
@@ -50,7 +53,7 @@
             style="width: 52px"
             label="Zoom"
             class="q-mx-xs"
-          />-->
+         />-->
           <q-btn flat icon="mdi-magnify-plus-outline" class="q-px-sm" @click="zoom({ offset: 1 })"></q-btn>
         </div>
       </div>
@@ -67,27 +70,40 @@
     </div>
 
     <canvas class="mirror" width="128" height="64"></canvas>
+
+    <q-dialog v-model="flags.ditherDialog">
+      <DitherDialog
+        :img="uploadedImage"
+        @cancel="flags.ditherDialog = false"
+        @select="drawImage"
+      />
+    </q-dialog>
   </div>
 </template>
 
 <script>
 import { defineComponent, ref } from 'vue'
 import PixelEditor from '../util/pixeleditor/pixeleditor'
+import DitherDialog from 'src/components/DitherDialog.vue'
 
 export default defineComponent({
   name: 'PixelEditor',
 
-  props: {
+  components: {
+    DitherDialog
   },
 
   setup () {
     return {
       flags: ref({
-        checkerboard: false
+        checkerboard: false,
+        imageFileLoading: false,
+        ditherDialog: false
       }),
       zoomModel: ref(4),
       toolModel: ref('pencil'),
-      pe: ref(null)
+      pe: ref(null),
+      uploadedImage: ref(null)
     }
   },
 
@@ -169,6 +185,53 @@ export default defineComponent({
       this.updateMirror()
     },
 
+    triggerUpload () {
+      document.querySelector('.file-upload').click()
+    },
+    upload (event) {
+      this.flags.imageFileLoading = true
+      try {
+        const file = event.target.files[0]
+        if (file) {
+          const reader = new FileReader()
+          reader.readAsDataURL(file)
+
+          const img = new Image()
+          reader.onload = event => {
+            if (event.target.readyState !== FileReader.DONE) {
+              return
+            }
+            img.onload = () => {
+              document.querySelector('.file-upload').value = null
+              this.flags.imageFileLoading = false
+              this.uploadedImage = img
+              this.flags.ditherDialog = true
+            }
+            img.src = event.target.result
+          }
+        }
+      } catch (error) {
+        this.flags.imageFileLoading = false
+        console.error(error)
+      }
+    },
+
+    drawImage (imageData) {
+      // console.log(imageData)
+      this.flags.ditherDialog = false
+      const pixelData = []
+      for (let i = 0; i < imageData.data.length; i += 4) {
+        if (imageData.data[i] + imageData.data[i + 1] + imageData.data[i + 2] === 0) {
+          pixelData.push(1)
+        } else {
+          pixelData.push(0)
+        }
+      }
+      this.pe.setData(pixelData)
+      this.updateMirror()
+      // console.log(this.pe)
+    },
+
     updateMirror () {
       const mirror = document.querySelector('.mirror')
       const imageData = this.pe.toImageData()
@@ -206,6 +269,7 @@ export default defineComponent({
     border: 1px solid
     background: #fff
     z-index: 1
+    image-rendering: pixelated
 
   .drawing-board
     padding: 48px 8px 80px 8px

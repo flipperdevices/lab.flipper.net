@@ -1,6 +1,6 @@
 <template>
   <q-page class="column items-center full-width">
-    <PixelEditor ref="editor" />
+    <PixelEditor ref="editor"/>
   </q-page>
 </template>
 
