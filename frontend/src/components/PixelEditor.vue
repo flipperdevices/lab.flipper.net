@@ -60,6 +60,8 @@
 
       <q-separator vertical class="q-mx-xs"></q-separator>
 
+      <q-btn flat icon="mdi-file-download-outline" class="q-px-sm" @click="download"></q-btn>
+
       <q-btn flat icon="mdi-delete-outline" class="q-px-sm" color="negative" @click="clear"></q-btn>
     </div>
 
@@ -85,6 +87,7 @@
 import { defineComponent, ref } from 'vue'
 import PixelEditor from '../util/pixeleditor/pixeleditor'
 import DitherDialog from 'src/components/DitherDialog.vue'
+import { exportFile } from 'quasar'
 
 export default defineComponent({
   name: 'PixelEditor',
@@ -230,6 +233,18 @@ export default defineComponent({
       this.pe.setData(pixelData)
       this.updateMirror()
       // console.log(this.pe)
+    },
+
+    async download () {
+      const blob = await this.pe.toBlob()
+      const status = exportFile(`Paint_${new Date().toISOString()}.png`, blob)
+      if (!status) {
+        console.error('Failed to download image: permission denied')
+        this.$emit('showNotif', {
+          message: 'Failed to download image: permission denied',
+          color: 'negative'
+        })
+      }
     },
 
     updateMirror () {
