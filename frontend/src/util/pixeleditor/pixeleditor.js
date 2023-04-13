@@ -118,7 +118,7 @@ export default class PixelEditor {
     this.colors = colors || defaultColors
     this.currentColor = currentColor
     this.bg = bg
-    this.data = Array(width * height).fill(bg)
+    this.data = new Uint8Array(width * height).fill(bg)
     this.mode = 'draw'
     this.undoStack = []
     this.redoStack = []
@@ -128,11 +128,7 @@ export default class PixelEditor {
     this.undoStack.pop()
     this.dataChanged = false
     this.lastDraw = null
-    // common CSS classes
-    this.classes = {
-      color: this.bem.e('color'),
-      selected: this.bem.m('selected')
-    }
+    this.mouseEventsQueue = []
     if (container) {
       this.mount(container)
     }
@@ -202,59 +198,23 @@ export default class PixelEditor {
   render () {
     const { b, e } = this.bem
 
-    // common classes
-    // const colorClass = this.classes.color
-
-    /* construct DOM */
-
-    /* this.palette = _(
-      `div.${e('palette')}`,
-      ...this.colors.map((c, i) =>
-        _('a.' + colorClass, {
-          href: '#',
-          style: `background-color:rgb(${c.join(',')}`,
-          'data-color': i
-        })
-      )
-    )
-
-    $(`[data-color="${this.currentColor}"]`, this.palette).classList.add(
-      m('selected')
-    ) */
-
     this.canvas = _(`canvas.${e('drawing')}`, {
       width: this.width * this.zoom,
       height: this.height * this.zoom
     })
 
-    /* const undoButton = _(`button.${e('menu-item')}`, 'undo')
-    const clearButton = _(`button.${e('menu-item')}`, 'clear')
-    this.menu = _(
-      `div.${e('menu')}`,
-      ...tools.map(t =>
-        _(
-          `label.${e('tool')}`,
-          _('input', {
-            name: 'tool',
-            type: 'radio',
-            value: t,
-            ...(t === this.mode && { checked: true })
-          }),
-          _(`span.${e('tool-icon')}`, t)
-        )
-      ),
-      undoButton,
-      clearButton
-    ) */
+    this.ctx = this.canvas.getContext('2d', {
+      alpha: false,
+      desynchronized: true,
+      imageSmoothingEnabled: false
+    })
 
     this.el = _(
       `div.pixeleditor.${b}`,
       {
         tabindex: 0
       },
-      // this.menu,
       _(`div.${e('canvas')}`, this.canvas)
-      // this.palette
     )
 
     /* event listeners */
@@ -364,22 +324,6 @@ export default class PixelEditor {
       this.draw()
     })
 
-    /* this.menu.addEventListener('click', e => {
-      if (e.target.value) {
-        this.mode = e.target.value
-      }
-    })
-
-    undoButton.addEventListener('click', e => this.undo())
-    clearButton.addEventListener('click', e => this.clear())
-
-    this.palette.addEventListener('click', e => {
-      e.preventDefault()
-      const tgt = e.target
-      const color = tgt.dataset.color
-      this.setColor(color)
-    }) */
-
     this.canvas.addEventListener('mousedown', e => {
       const [x, y] = getRelativePoint(e, this.canvas, this.zoom)
 
@@ -411,7 +355,11 @@ export default class PixelEditor {
         this.draw()
       }
       if (this.drawing && this.mode === 'draw') {
-        this.plotPoint(x, y)
+        this.mouseEventsQueue.push([x, y])
+        if (this.mouseEventsQueue.length === 1) {
+          this.handleMouseDraw()
+        }
+        // this.plotPoint(x, y)
       }
       if (this.drawing && (this.mode === 'line' || this.mode === 'rect')) {
         if (x !== this.p0[0] || y !== this.p0[1]) {
@@ -436,6 +384,7 @@ export default class PixelEditor {
       }
       if (this.drawing && this.mode === 'draw') {
         this.updated()
+        this.mouseEventP0 = null
       }
       this.drawing = false
     })
@@ -443,17 +392,32 @@ export default class PixelEditor {
     this.el.addEventListener('blur', e => {
       this.p0 = null
       this.draw()
+      this.mouseEventP0 = null
     })
 
     this.el.addEventListener('mouseleave', e => {
       if (this.drawing && this.mode === 'draw') {
         this.updated()
+        this.mouseEventP0 = null
       }
       this.drawing = false
       if (this.mode === 'line' || this.mode === 'rect') {
         this.draw()
       }
     })
+  }
+
+  handleMouseDraw () {
+    while (this.mouseEventsQueue.length) {
+      const [x, y] = this.mouseEventsQueue[0]
+      if (!this.mouseEventP0) {
+        this.plotPoint(x, y)
+      } else if (!(this.mouseEventP0[0] === x && this.mouseEventP0[1] === y)) {
+        this.plotLine([x, y], this.mouseEventP0)
+      }
+      this.mouseEventP0 = [x, y]
+      this.mouseEventsQueue.pop()
+    }
   }
 
   // draw a single point
@@ -465,11 +429,12 @@ export default class PixelEditor {
     if (this.data[idx] !== c) {
       this.data[idx] = c
       this.dataChanged = true
-      this.draw()
+      this.ctx.fillRect(x * this.zoom, y * this.zoom, this.zoom, this.zoom)
+      // this.draw()
     }
   }
 
-  // draw a line
+  // draw a rectangle
   plotRect (p0, p1, c) {
     if (typeof c === 'undefined') {
       c = this.currentColor
@@ -488,9 +453,11 @@ export default class PixelEditor {
     }
     bres(...p0, ...p1).forEach(p => {
       this.data[p[1] * this.width + p[0]] = c
+      this.ctx.fillStyle = this.currentColor === 0 ? '#ffffff' : '#000000'
+      this.ctx.fillRect(p[0] * this.zoom, p[1] * this.zoom, this.zoom, this.zoom)
     })
     this.dataChanged = true
-    this.draw()
+    // this.draw()
   }
 
   // change the drawing mode
@@ -501,27 +468,10 @@ export default class PixelEditor {
     }
   }
 
-  // change the current drawing color
-  /* setColor (color) {
-    color = parseInt(color)
-    const selectedClass = this.classes.selected
-    const colorClass = this.classes.color
-    if (color >= 0 && color < this.colors.length) {
-      $$(`.${colorClass}.${selectedClass}`, this.palette).forEach(e =>
-        e.classList.remove(selectedClass)
-      )
-      $(`[data-color="${color}"]`, this.palette).classList.add(selectedClass)
-      this.currentColor = color
-    }
-  } */
-
   // re-render the drawing with a reticle and pending line if applicable
   draw () {
-    const ctx = this.canvas.getContext('2d', {
-      alpha: false,
-      desynchronized: true
-    })
-    ctx.save()
+    const ctx = this.ctx
+    this.ctx.save()
     const { width, height, zoom } = this
     let drawData = this.data
     if (this.drawing && this.mode === 'line') {
@@ -557,8 +507,7 @@ export default class PixelEditor {
       id = this.lastDraw
     }
     this.dataChanged = false
-    ctx.putImageData(id, 0, 0)
-    ctx.imageSmoothingEnabled = false
+    this.ctx.putImageData(id, 0, 0)
     if (this.p0) {
       const rx = this.p0[0] * zoom
       const ry = this.p0[1] * zoom
@@ -567,9 +516,9 @@ export default class PixelEditor {
       ctx.strokeStyle = '#fff'
       ctx.strokeRect(rx - 1, ry - 1, zoom + 1, zoom + 1)
     }
-    ctx.restore()
+    this.ctx.restore()
     if (this.afterDraw) {
-      this.afterDraw(ctx, this)
+      this.afterDraw(this.ctx, this)
     }
   }
 
@@ -602,7 +551,7 @@ export default class PixelEditor {
 
     this.canvas.width = this.width * this.zoom
     this.canvas.height = this.height * this.zoom
-    this.data = Array(this.width * this.height).fill(0)
+    this.data = new Uint8Array(this.width * this.height).fill(0)
 
     for (let i = 0; i < this.data.length; i++) {
       const x = i % this.width
