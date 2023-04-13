@@ -400,9 +400,8 @@ export default class PixelEditor {
         this.updated()
         this.mouseEventP0 = null
       }
-      this.drawing = false
-      if (this.mode === 'line' || this.mode === 'rect') {
-        this.draw()
+      if (!(this.mode === 'line' || this.mode === 'rect')) {
+        this.drawing = false
       }
     })
   }
