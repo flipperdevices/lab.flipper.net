@@ -1,5 +1,5 @@
 <template>
-  <div class="fit flex justify-center paint">
+  <div class="fit flex justify-center paint" @mouseup="mouseUp">
     <div v-if="pe" class="controls q-pa-xs rounded-borders bg-grey-2">
       <q-btn-toggle
         v-model="toolModel"
@@ -186,6 +186,26 @@ export default defineComponent({
     clear () {
       this.pe.clear()
       this.updateMirror()
+    },
+
+    mouseUp () {
+      if (!this.pe) {
+        return
+      }
+      if (this.pe.drawing) {
+        if (this.pe.mode === 'line') {
+          this.pe.save()
+          this.pe.plotLine(this.pe.p0, this.pe.p1)
+          this.pe.draw()
+          this.pe.updated()
+        } else if (this.pe.mode === 'rect') {
+          this.pe.save()
+          this.pe.plotRect(this.pe.p0, this.pe.p1)
+          this.pe.draw()
+          this.pe.updated()
+        }
+        this.pe.drawing = false
+      }
     },
 
     triggerUpload () {
