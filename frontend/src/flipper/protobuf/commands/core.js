@@ -38,7 +38,7 @@ async function sendRpcRequest () {
           if (res) {
             buffer = new Uint8Array(0)
             if (res.commandId === 0) {
-              emitter.emit('screen frame', res.data)
+              emitter.emit('screen frame', res.data, res.orientation)
             } else {
               emitter.emit('response', res)
             }

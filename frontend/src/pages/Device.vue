@@ -44,6 +44,7 @@
                 :width="128 * screenScale"
                 :height="64 * screenScale"
                 style="image-rendering: pixelated;"
+                :style="`rotate: ${flags.leftHanded ? 180 : 0}deg`"
                 ref="screenStreamCanvas"
               ></canvas>
               <img
@@ -107,7 +108,8 @@ export default defineComponent({
         rpcActive: false,
         rpcToggling: false,
         screenStream: false,
-        updateInProgress: false
+        updateInProgress: false,
+        leftHanded: false
       }),
       screenScale: ref(1),
       channels: ref({})
@@ -260,7 +262,12 @@ export default defineComponent({
       ctx.fillRect(0, 0, 128 * this.screenScale, 64 * this.screenScale)
       ctx.fillStyle = 'black'
 
-      const unbind = this.flipper.emitter.on('screen frame', data => {
+      const unbind = this.flipper.emitter.on('screen frame', (data, orientation) => {
+        if (orientation && !this.flags.leftHanded) {
+          this.flags.leftHanded = true
+        } else if (!orientation && this.flags.leftHanded) {
+          this.flags.leftHanded = false
+        }
         for (let x = 0; x < 128; x++) {
           for (let y = 0; y < 64; y++) {
             const i = Math.floor(y / 8) * 128 + x
