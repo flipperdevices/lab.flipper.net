@@ -415,7 +415,7 @@ export default class PixelEditor {
         this.plotLine([x, y], this.mouseEventP0)
       }
       this.mouseEventP0 = [x, y]
-      this.mouseEventsQueue.pop()
+      this.mouseEventsQueue.shift()
     }
   }
 
