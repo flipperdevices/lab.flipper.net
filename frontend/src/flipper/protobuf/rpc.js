@@ -42,7 +42,7 @@ function parseResponse (data) {
   const chunks = []
   while (reader.pos < reader.len) {
     const res = PB.Main.decodeDelimited(reader)
-    if (res) {
+    if (res && res.content) {
       command = commandQueue.find(c => c.commandId === res.commandId)
 
       if (res.commandStatus && res.commandStatus !== 0 && res.commandStatus !== 6) {
@@ -53,7 +53,7 @@ function parseResponse (data) {
         command.resolved = true
         return command
       } else if (res.commandId === 0) {
-        command.data = res.guiScreenFrame.data
+        command = { ...command, ...res.guiScreenFrame }
         return command
       }
 
