@@ -46,7 +46,11 @@
                 style="image-rendering: pixelated;"
                 ref="screenStreamCanvas"
               ></canvas>
-              <img v-if="flags.updateInProgress" src="../assets/flipper-screen-updating.png"/>
+              <img
+                v-if="flags.updateInProgress"
+                src="../assets/flipper-screen-updating.png"
+                style="image-rendering: pixelated; position: relative; top: -2px;"
+              />
             </div>
           </div>
         </div>
