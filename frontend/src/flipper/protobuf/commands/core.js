@@ -6,7 +6,7 @@ import * as system from './system'
 import * as storage from './storage'
 import * as gui from './gui'
 
-let flipper, rpcIdle = true
+let flipper, rpcIdle = true, unbindRpcResponse, buffer = new Uint8Array(0)
 const commandQueue = []
 
 function enqueue (c) {
@@ -18,56 +18,52 @@ function enqueue (c) {
 
 async function sendRpcRequest () {
   rpcIdle = false
-
   while (commandQueue.length) {
     const c = commandQueue[0]
 
     const req = rpc.createRequest(c.requestType, c.args, c.hasNext, c.commandId)
     await flipper.write('raw', req.data)
 
-    let res = { commandId: req.commandId }
-    if (!c.hasNext && c.requestType !== 'stopSession') {
-      let buffer = new Uint8Array(0)
-      const unbind = emitter.on('raw output', data => {
-        const newBuffer = new Uint8Array(buffer.length + data.length)
-        newBuffer.set(buffer)
-        newBuffer.set(data, buffer.length)
-        buffer = newBuffer
-        try {
-          res = rpc.parseResponse(buffer)
-          if (res) {
-            buffer = new Uint8Array(0)
-            if (res.commandId === 0) {
-              emitter.emit('screen frame', res.data, res.orientation)
-            } else {
-              emitter.emit('response', res)
-            }
-          }
-        } catch (error) {
-          if (!(error.toString().includes('index out of range'))) {
-            if (error.toString().includes('invalid wire type')) {
-              emitter.emit('restart session')
-              unbind()
-            } else {
-              throw error
-            }
-          }
-        }
-      })
-      const unbindStop = emitter.on('stop screen streaming', () => {
-        unbind()
-        unbindStop()
-      })
-    } else {
+    if (c.requestType === 'stopSession') {
       const unbind = emitter.on('write/end', () => {
-        emitter.emit('response', res)
+        emitter.emit('response', { requestType: c.requestType, commandId: c.commandId })
         unbind()
       })
     }
+
     commandQueue.shift()
   }
-
   rpcIdle = true
+}
+
+function receiveRpcResponse (data) {
+  const newBuffer = new Uint8Array(buffer.length + data.length)
+  newBuffer.set(buffer)
+  newBuffer.set(data, buffer.length)
+  buffer = newBuffer
+  let res
+
+  try {
+    res = rpc.parseResponse(buffer)
+  } catch (error) {
+    if (!(error.toString().includes('index out of range'))) {
+      if (error.toString().includes('invalid wire type') || error.toString().includes('invalid response')) {
+        console.log(error.message)
+        buffer = new Uint8Array()
+      } else {
+        throw error
+      }
+    }
+  }
+
+  if (res) {
+    buffer = new Uint8Array(0)
+    if (res.commandId === 0) {
+      emitter.emit('screen frame', res.data, res.orientation)
+    } else {
+      emitter.emit('response', res)
+    }
+  }
 }
 
 async function startRpcSession (f) {
@@ -76,6 +72,7 @@ async function startRpcSession (f) {
   await flipper.write('cli', 'start_rpc_session\r')
   flipper.read('raw')
   await asyncSleep(500)
+  unbindRpcResponse = emitter.on('raw output', receiveRpcResponse)
   return system.ping()
 }
 
@@ -92,6 +89,7 @@ function stopRpcSession () {
       resolve()
       unbind()
     })
+    unbindRpcResponse()
   })
 }
 

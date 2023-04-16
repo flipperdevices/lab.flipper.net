@@ -44,6 +44,9 @@ function parseResponse (data) {
     const res = PB.Main.decodeDelimited(reader)
     if (res && res.content) {
       command = commandQueue.find(c => c.commandId === res.commandId)
+      if (!command || !command.requestType) {
+        throw new Error('invalid response')
+      }
 
       if (res.commandStatus && res.commandStatus !== 0 && res.commandStatus !== 6) {
         command.resolved = true
@@ -53,6 +56,9 @@ function parseResponse (data) {
         command.resolved = true
         return command
       } else if (res.commandId === 0) {
+        if (!res.guiScreenFrame) {
+          throw new Error('invalid response')
+        }
         command = { ...command, ...res.guiScreenFrame }
         return command
       }
@@ -70,7 +76,7 @@ function parseResponse (data) {
       }
     }
   }
-  if (command.resolved) {
+  if (command && command.resolved) {
     return command
   }
 }
