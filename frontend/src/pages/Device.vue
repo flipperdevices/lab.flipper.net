@@ -227,6 +227,7 @@ export default defineComponent({
     },
 
     async restartRpc (force) {
+      console.log('restarting')
       if ((this.connected && this.flags.rpcActive && !this.flags.restarting) || force) {
         this.flags.restarting = true
         await this.flipper.closeReader()
@@ -263,11 +264,16 @@ export default defineComponent({
       ctx.fillStyle = 'black'
 
       const unbind = this.flipper.emitter.on('screen frame', (data, orientation) => {
+        if (!data) {
+          return
+        }
+
         if (orientation && !this.flags.leftHanded) {
           this.flags.leftHanded = true
         } else if (!orientation && this.flags.leftHanded) {
           this.flags.leftHanded = false
         }
+
         for (let x = 0; x < 128; x++) {
           for (let y = 0; y < 64; y++) {
             const i = Math.floor(y / 8) * 128 + x
