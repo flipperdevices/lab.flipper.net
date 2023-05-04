@@ -15,14 +15,34 @@ onmessage = function (e) {
 let port
 
 async function connect () {
-  // TODO: full connection flow
   const ports = await navigator.serial.getPorts({ filters: this.filters })
+    .catch(error => {
+      self.postMessage({
+        message: 'connectionStatus',
+        operation: 'connect',
+        error
+      })
+    })
   port = ports[0]
   return openPort()
 }
 
 async function openPort () {
   await port.open({ baudRate: 1 })
+    .then(() => {
+      self.postMessage({
+        message: 'connectionStatus',
+        operation: 'connect',
+        status: 'success'
+      })
+    })
+    .catch(error => {
+      self.postMessage({
+        message: 'connectionStatus',
+        operation: 'connect',
+        error
+      })
+    })
   self.postMessage({
     message: 'getReadableStream',
     stream: port.readable
@@ -33,8 +53,27 @@ async function openPort () {
   }, [port.writable])
 }
 
-async function closePort () {
+async function closePort (attempts = 1) {
   await port.close()
+    .then(() => {
+      self.postMessage({
+        message: 'connectionStatus',
+        operation: 'disconnect',
+        status: 'success'
+      })
+    })
+    .catch(error => {
+      // in case reader and writer don't get unlocked even with the added delay of 1ms
+      if (attempts < 3) {
+        attempts++
+        return setTimeout(() => closePort(attempts), 100)
+      }
+      self.postMessage({
+        message: 'connectionStatus',
+        operation: 'disconnect',
+        error
+      })
+    })
 }
 
 async function reopenPort () {

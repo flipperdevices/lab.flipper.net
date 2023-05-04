@@ -1,48 +1,105 @@
-import { RPC_TIMEOUT, watch } from '../util'
+import { createRPCPromise } from '../util'
 
-async function ping (requestType, args) {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => reject(`RPC timeout: ${requestType}`), RPC_TIMEOUT)
-    const [data, command] = this.encodeRPCRequest(requestType, args)
-    command.chunks = new Proxy([], watch(resolve, command))
-    this.writeRaw(data)
-  })
+function ping () {
+  return createRPCPromise.bind(this)('systemPingRequest')
 }
 
-async function getDatetime (requestType, args) {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => reject(`RPC timeout: ${requestType}`), RPC_TIMEOUT)
-    function formatDatetime (chunks) {
-      let result = {}
-      for (const chunk of chunks) {
-        result = { ...result, ...chunk.datetime }
-      }
-      resolve(resolve(new Date(result.year, result.month - 1, result.day, result.hour, result.minute, result.second)))
-    }
-    const [data, command] = this.encodeRPCRequest(requestType, args)
-    command.chunks = new Proxy([], watch(formatDatetime, command))
-    this.writeRaw(data)
-  })
+async function reboot ({ mode = 'OS' }) {
+  const rebootModes = {
+    OS: 0,
+    DFU: 1,
+    UPDATE: 2
+  }
+  const [data] = this.encodeRPCRequest('systemRebootRequest', { mode: rebootModes[mode] })
+  return this.writeRaw(data)
 }
 
-async function deviceInfo (requestType, args) {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => reject(`RPC timeout: ${requestType}`), RPC_TIMEOUT)
-    function mergeChunks (chunks) {
-      const result = {}
-      for (const chunk of chunks) {
-        result[chunk.key] = chunk.value
-      }
-      resolve(result)
+function deviceInfo () {
+  function format (chunks) {
+    const result = {}
+    for (const chunk of chunks) {
+      result[chunk.key] = chunk.value
     }
-    const [data, command] = this.encodeRPCRequest(requestType, args)
-    command.chunks = new Proxy([], watch(mergeChunks, command))
-    this.writeRaw(data)
-  })
+    return result
+  }
+  return createRPCPromise.bind(this)('systemDeviceInfoRequest', {}, format)
+}
+
+async function factoryReset () {
+  //! This erases ALL USER DATA, use at your own risk!
+  const [data] = this.encodeRPCRequest('systemFactoryResetRequest')
+  return this.writeRaw(data)
+}
+
+function getDatetime () {
+  function format (chunks) {
+    let result = {}
+    for (const chunk of chunks) {
+      result = { ...result, ...chunk.datetime }
+    }
+    return new Date(result.year, result.month - 1, result.day, result.hour, result.minute, result.second)
+  }
+  return createRPCPromise.bind(this)('systemGetDatetimeRequest', {}, format)
+}
+
+function setDatetime ({ date }) {
+  const datetime = {
+    hour: date.getHours(),
+    minute: date.getMinutes(),
+    second: date.getSeconds(),
+    day: date.getDate(),
+    month: date.getMonth() + 1,
+    year: date.getFullYear(),
+    weekday: date.getDay() || 7
+  }
+  return createRPCPromise.bind(this)('systemSetDatetimeRequest', { datetime })
+}
+
+function playAudiovisualAlert () {
+  return createRPCPromise.bind(this)('systemPlayAudiovisualAlertRequest')
+}
+
+function protobufVersion () {
+  return createRPCPromise.bind(this)('systemProtobufVersionRequest', {})
+}
+
+function update ({ updateManifest }) {
+  const updateResultCodes = {
+    OK: 0,
+    ManifestPathInvalid: 1,
+    ManifestFolderNotFound: 2,
+    ManifestInvalid: 3,
+    StageMissing: 4,
+    StageIntegrityError: 5,
+    ManifestPointerError: 6,
+    TargetMismatch: 7,
+    OutdatedManifestVersion: 8,
+    IntFull: 9,
+    UnspecifiedError: 10
+  }
+  return createRPCPromise.bind(this)('systemUpdateRequest', { updateManifest }, (chunks) => Object.keys(updateResultCodes).find(key => updateResultCodes[key] === chunks[0].code))
+}
+
+function powerInfo () {
+  function format (chunks) {
+    const result = {}
+    for (const chunk of chunks) {
+      result[chunk.key] = chunk.value
+    }
+    return result
+  }
+  return createRPCPromise.bind(this)('systemPowerInfoRequest', {}, format)
 }
 
 export {
   ping,
+  reboot,
+  deviceInfo,
+  factoryReset,
   getDatetime,
-  deviceInfo
+  setDatetime,
+  playAudiovisualAlert,
+  protobufVersion,
+  update,
+  powerInfo
 }

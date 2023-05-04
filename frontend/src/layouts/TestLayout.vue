@@ -4,6 +4,11 @@
     label="connect"
     class="q-ma-xs"
   ></q-btn>
+  <q-btn
+    @click="disconnect"
+    label="disconnect"
+    class="q-ma-xs"
+  ></q-btn>
   <!--<q-btn
     @click="setReadingMode('text', 'lineBreak')"
     label="readingMode -> line"
@@ -34,25 +39,35 @@
     label="write rpcStart"
     class="q-ma-xs"
   ></q-btn>-->
+  <div class="row q-gutter-md q-pa-md">
+    <q-select v-model="RPCRequest.subSystem" :options="RPCRequest.subSystemOptions" label="Subsystem" style="width: 100px" />
+    <q-input v-model="RPCRequest.command" label="Command" style="width: 200px" />
+    <q-input v-model="RPCRequest.args" label="Args" style="width: 250px" />
+    <q-btn
+      @click="rpcRequest()"
+      label="send"
+      class="q-ma-xs"
+    ></q-btn>
+  </div>
   <q-btn
-    @click="rpcRequest('systemPingRequest')"
-    label="ping"
+    @click="RPCwrite"
+    label="write test.txt"
     class="q-ma-xs"
   ></q-btn>
   <q-btn
-    @click="rpcRequest('systemGetDatetimeRequest')"
-    label="getDatetime"
+    @click="rpcRequest('storageList', { path: '/ext'})"
+    label="list /ext"
     class="q-ma-xs"
   ></q-btn>
   <q-btn
-    @click="rpcRequest('systemDeviceInfoRequest')"
-    label="deviceInfo"
+    @click="rpcRequest('storageRemove', { path: '/ext/test.txt' })"
+    label="delete test.txt"
     class="q-ma-xs"
   ></q-btn>
 </template>
 
 <script>
-import { defineComponent } from 'vue'
+import { defineComponent, ref } from 'vue'
 import Flipper from 'src/flipper-js/flipper'
 // import * as rpc from 'src/flipper/protobuf/rpc'
 
@@ -62,7 +77,20 @@ export default defineComponent({
   setup () {
     return {
       filters: [{ usbVendorId: 1155, usbProductId: 22336 }],
-      flipper: new Flipper()
+      flipper: new Flipper(),
+      RPCRequest: ref({
+        subSystem: 'property',
+        subSystemOptions: [
+          'storage',
+          'system',
+          'application',
+          'gui',
+          'gpio',
+          'property'
+        ],
+        command: 'Get',
+        args: '{ "key": "devinfo.hardware.name" }'
+      })
     }
   },
 
@@ -72,7 +100,17 @@ export default defineComponent({
       if (!ports.length) {
         this.port = await navigator.serial.requestPort({ filters: this.filters })
       }
-      this.flipper.connect()
+      await this.flipper.connect()
+    },
+
+    async disconnect () {
+      await this.flipper.disconnect()
+        .then(() => {
+          console.log('port closed')
+        })
+        .catch(error => {
+          console.warn(error)
+        })
     },
 
     setReadingMode (type, transform) {
@@ -87,15 +125,20 @@ export default defineComponent({
       await this.flipper.startRPCSession()
     },
 
-    rpcRequest (type) {
-      /* const rawReq = {
-        ping: Uint8Array.from([4, 8, 1, 42, 0]),
-        deviceInfo: Uint8Array.from([5, 8, 2, 130, 2, 0]),
-        powerInfo: Uint8Array.from([5, 8, 3, 226, 2, 0])
-      } */
-      // const request = rpc.createRequest(options)
-      // console.log(request)
-      this.flipper.RPC(type)
+    async rpcRequest (type, args) {
+      if (!type) {
+        type = this.RPCRequest.subSystem + this.RPCRequest.command
+        args = this.RPCRequest.args.length ? JSON.parse(this.RPCRequest.args) : null
+      }
+      const response = await this.flipper.RPC(type, args)
+      console.log(response)
+    },
+
+    async RPCwrite () {
+      const file = await this.flipper.RPC('storageRead', { path: '/ext/Manifest' })
+      console.log(file)
+      const response = await this.flipper.RPC('storageWrite', { path: '/ext/test.txt', buffer: file.buffer })
+      console.log(response)
     }
   },
 

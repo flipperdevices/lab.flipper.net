@@ -1,4 +1,4 @@
-import { PB } from './proto-compiled'
+import { PB } from './protobufCompiled'
 
 export class LineBreakTransformer {
   constructor () {

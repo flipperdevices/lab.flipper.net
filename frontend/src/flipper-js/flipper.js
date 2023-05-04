@@ -1,6 +1,23 @@
 import { LineBreakTransformer, PromptBreakTransformer, ProtobufTransformer } from './transformers'
-import { PB } from './proto-compiled'
+import { PB } from './protobufCompiled'
+import { createNanoEvents } from 'nanoevents'
+import { RPC_TIMEOUT } from './util'
+
+import * as storage from './commands/storage'
 import * as system from './commands/system'
+import * as application from './commands/application'
+import * as gui from './commands/gui'
+import * as gpio from './commands/gpio'
+import * as property from './commands/property'
+
+const RPCSubSystems = {
+  storage,
+  system,
+  application,
+  gui,
+  gpio,
+  property
+}
 
 export default class Flipper {
   constructor ({
@@ -12,6 +29,13 @@ export default class Flipper {
     this.serialWorker = new Worker(new URL('./serialWorker.js', import.meta.url))
     this.serialWorker.onmessage = (e) => {
       switch (e.data.message) {
+        case 'connectionStatus':
+          if (e.data.error) {
+            this.emitter.emit(e.data.operation + 'Status', e.data.error)
+          } else if (e.data.status) {
+            this.emitter.emit(e.data.operation + 'Status', e.data.status)
+          }
+          break
         case 'getReadableStream':
           this.readable = e.data.stream
           this.getReader()
@@ -39,10 +63,7 @@ export default class Flipper {
         error: undefined
       }
     ]
-
-    this.RPCSubSystems = {
-      system
-    }
+    this.emitter = createNanoEvents()
   }
 
   getReader () {
@@ -116,13 +137,26 @@ export default class Flipper {
     this.writer = this.writable.getWriter()
   }
 
-  connect () {
-    // TODO: full connection flow
-    this.serialWorker.postMessage({ message: 'connect' })
+  async connect () {
+    const ports = await navigator.serial.getPorts({ filters: this.filters })
+    if (ports.length === 0) {
+      throw new Error('No known ports')
+    }
+    return new Promise((resolve, reject) => {
+      this.serialWorker.postMessage({ message: 'connect' })
+      setTimeout(() => reject('Serial connection timeout'), RPC_TIMEOUT)
+      const unbind = this.emitter.on('connectStatus', status => {
+        unbind()
+        if (status === 'success') {
+          resolve(true)
+        } else {
+          reject(status)
+        }
+      })
+    })
   }
 
   async disconnect () {
-    // TODO: await for disconnect to complete
     this.reader.cancel()
     if (this.readableStreamClosed) {
       await this.readableStreamClosed.catch(() => {})
@@ -131,7 +165,20 @@ export default class Flipper {
     await this.writer.close()
     await this.writer.releaseLock()
 
+    // for some reason sometimes reader and writer don't get unlocked immediately
     setTimeout(() => this.serialWorker.postMessage({ message: 'disconnect' }), 1)
+
+    return new Promise((resolve, reject) => {
+      setTimeout(() => reject('Serial disconnection timeout'), RPC_TIMEOUT)
+      const unbind = this.emitter.on('disconnectStatus', status => {
+        unbind()
+        if (status === 'success') {
+          resolve(true)
+        } else {
+          reject(status)
+        }
+      })
+    })
   }
 
   async read () {
@@ -149,6 +196,7 @@ export default class Flipper {
         command.chunks.push(res[res.content])
       } else {
         console.log(value)
+        this.emitter.emit('cli/output', value)
       }
     }
   }
@@ -183,8 +231,7 @@ export default class Flipper {
       const i = this.commandQueue.push({
         commandId: options.commandId,
         requestType: requestType,
-        args: hasNext ? [args] : args,
-        error: undefined
+        args: hasNext ? [args] : args
       })
       command = this.commandQueue[i - 1]
     }
@@ -196,15 +243,12 @@ export default class Flipper {
 
   RPC (requestType, args) {
     const [subSystem, command] = splitRequestType(requestType)
-    this.RPCSubSystems[subSystem][command].bind(this)(requestType, args)
-      .then(command => {
-        console.log(command)
-      })
+    return RPCSubSystems[subSystem][command].bind(this)(args)
   }
 }
 
 function splitRequestType (requestType) {
   const index = requestType.search(/[A-Z]/g)
-  const command = requestType.slice(index, requestType.indexOf('Request'))
+  const command = requestType.slice(index)
   return [requestType.slice(0, index), command[0].toLowerCase() + command.slice(1)]
 }
