@@ -173,6 +173,10 @@ export default class Flipper {
       const unbind = this.emitter.on('disconnectStatus', status => {
         unbind()
         if (status === 'success') {
+          this.readingMode = {
+            type: 'text',
+            transform: 'promptBreak'
+          }
           resolve(true)
         } else {
           reject(status)
@@ -213,7 +217,22 @@ export default class Flipper {
 
   async startRPCSession () {
     await this.setReadingMode('raw', 'protobuf')
-    setTimeout(() => this.write('start_rpc_session\r'), 300)
+    const startSession = new Promise((resolve, reject) => {
+      setTimeout(() => {
+        this.write('start_rpc_session\r')
+        resolve()
+      }, 300)
+    })
+    await startSession
+    return new Promise((resolve, reject) => {
+      this.RPC('systemPing')
+        .then(() => {
+          resolve()
+        })
+        .catch(error => {
+          reject(error)
+        })
+    })
   }
 
   encodeRPCRequest (requestType, args, hasNext, commandId) {

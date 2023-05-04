@@ -109,7 +109,7 @@ export default defineComponent({
           console.log('port closed')
         })
         .catch(error => {
-          console.warn(error)
+          console.error(error)
         })
     },
 
@@ -123,6 +123,12 @@ export default defineComponent({
 
     async startRPC () {
       await this.flipper.startRPCSession()
+        .then(() => {
+          console.log('rpc started')
+        })
+        .catch(error => {
+          console.error(error)
+        })
     },
 
     async rpcRequest (type, args) {

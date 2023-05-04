@@ -49,7 +49,6 @@ export class ProtobufTransformer {
     this.chunks = newBuffer
 
     if (!this.rpcStarted && this.decoder.decode(this.chunks) === 'start_rpc_session\r\n') {
-      console.log('rpc started')
       this.rpcStarted = true
       this.chunks = new Uint8Array(0)
       return
