@@ -7,7 +7,6 @@
 <script>
 import { defineComponent, ref } from 'vue'
 import PixelEditor from 'src/components/PixelEditor.vue'
-import asyncSleep from 'simple-async-sleep'
 import { imageDataToXBM } from '../util/pixeleditor/xbm'
 
 export default defineComponent({
@@ -26,6 +25,8 @@ export default defineComponent({
 
   setup () {
     return {
+      componentName: 'Paint',
+
       flags: ref({
         restarting: false,
         rpcActive: false,
@@ -44,65 +45,44 @@ export default defineComponent({
   methods: {
     async startRpc () {
       this.flags.rpcToggling = true
-      const ping = await this.flipper.commands.startRpcSession(this.flipper)
-      if (!ping.resolved || ping.error) {
-        this.$emit('showNotif', {
-          message: 'Unable to start RPC session. Reload the page or reconnect Flipper manually.',
-          color: 'negative',
-          reloadBtn: true
+      await this.flipper.startRPCSession()
+        .catch(error => {
+          console.error(error)
+          this.$emit('log', {
+            level: 'error',
+            message: `${this.componentName}: Error while starting RPC: ${error.toString()}`
+          })
         })
-        this.$emit('log', {
-          level: 'error',
-          message: 'Device: Couldn\'t start rpc session'
-        })
-        throw new Error('Couldn\'t start rpc session')
-      }
       this.flags.rpcActive = true
-      this.flags.rpcToggling = false
       this.$emit('setRpcStatus', true)
+      this.flags.rpcToggling = false
       this.$emit('log', {
         level: 'info',
-        message: 'Paint: RPC started'
+        message: `${this.componentName}: RPC started`
       })
     },
 
     async stopRpc () {
       this.flags.rpcToggling = true
-      await this.flipper.commands.stopRpcSession()
+      await this.flipper.setReadingMode('text', 'promptBreak')
       this.flags.rpcActive = false
-      this.flags.rpcToggling = false
       this.$emit('setRpcStatus', false)
+      this.flags.rpcToggling = false
       this.$emit('log', {
         level: 'info',
-        message: 'Paint: RPC stopped'
+        message: `${this.componentName}: RPC stopped`
       })
     },
 
-    async restartRpc (force) {
-      if ((this.connected && this.flags.rpcActive && !this.flags.restarting) || force) {
-        this.flags.restarting = true
-        await this.flipper.closeReader()
-        await asyncSleep(300)
-        await this.flipper.disconnect()
-        await asyncSleep(300)
-        await this.flipper.connect()
-        await this.startRpc()
-      }
-    },
-
     async startVirtualDisplay () {
-      const response = await this.flipper.commands.gui.startVirtualDisplay()
-        .catch(error => this.rpcErrorHandler(error, 'gui.startVirtualDisplay'))
-      if (!response.resolved || response.error) {
-        this.$emit('showNotif', {
-          message: 'Couldn\'t start virtual display session: ' + response.error,
-          color: 'negative'
+      await this.flipper.RPC('guiStartVirtualDisplay')
+        .catch(error => {
+          this.rpcErrorHandler(error, 'guiStartVirtualDisplay')
+          this.$emit('showNotif', {
+            message: 'Couldn\'t start virtual display session',
+            color: 'negative'
+          })
         })
-        this.$emit('log', {
-          level: 'error',
-          message: 'Paint: Couldn\'t start virtual display session: ' + response.error
-        })
-      }
 
       await this.enableBacklight()
       this.backlightInterval = setInterval(this.enableBacklight, 15000)
@@ -112,22 +92,21 @@ export default defineComponent({
       }
     },
     async stopVirtualDisplay () {
-      await this.flipper.commands.gui.stopVirtualDisplay()
-        .catch(error => this.rpcErrorHandler(error, 'gui.stopVirtualDisplay'))
+      await this.flipper.RPC('guiStopVirtualDisplay')
+        .catch(error => this.rpcErrorHandler(error, 'guiStopVirtualDisplay'))
     },
     async enableBacklight () {
-      await this.flipper.commands.gui.sendInputEvent(4, 0)
-        .catch(error => this.rpcErrorHandler(error, 'gui.sendInputEvent'))
-      await this.flipper.commands.gui.sendInputEvent(4, 2)
-        .catch(error => this.rpcErrorHandler(error, 'gui.sendInputEvent'))
-      await this.flipper.commands.gui.sendInputEvent(4, 1)
-        .catch(error => this.rpcErrorHandler(error, 'gui.sendInputEvent'))
+      await this.flipper.RPC('guiSendInputEvent', { key: 'OK', type: 'PRESS' })
+        .catch(error => this.rpcErrorHandler(error, 'guiSendInputEvent'))
+      await this.flipper.RPC('guiSendInputEvent', { key: 'OK', type: 'SHORT' })
+        .catch(error => this.rpcErrorHandler(error, 'guiSendInputEvent'))
+      await this.flipper.RPC('guiSendInputEvent', { key: 'OK', type: 'RELEASE' })
+        .catch(error => this.rpcErrorHandler(error, 'guiSendInputEvent'))
     },
     async sendFrame () {
       const imageData = this.$refs.editor.pe.toImageData()
       const xbmBytes = imageDataToXBM(imageData)
-      this.flipper.commands.gui.screenFrame(new Uint8Array(xbmBytes))
-        .catch(error => this.rpcErrorHandler(error, 'gui.screenFrame'))
+      await this.flipper.RPC('guiScreenFrame', { data: new Uint8Array(xbmBytes) })
     },
     autoStream () {
       if (this.autoStreaming.enabled) {
@@ -148,25 +127,20 @@ export default defineComponent({
       })
       this.$emit('log', {
         level: 'error',
-        message: `Paint: RPC error in command '${command}': ${error}`
+        message: `${this.componentName}: RPC error in command '${command}': ${error}`
       })
     },
 
     async start () {
       this.flags.rpcActive = this.rpcActive
       if (!this.rpcActive) {
-        setTimeout(() => {
-          if (!this.rpcActive) {
-            return this.restartRpc(true)
-          }
-        }, 1000)
         await this.startRpc()
       }
     }
   },
 
   async mounted () {
-    if (this.connected && this.info !== null && this.info.storage_databases_present) {
+    if (this.connected && this.info !== null && this.info.storage.databases) {
       await this.start()
     }
 

@@ -104,8 +104,8 @@
 
 <script>
 import { defineComponent, ref } from 'vue'
-import { Pulseplot as PulseplotOffscreen } from '../pulseplot/pulseplot-offscreen'
-import { Pulseplot } from '../pulseplot/pulseplot'
+import { Pulseplot as PulseplotOffscreen } from '../util/pulseplot/pulseplot-offscreen'
+import { Pulseplot } from '../util/pulseplot/pulseplot'
 
 export default defineComponent({
   name: 'Pulseplot',

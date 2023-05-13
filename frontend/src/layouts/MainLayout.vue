@@ -134,11 +134,11 @@
         <div class="relative-position flex justify-end" style="width: 175px">
           <div class="column justify-end no-wrap">
             <div class="column items-center">
-              <div v-if="info" class="flex justify-center q-px-md">
-                <img v-if="info.hardware_color === '1'" src="../assets/flipper_black.svg" style="width: 100%"/>
+              <div v-if="info && info.hardware && info.power" class="flex justify-center q-px-md">
+                <img v-if="info.hardware.color === '1'" src="../assets/flipper_black.svg" style="width: 100%"/>
                 <img v-else src="../assets/flipper_white.svg" style="width: 100%"/>
                 <div class="flex full-width justify-between items-center q-mt-md q-mb-sm">
-                  <div style="font-size: 1rem; font-weight: 600;">{{ info.hardware_name }}</div>
+                  <div style="font-size: 1rem; font-weight: 600;">{{ info.hardware.name }}</div>
                   <div class="flex flex-center">
                     <q-icon
                       :name="batteryIcon"
@@ -146,7 +146,7 @@
                       class="rotate-90"
                       :color="batteryColor"
                     ></q-icon>
-                    <div class="q-ml-xs text-caption">{{ this.info.charge_level }}%</div>
+                    <div class="q-ml-xs text-caption">{{ info.power.charge.level }}%</div>
                   </div>
                 </div>
 
@@ -223,7 +223,7 @@
 
     <q-page-container class="flex justify-center">
       <router-view
-        v-if="!flags.connectionRequired || flags.updateInProgress || (flags.serialSupported && info !== null && this.info.storage_databases_present)"
+        v-if="!flags.connectionRequired || flags.updateInProgress || (flags.serialSupported && info !== null && info.storage.databases.status)"
         :flipper="flipper"
         :rpcActive="flags.rpcActive"
         :connected="flags.connected"
@@ -310,8 +310,7 @@ import { defineComponent, ref } from 'vue'
 import { useQuasar } from 'quasar'
 import ExternalLink from 'components/ExternalLink.vue'
 import RouterLink from 'components/RouterLink.vue'
-import * as flipper from '../flipper/core'
-import asyncSleep from 'simple-async-sleep'
+import Flipper from 'src/flipper-js/flipper'
 import log from 'loglevel'
 
 let dismissNotif
@@ -327,6 +326,21 @@ export default defineComponent({
   setup () {
     const $q = useQuasar()
     return {
+      componentName: 'Main',
+
+      flags: ref({
+        serialSupported: true,
+        connectionRequired: true,
+        portSelectRequired: false,
+        connected: false,
+        rpcActive: false,
+        connectOnStart: true,
+        autoReconnect: false,
+        updateInProgress: false,
+        installFromFile: false,
+        logsPopup: false,
+        settingsView: false
+      }),
       routes: [
         {
           title: 'My Flipper',
@@ -398,21 +412,8 @@ export default defineComponent({
       ],
       leftDrawer: ref(true),
       linksMenu: ref(false),
-      flipper: ref(flipper),
+      flipper: new Flipper(),
       info: ref(null),
-      flags: ref({
-        serialSupported: true,
-        connectionRequired: true,
-        portSelectRequired: false,
-        connected: false,
-        rpcActive: false,
-        connectOnStart: true,
-        autoReconnect: false,
-        updateInProgress: false,
-        installFromFile: false,
-        logsPopup: false,
-        settingsView: false
-      }),
       reconnectLoop: ref(null),
       connectionStatus: ref('Ready to connect'),
       logger: log,
@@ -424,7 +425,7 @@ export default defineComponent({
 
   computed: {
     batteryIcon () {
-      const roundedCharge = Math.round(Number(this.info.charge_level) / 10) * 10
+      const roundedCharge = Math.round(Number(this.info.power.charge.level) / 10) * 10
       if (roundedCharge === 0) {
         return 'mdi-battery-outline'
       } else if (roundedCharge === 100) {
@@ -433,7 +434,7 @@ export default defineComponent({
       return 'mdi-battery-' + roundedCharge
     },
     batteryColor () {
-      const charge = Number(this.info.charge_level)
+      const charge = Number(this.info.power.charge.level)
       if (charge >= 75) {
         return 'positive'
       } else if (charge >= 30) {
@@ -442,15 +443,15 @@ export default defineComponent({
       return 'negative'
     },
     sdCardUsed () {
-      if (this.info.storage_sdcard_freeSpace) {
-        return 100 - Math.floor(this.info.storage_sdcard_freeSpace / (this.info.storage_sdcard_totalSpace / 100))
+      if (this.info.storage.sdcard.freeSpace) {
+        return 100 - Math.floor(this.info.storage.sdcard.freeSpace / (this.info.storage.sdcard.totalSpace / 100))
       } else {
         return 1
       }
     },
     internalUsed () {
-      if (this.info.storage_internal_freeSpace) {
-        return 100 - Math.floor(this.info.storage_internal_freeSpace / (this.info.storage_internal_totalSpace / 100))
+      if (this.info.storage.internal.freeSpace) {
+        return 100 - Math.floor(this.info.storage.internal.freeSpace / (this.info.storage.internal.totalSpace / 100))
       } else {
         return 1
       }
@@ -472,7 +473,7 @@ export default defineComponent({
           this.flags.connected = true
           this.log({
             level: 'info',
-            message: 'Main: Flipper connected'
+            message: `${this.componentName}: Flipper connected`
           })
           if (dismissNotif) {
             dismissNotif()
@@ -503,122 +504,122 @@ export default defineComponent({
           this.info = null
           this.textInfo = ''
         })
-        .catch(async error => {
-          if (error.toString().includes('Cannot cancel a locked stream')) {
-            if (this.flags.rpcActive) {
-              await this.stopRpc()
-            } else {
-              this.flipper.closeReader()
-              await asyncSleep(300)
-            }
-            return this.disconnect()
-          } else {
-            this.connectionStatus = error.toString()
-          }
+        .catch(error => {
+          this.log({
+            level: 'error',
+            message: `${this.componentName}: Error while disconnecting ${error}`
+          })
+          this.connectionStatus = error.toString()
         })
       this.log({
         level: 'info',
-        message: 'Main: Flipper disconnected'
+        message: `${this.componentName}: Flipper disconnected`
       })
     },
 
     async startRpc () {
       this.flags.rpcToggling = true
-      const ping = await this.flipper.commands.startRpcSession(this.flipper)
-      if (!ping.resolved || ping.error) {
-        throw new Error('Couldn\'t start rpc session')
-      }
+      await this.flipper.startRPCSession()
+        .catch(error => {
+          console.error(error)
+          this.log({
+            level: 'error',
+            message: `${this.componentName}: Error while starting RPC: ${error.toString()}`
+          })
+        })
       this.flags.rpcActive = true
       this.flags.rpcToggling = false
       this.log({
         level: 'info',
-        message: 'Main: RPC started'
+        message: `${this.componentName}: RPC started`
       })
     },
 
     async stopRpc () {
       this.flags.rpcToggling = true
-      await this.flipper.commands.stopRpcSession()
+      await this.flipper.setReadingMode('text', 'promptBreak')
       this.flags.rpcActive = false
       this.flags.rpcToggling = false
       this.log({
         level: 'info',
-        message: 'Main: RPC stopped'
+        message: `${this.componentName}: RPC stopped`
       })
     },
 
     async readInfo () {
-      this.info = {}
-      let res = await this.flipper.commands.system.deviceInfo()
-        .catch(error => this.rpcErrorHandler(error, 'system.deviceInfo'))
+      this.info = {
+        storage: {
+          sdcard: {},
+          databases: {},
+          internal: {}
+        }
+      }
+      const devInfo = await this.flipper.RPC('propertyGet', { key: 'devinfo' })
+        .catch(error => this.rpcErrorHandler(error, 'propertyGet'))
         .finally(() => {
           this.$emit('log', {
             level: 'debug',
-            message: 'Main: system.deviceInfo: OK'
+            message: `${this.componentName}: propertyGet: OK`
           })
         })
-      for (const line of res) {
-        this.info[line.key] = line.value
-      }
-      res = await this.flipper.commands.system.powerInfo()
-        .catch(error => this.rpcErrorHandler(error, 'system.powerInfo'))
-        .finally(() => {
-          this.$emit('log', {
-            level: 'debug',
-            message: 'Main: system.powerInfo: OK'
-          })
-        })
-      for (const line of res) {
-        this.info[line.key] = line.value
-      }
+      this.info = { ...this.info, ...devInfo }
 
-      await asyncSleep(300)
-      res = await this.flipper.commands.storage.list('/ext')
-        .catch(error => this.rpcErrorHandler(error, 'storage.list'))
+      const powerInfo = await this.flipper.RPC('propertyGet', { key: 'pwrinfo' })
+        .catch(error => this.rpcErrorHandler(error, 'propertyGet'))
         .finally(() => {
           this.$emit('log', {
             level: 'debug',
-            message: 'Main: storage.list: /ext'
+            message: `${this.componentName}: propertyGet: OK`
           })
         })
-      if (res && typeof (res) === 'object' && res.length) {
-        const manifest = res.find(e => e.name === 'Manifest')
+      this.info.power = powerInfo
+
+      const ext = await this.flipper.RPC('storageList', { path: '/ext' })
+        .catch(error => this.rpcErrorHandler(error, 'storageList'))
+        .finally(() => {
+          this.$emit('log', {
+            level: 'debug',
+            message: `${this.componentName}: storageList: /ext`
+          })
+        })
+
+      if (ext && ext.length) {
+        const manifest = ext.find(e => e.name === 'Manifest')
         if (manifest) {
-          this.info.storage_databases_present = 'installed'
+          this.info.storage.databases.status = 'installed'
         } else {
-          this.info.storage_databases_present = 'missing'
+          this.info.storage.databases.status = 'missing'
         }
 
-        res = await this.flipper.commands.storage.info('/ext')
-          .catch(error => this.rpcErrorHandler(error, 'storage.info'))
+        const extInfo = await this.flipper.RPC('storageInfo', { path: '/ext' })
+          .catch(error => this.rpcErrorHandler(error, 'storageInfo'))
           .finally(() => {
             this.$emit('log', {
               level: 'debug',
-              message: 'Main: storage.info: /ext'
+              message: `${this.componentName}: storageInfo: /ext`
             })
           })
-        this.info.storage_sdcard_present = 'installed'
-        this.info.storage_sdcard_totalSpace = res.totalSpace
-        this.info.storage_sdcard_freeSpace = res.freeSpace
+        this.info.storage.sdcard.status = 'installed'
+        this.info.storage.sdcard.totalSpace = extInfo.totalSpace
+        this.info.storage.sdcard.freeSpace = extInfo.freeSpace
       } else {
-        this.info.storage_sdcard_present = 'missing'
-        this.info.storage_databases_present = 'missing'
+        this.info.storage.sdcard.status = 'missing'
+        this.info.storage.databases.status = 'missing'
       }
 
-      await asyncSleep(200)
-      res = await this.flipper.commands.storage.info('/int')
-        .catch(error => this.rpcErrorHandler(error, 'storage.info'))
+      const intInfo = await this.flipper.RPC('storageInfo', { path: '/int' })
+        .catch(error => this.rpcErrorHandler(error, 'storageInfo'))
         .finally(() => {
           this.$emit('log', {
             level: 'debug',
-            message: 'Main: storage.info: /int'
+            message: `${this.componentName}: storageInfo: /int`
           })
         })
-      this.info.storage_internal_totalSpace = res.totalSpace
-      this.info.storage_internal_freeSpace = res.freeSpace
+      this.info.storage.internal.totalSpace = intInfo.totalSpace
+      this.info.storage.internal.freeSpace = intInfo.freeSpace
       this.log({
         level: 'info',
-        message: 'Main: Fetched device info'
+        message: `${this.componentName}: Fetched device info`
       })
     },
 
@@ -676,7 +677,7 @@ export default defineComponent({
     openFileIn ({ path, file }) {
       this.log({
         level: 'info',
-        message: `Main: Passing file ${file.name} to ${path}`
+        message: `${this.componentName}: Passing file ${file.name} to ${path}`
       })
       this.fileToPass = file
       this.$router.push(path)
@@ -748,7 +749,7 @@ export default defineComponent({
       })
       this.log({
         level: 'error',
-        message: `Main: RPC error in command '${command}': ${error}`
+        message: `${this.componentName}: RPC error in command '${command}': ${error}`
       })
     },
 
@@ -770,8 +771,10 @@ export default defineComponent({
       const ports = await this.findKnownDevices()
       if (ports && ports.length > 0) {
         await this.connect()
-        await this.startRpc()
-        await this.readInfo()
+        setTimeout(async () => {
+          await this.startRpc()
+          await this.readInfo()
+        }, 300)
       } else {
         this.flags.portSelectRequired = true
         if (manual) {
@@ -821,7 +824,7 @@ export default defineComponent({
       }
       this.log({
         level: 'info',
-        message: 'Main: Flipper has been disconnected'
+        message: `${this.componentName}: Flipper has been disconnected`
       })
     })
 
