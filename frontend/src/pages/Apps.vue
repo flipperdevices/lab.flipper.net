@@ -187,7 +187,6 @@ import SearchBar from 'components/SearchBar.vue'
 import AppList from 'components/AppList.vue'
 import AppPage from 'components/AppPage.vue'
 import InstalledApps from 'components/InstalledApps.vue'
-import asyncSleep from 'simple-async-sleep'
 import semver from 'semver'
 
 export default defineComponent({
@@ -210,7 +209,8 @@ export default defineComponent({
   setup () {
     const router = useRouter()
     return {
-      router,
+      componentName: 'Apps',
+
       flags: ref({
         restarting: false,
         rpcActive: false,
@@ -220,6 +220,7 @@ export default defineComponent({
         outdatedAPIDialog: false,
         TOSDialog: false
       }),
+      router,
       initialCategory: ref(null),
       currentApp: ref(null),
       apps: ref([]),
@@ -305,55 +306,33 @@ export default defineComponent({
 
     async startRpc () {
       this.flags.rpcToggling = true
-      const ping = await this.flipper.commands.startRpcSession(this.flipper)
-      if (!ping.resolved || ping.error) {
-        this.$emit('showNotif', {
-          message: 'Unable to start RPC session. Reload the page or reconnect Flipper manually.',
-          color: 'negative',
-          reloadBtn: true
+      await this.flipper.startRPCSession()
+        .catch(error => {
+          console.error(error)
+          this.$emit('log', {
+            level: 'error',
+            message: `${this.componentName}: Error while starting RPC: ${error.toString()}`
+          })
         })
-        this.$emit('log', {
-          level: 'error',
-          message: 'Device: Couldn\'t start rpc session'
-        })
-        throw new Error('Couldn\'t start rpc session')
-      }
       this.flags.rpcActive = true
-      this.flags.rpcToggling = false
       this.$emit('setRpcStatus', true)
+      this.flags.rpcToggling = false
       this.$emit('log', {
         level: 'info',
-        message: 'Device: RPC started'
+        message: `${this.componentName}: RPC started`
       })
     },
 
     async stopRpc () {
       this.flags.rpcToggling = true
-      await this.flipper.commands.stopRpcSession()
+      await this.flipper.setReadingMode('text', 'promptBreak')
       this.flags.rpcActive = false
-      this.flags.rpcToggling = false
       this.$emit('setRpcStatus', false)
+      this.flags.rpcToggling = false
       this.$emit('log', {
         level: 'info',
-        message: 'Device: RPC stopped'
+        message: `${this.componentName}: RPC stopped`
       })
-    },
-
-    async restartRpc (force) {
-      if ((this.connected && this.flags.rpcActive && !this.flags.restarting) || force) {
-        this.flags.restarting = true
-        await this.flipper.closeReader()
-        await asyncSleep(300)
-        await this.flipper.disconnect()
-        await asyncSleep(300)
-        await this.flipper.connect()
-        await this.startRpc()
-        this.$emit('log', {
-          level: 'info',
-          message: 'Device: Restarted RPC'
-        })
-        return this.startScreenStream()
-      }
     },
 
     passNotif (config) {
