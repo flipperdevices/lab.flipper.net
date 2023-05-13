@@ -21,9 +21,9 @@ export function watch (callback, emitter, requestType) {
   return validator
 }
 
-export function createRPCPromise (requestType, args, format, emitter) {
+export function createRPCPromise (requestType, args, format, emitter, timeout) {
   return new Promise((resolve, reject) => {
-    setTimeout(() => reject(`RPC timeout: ${requestType}`), RPC_TIMEOUT)
+    setTimeout(() => reject(`RPC timeout: ${requestType}`), timeout || RPC_TIMEOUT)
     function callback (chunks) {
       let result
       if (format) {
