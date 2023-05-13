@@ -1,4 +1,5 @@
 import { PB } from './protobufCompiled'
+import * as protobuf from 'protobufjs/minimal'
 
 export class LineBreakTransformer {
   constructor () {
@@ -39,7 +40,6 @@ export class ProtobufTransformer {
     this.chunks = new Uint8Array(0)
     this.decoder = new TextDecoder()
     this.rpcStarted = false
-    this.accumulator = []
   }
 
   transform (chunk, controller) {
@@ -55,15 +55,20 @@ export class ProtobufTransformer {
     }
 
     try {
-      const res = PB.Main.decodeDelimited(this.chunks)
-      controller.enqueue(res)
-      this.chunks = new Uint8Array(0)
+      const reader = protobuf.Reader.create(this.chunks)
+      const results = []
+      while (reader.pos < reader.len) {
+        const res = PB.Main.decodeDelimited(reader)
+        results.push(res)
+      }
+      this.chunks = this.chunks.slice(reader.pos)
+      results.forEach(res => controller.enqueue(res))
+      this.decodeInProgress = false
     } catch (error) {
-      if (!(error.message.includes('index out of range'))) {
-        if (this.rpcStarted) {
-          console.error(error)
+      if (!error.message.includes('index out of range')) {
+        if (!this.rpcStarted) {
+          this.chunks = new Uint8Array(0)
         }
-        this.chunks = new Uint8Array(0)
       }
     }
   }

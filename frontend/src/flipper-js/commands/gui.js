@@ -25,22 +25,23 @@ const screenOrientations = {
 }
 
 function screenFrame ({ data, orientation = 'HORIZONTAL' }) {
-  return createRPCPromise.bind(this)('guiScreenFrame', { data, orientation: screenOrientations[orientation] })
+  const [requestData] = this.encodeRPCRequest('guiScreenFrame', { data, orientation: screenOrientations[orientation] })
+  this.writeRaw(requestData)
 }
 
-function startScreenStreamRequest () {
+function startScreenStream () {
   return createRPCPromise.bind(this)('guiStartScreenStreamRequest')
 }
 
-function stopScreenStreamRequest () {
+function stopScreenStream () {
   return createRPCPromise.bind(this)('guiStopScreenStreamRequest')
 }
 
-function sendInputEventRequest ({ key, type }) {
+function sendInputEvent ({ key, type }) {
   return createRPCPromise.bind(this)('guiSendInputEventRequest', { key: inputKeys[key], type: inputTypes[type] })
 }
 
-function startVirtualDisplayRequest (firstFrame) {
+function startVirtualDisplay (firstFrame) {
   const args = {}
   if (firstFrame) {
     const [data] = this.encodeRPCRequest(
@@ -54,15 +55,16 @@ function startVirtualDisplayRequest (firstFrame) {
   return createRPCPromise.bind(this)('guiStartVirtualDisplayRequest', args)
 }
 
-function stopVirtualDisplayRequest () {
+function stopVirtualDisplay () {
+  this.emitter.emit('screenStream/stop')
   return createRPCPromise.bind(this)('guiStopVirtualDisplayRequest')
 }
 
 export {
   screenFrame,
-  startScreenStreamRequest,
-  stopScreenStreamRequest,
-  sendInputEventRequest,
-  startVirtualDisplayRequest,
-  stopVirtualDisplayRequest
+  startScreenStream,
+  stopScreenStream,
+  sendInputEvent,
+  startVirtualDisplay,
+  stopVirtualDisplay
 }

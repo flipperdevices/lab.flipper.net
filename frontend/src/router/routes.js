@@ -1,15 +1,11 @@
 
 const routes = [
-  /* {
+  {
     path: '/',
     component: () => import('layouts/MainLayout.vue'),
     children: [
       { path: '/', component: () => import('pages/Device.vue') }
     ]
-  }, */
-  {
-    path: '/',
-    component: () => import('layouts/TestLayout.vue')
   },
   {
     path: '/apps',
@@ -37,13 +33,6 @@ const routes = [
     component: () => import('layouts/MainLayout.vue'),
     children: [
       { path: '/cli', component: () => import('pages/Cli.vue') }
-    ]
-  },
-  {
-    path: '/remote-cli',
-    component: () => import('layouts/MainLayout.vue'),
-    children: [
-      { path: '/remote-cli', component: () => import('pages/RemoteCli.vue') }
     ]
   },
   {

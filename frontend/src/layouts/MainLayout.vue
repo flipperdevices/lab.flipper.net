@@ -310,9 +310,7 @@ import { defineComponent, ref } from 'vue'
 import { useQuasar } from 'quasar'
 import ExternalLink from 'components/ExternalLink.vue'
 import RouterLink from 'components/RouterLink.vue'
-// import * as flipper from '../flipper/core'
 import Flipper from 'src/flipper-js/flipper'
-// import asyncSleep from 'simple-async-sleep'
 import log from 'loglevel'
 
 let dismissNotif
@@ -330,6 +328,19 @@ export default defineComponent({
     return {
       componentName: 'Main',
 
+      flags: ref({
+        serialSupported: true,
+        connectionRequired: true,
+        portSelectRequired: false,
+        connected: false,
+        rpcActive: false,
+        connectOnStart: true,
+        autoReconnect: false,
+        updateInProgress: false,
+        installFromFile: false,
+        logsPopup: false,
+        settingsView: false
+      }),
       routes: [
         {
           title: 'My Flipper',
@@ -401,22 +412,8 @@ export default defineComponent({
       ],
       leftDrawer: ref(true),
       linksMenu: ref(false),
-      // flipper: ref(flipper),
       flipper: new Flipper(),
       info: ref(null),
-      flags: ref({
-        serialSupported: true,
-        connectionRequired: true,
-        portSelectRequired: false,
-        connected: false,
-        rpcActive: false,
-        connectOnStart: true,
-        autoReconnect: false,
-        updateInProgress: false,
-        installFromFile: false,
-        logsPopup: false,
-        settingsView: false
-      }),
       reconnectLoop: ref(null),
       connectionStatus: ref('Ready to connect'),
       logger: log,
@@ -508,18 +505,10 @@ export default defineComponent({
           this.textInfo = ''
         })
         .catch(error => {
-          /* if (error.toString().includes('Cannot cancel a locked stream')) {
-            if (this.flags.rpcActive) {
-              await this.stopRpc()
-            } else {
-              this.flipper.closeReader()
-              await asyncSleep(300)
-            }
-            return this.disconnect()
-          } else {
-            this.connectionStatus = error.toString()
-          } */
-          console.error(error)
+          this.log({
+            level: 'error',
+            message: `${this.componentName}: Error while disconnecting ${error}`
+          })
           this.connectionStatus = error.toString()
         })
       this.log({
@@ -530,10 +519,6 @@ export default defineComponent({
 
     async startRpc () {
       this.flags.rpcToggling = true
-      /* const ping = await this.flipper.commands.startRpcSession(this.flipper)
-      if (!ping.resolved || ping.error) {
-        throw new Error('Couldn\'t start rpc session')
-      } */
       await this.flipper.startRPCSession()
         .catch(error => {
           console.error(error)
@@ -552,7 +537,6 @@ export default defineComponent({
 
     async stopRpc () {
       this.flags.rpcToggling = true
-      // await this.flipper.commands.stopRpcSession()
       await this.flipper.setReadingMode('text', 'promptBreak')
       this.flags.rpcActive = false
       this.flags.rpcToggling = false
@@ -570,7 +554,6 @@ export default defineComponent({
           internal: {}
         }
       }
-      // let res = await this.flipper.commands.system.deviceInfo()
       const devInfo = await this.flipper.RPC('propertyGet', { key: 'devinfo' })
         .catch(error => this.rpcErrorHandler(error, 'propertyGet'))
         .finally(() => {
@@ -580,10 +563,7 @@ export default defineComponent({
           })
         })
       this.info = { ...this.info, ...devInfo }
-      /* for (const line of res) {
-        this.info[line.key] = line.value
-      }
-      res = await this.flipper.commands.system.powerInfo() */
+
       const powerInfo = await this.flipper.RPC('propertyGet', { key: 'pwrinfo' })
         .catch(error => this.rpcErrorHandler(error, 'propertyGet'))
         .finally(() => {
@@ -593,12 +573,7 @@ export default defineComponent({
           })
         })
       this.info.power = powerInfo
-      /* for (const line of res) {
-        this.info[line.key] = line.value
-      }
 
-      await asyncSleep(300)
-      res = await this.flipper.commands.storage.list('/ext') */
       const ext = await this.flipper.RPC('storageList', { path: '/ext' })
         .catch(error => this.rpcErrorHandler(error, 'storageList'))
         .finally(() => {
@@ -616,7 +591,6 @@ export default defineComponent({
           this.info.storage.databases.status = 'missing'
         }
 
-        // res = await this.flipper.commands.storage.info('/ext')
         const extInfo = await this.flipper.RPC('storageInfo', { path: '/ext' })
           .catch(error => this.rpcErrorHandler(error, 'storageInfo'))
           .finally(() => {
@@ -633,8 +607,6 @@ export default defineComponent({
         this.info.storage.databases.status = 'missing'
       }
 
-      // await asyncSleep(200)
-      // res = await this.flipper.commands.storage.info('/int')
       const intInfo = await this.flipper.RPC('storageInfo', { path: '/int' })
         .catch(error => this.rpcErrorHandler(error, 'storageInfo'))
         .finally(() => {
@@ -649,8 +621,6 @@ export default defineComponent({
         level: 'info',
         message: `${this.componentName}: Fetched device info`
       })
-
-      console.log(this.info)
     },
 
     findKnownDevices () {

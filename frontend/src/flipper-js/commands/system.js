@@ -63,7 +63,7 @@ function protobufVersion () {
   return createRPCPromise.bind(this)('systemProtobufVersionRequest', {})
 }
 
-function update ({ updateManifest }) {
+function update ({ path }) {
   const updateResultCodes = {
     OK: 0,
     ManifestPathInvalid: 1,
@@ -77,7 +77,7 @@ function update ({ updateManifest }) {
     IntFull: 9,
     UnspecifiedError: 10
   }
-  return createRPCPromise.bind(this)('systemUpdateRequest', { updateManifest }, (chunks) => Object.keys(updateResultCodes).find(key => updateResultCodes[key] === chunks[0].code))
+  return createRPCPromise.bind(this)('systemUpdateRequest', { updateManifest: path }, (chunks) => Object.keys(updateResultCodes).find(key => updateResultCodes[key] === chunks[0].code))
 }
 
 function powerInfo () {

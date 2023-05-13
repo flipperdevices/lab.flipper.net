@@ -131,6 +131,7 @@ export default class Flipper {
     await this.writer.releaseLock()
 
     setTimeout(() => this.serialWorker.postMessage({ message: 'reopenPort' }), 1)
+    // TODO: resolve when mode has actually changed
   }
 
   getWriter () {
@@ -186,21 +187,30 @@ export default class Flipper {
   }
 
   async read () {
-    while (true) {
-      const { value, done } = await this.reader.read()
-      if (done) {
-        this.reader.releaseLock()
-        break
-      }
+    let keepReading = true
+    while (keepReading) {
+      try {
+        const { value, done } = await this.reader.read()
+        if (done) {
+          this.reader.releaseLock()
+          break
+        }
 
-      if (this.readingMode.transform === 'protobuf') {
-        const res = value
-        const command = this.commandQueue.find(c => c.commandId === res.commandId)
-        res[res.content].hasNext = res.hasNext
-        command.chunks.push(res[res.content])
-      } else {
-        console.log(value)
-        this.emitter.emit('cli/output', value)
+        if (this.readingMode.transform === 'protobuf') {
+          if (value.content && value.content === 'guiScreenFrame') {
+            this.emitter.emit('screenStream/frame', value.guiScreenFrame.data, value.guiScreenFrame.orientation)
+          }
+          const command = this.commandQueue.find(c => c.commandId === value.commandId)
+          value[value.content].hasNext = value.hasNext
+          command.chunks.push(value[value.content])
+        } else {
+          this.emitter.emit('cli/output', value)
+        }
+      } catch (error) {
+        if (!error.toString().includes('device has been lost')) {
+          console.error(error)
+        }
+        keepReading = false
       }
     }
   }
@@ -263,6 +273,7 @@ export default class Flipper {
   RPC (requestType, args) {
     const [subSystem, command] = splitRequestType(requestType)
     return RPCSubSystems[subSystem][command].bind(this)(args)
+    // TODO: commandStatus
   }
 }
 
