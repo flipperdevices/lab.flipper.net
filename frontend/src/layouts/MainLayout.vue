@@ -623,6 +623,17 @@ export default defineComponent({
       })
     },
 
+    async setTime () {
+      await this.flipper.RPC('systemSetDatetime', { date: new Date() })
+        .catch(error => this.rpcErrorHandler(error, 'systemSetDatetime'))
+        .finally(() => {
+          this.$emit('log', {
+            level: 'debug',
+            message: `${this.componentName}: systemSetDatetime: OK`
+          })
+        })
+    },
+
     findKnownDevices () {
       const filters = [
         { usbVendorId: 0x0483, usbProductId: 0x5740 }
@@ -774,6 +785,7 @@ export default defineComponent({
         setTimeout(async () => {
           await this.startRpc()
           await this.readInfo()
+          await this.setTime()
         }, 300)
       } else {
         this.flags.portSelectRequired = true
