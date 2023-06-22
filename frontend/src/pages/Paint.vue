@@ -140,7 +140,7 @@ export default defineComponent({
   },
 
   async mounted () {
-    if (this.connected && this.info !== null && this.info.storage.databases) {
+    if (this.connected && this.info !== null && this.info.doneReading) {
       await this.start()
     }
 

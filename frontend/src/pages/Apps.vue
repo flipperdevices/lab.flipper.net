@@ -3,7 +3,10 @@
     class="column items-center q-py-lg full-width"
     :style="$q.screen.width >= 404 ? 'padding: 24px 26px; max-width: 1284px' : 'padding: 24px 6px'"
   >
-    <div class="apps-navbar row justify-end items-center full-width q-mb-xl">
+    <div
+      class="apps-navbar row justify-end items-center full-width q-mb-xl"
+      :class="action.type ? 'disabled' : ''"
+    >
       <q-icon
         v-if="currentApp || flags.installedPage"
         name="mdi-chevron-left"
@@ -44,7 +47,7 @@
             label="Installed"
           >
             <q-badge
-              v-if="$q.screen.width > 365"
+              v-if="$q.screen.width > 365 && outdatedAppsAmount > 0"
               color="positive"
               floating
               class="outdated-badge"
@@ -69,8 +72,12 @@
       <InstalledApps
         :apps="apps"
         :flipper="flipper"
+        :action="action"
+        :batch="batch"
         @showNotif="passNotif"
         @openApp="openApp"
+        @action="handleAction"
+        @batchUpdate="batchUpdate"
       />
     </template>
     <template v-else-if="!currentApp">
@@ -82,8 +89,11 @@
         :connected="connected"
         :rpcActive="rpcActive"
         :info="info"
+        :action="action"
         @showNotif="passNotif"
         @openApp="openApp"
+        @action="handleAction"
+        @batchUpdate="batchUpdate"
       />
     </template>
     <template v-else>
@@ -94,7 +104,9 @@
         :connected="connected"
         :rpcActive="rpcActive"
         :info="info"
+        :action="action"
         @showNotif="passNotif"
+        @action="handleAction"
       />
     </template>
 
@@ -105,7 +117,7 @@
         <q-card-section class="q-pa-none q-ma-md" align="center">
           <q-icon name="mdi-alert-circle" color="negative" size="64px" />
           <div class="text-h6 q-my-sm">Outdated Firmware Version</div>
-          <p>Firmware version on your Flipper is not supported.<br />Click the link below to update your device.</p>
+          <p>Firmware version on your Flipper is not supported.<br />Click the button below to update your device.</p>
         </q-card-section>
 
         <q-card-section class="q-pt-none" align="center">
@@ -187,7 +199,9 @@ import SearchBar from 'components/SearchBar.vue'
 import AppList from 'components/AppList.vue'
 import AppPage from 'components/AppPage.vue'
 import InstalledApps from 'components/InstalledApps.vue'
+import { fetchCategories, fetchAppsShort, fetchAppById, fetchAppFap } from '../util/util'
 import semver from 'semver'
+import asyncSleep from 'simple-async-sleep'
 
 export default defineComponent({
   name: 'Apps',
@@ -218,81 +232,263 @@ export default defineComponent({
         installedPage: false,
         outdatedFirmwareDialog: false,
         outdatedAPIDialog: false,
-        TOSDialog: false
+        TOSDialog: false,
+        loadingInitial: true
       }),
       router,
       initialCategory: ref(null),
       currentApp: ref(null),
       apps: ref([]),
-      categories: ref([
-        {
-          name: 'Sub-GHz',
-          icon: 'svguse:apps-categories.svg#subghz',
-          color: '#A5F4BE'
-        },
-        {
-          name: 'RFID 125',
-          icon: 'svguse:apps-categories.svg#rfid',
-          color: '#FFF493'
-        },
-        {
-          name: 'NFC',
-          icon: 'svguse:apps-categories.svg#nfc',
-          color: '#98CEFE'
-        },
-        {
-          name: 'Infrared',
-          icon: 'svguse:apps-categories.svg#infrared',
-          color: '#FE938C'
-        },
-        {
-          name: 'GPIO',
-          icon: 'svguse:apps-categories.svg#gpio',
-          color: '#A7F2EA'
-        },
-        {
-          name: 'iButton',
-          icon: 'svguse:apps-categories.svg#ibutton',
-          color: '#E1BBA6'
-        },
-        {
-          name: 'USB',
-          icon: 'svguse:apps-categories.svg#usb',
-          color: '#FFBEE9'
-        },
-        {
-          name: 'Games',
-          icon: 'svguse:apps-categories.svg#games',
-          color: '#FFC486'
-        },
-        {
-          name: 'Media',
-          icon: 'svguse:apps-categories.svg#media',
-          color: '#DFB5FF'
-        },
-        {
-          name: 'Tools',
-          icon: 'svguse:apps-categories.svg#tools',
-          color: '#DFF159'
-        }
-      ])
+      installedApps: ref([]),
+      categories: ref([]),
+      action: ref({
+        type: '',
+        progress: 0,
+        id: ''
+      }),
+      batch: ref({
+        totalCount: 0,
+        doneCount: 0,
+        failed: []
+      })
+    }
+  },
+
+  watch: {
+    flipperReady () {
+      this.start()
     }
   },
 
   computed: {
+    flipperReady () {
+      return this.rpcActive && this.info !== null && this.info.doneReading
+    },
+
     outdatedAppsAmount () {
-      return this.apps.filter(e => e.isInstalled === true && e.installedVersion && semver.lt(e.installedVersion, e.version)).length
+      return this.apps.filter(e => {
+        if (e.isInstalled === true && e.installedVersion) {
+          const iv = e.installedVersion.version + '.0'
+          const cv = e.currentVersion.version + '.0'
+          if (semver.lt(iv, cv)) {
+            return true
+          } else if (semver.eq(iv, cv) && e.installedVersion.id !== e.currentVersion.id) {
+            return true
+          }
+        }
+        return false
+      }).length
     }
   },
 
   methods: {
-    openApp (app) {
-      this.currentApp = app
+    async openApp (app) {
+      this.currentApp = await fetchAppById(app.alias)
       let prefix = ''
       if (!location.pathname.startsWith('/apps/')) {
         prefix = 'apps/'
       }
-      this.router.push(prefix + encodeURIComponent(app.name.toLowerCase().replaceAll(' ', '-')))
+      this.router.push(prefix + encodeURIComponent(app.alias))
+    },
+
+    handleAction (app, actionType) {
+      if (actionType) {
+        this.action.type = actionType
+        this.action.progress = 0
+        this.action.id = app.id
+        return this[`${this.action.type}App`](app)
+      }
+    },
+
+    async installApp (app) {
+      const paths = {
+        appDir: `/ext/apps/${this.categories.find(e => e.id === app.categoryId).name}`,
+        manifestDir: '/ext/apps_manifests',
+        tempDir: '/ext/.tmp/lab/'
+      }
+      await this.ensureCategoryPaths()
+
+      // fetch fap
+      const fap = await fetchAppFap({
+        versionId: app.currentVersion.id,
+        target: `f${this.info.firmware.target}`,
+        apiVersion: `${this.info.firmware.api.major}.${this.info.firmware.api.minor}`
+      }).catch(error => {
+        this.$emit('showNotif', {
+          message: error.toString(),
+          color: 'negative'
+        })
+        this.$emit('log', {
+          level: 'error',
+          message: `${this.componentName}: Installing app '${app.name}' (${app.alias}): ${error}`
+        })
+      })
+      if (!fap) {
+        this.action.type = ''
+        this.action.progress = 0
+        return
+      }
+      this.action.progress = 0.33
+      await asyncSleep(300)
+      this.$emit('log', {
+        level: 'debug',
+        message: `${this.componentName}: Installing app '${app.name}' (${app.alias}): fetched .fap`
+      })
+
+      // generate manifest
+      const manifestText = `Filetype: Flipper Application Installation Manifest\rVersion: ${app.currentVersion.version}\rUID: ${app.id}\rVersion UID: ${app.currentVersion.id}\rPath: ${paths.appDir}/${app.alias}.fap`
+      const manifestFile = new TextEncoder().encode(manifestText)
+      this.action.progress = 0.45
+      await asyncSleep(300)
+
+      // upload manifest to temp
+      await this.flipper.RPC('storageWrite', { path: `${paths.tempDir}/${app.id}.fim`, buffer: manifestFile })
+        .then(() => {
+          this.$emit('log', {
+            level: 'debug',
+            message: `${this.componentName}: Installing app '${app.name}' (${app.alias}): uploaded manifest (temp)`
+          })
+        })
+        .catch(error => this.rpcErrorHandler(error, 'storageWrite'))
+      this.action.progress = 0.5
+      await asyncSleep(300)
+
+      // upload fap to temp
+      await this.flipper.RPC('storageWrite', { path: `${paths.tempDir}/${app.id}.fap`, buffer: fap })
+        .then(() => {
+          this.$emit('log', {
+            level: 'debug',
+            message: `${this.componentName}: Installing app '${app.name}' (${app.alias}): uploaded .fap (temp)`
+          })
+        })
+        .catch(error => this.rpcErrorHandler(error, 'storageWrite'))
+      this.action.progress = 0.75
+      await asyncSleep(300)
+
+      // move manifest and fap
+      let dirList = await this.flipper.RPC('storageList', { path: paths.manifestDir })
+        .catch(error => this.rpcErrorHandler(error, 'storageList'))
+      const oldManifest = dirList.find(e => e.name === `${app.alias}.fim`)
+      if (oldManifest) {
+        await this.flipper.RPC('storageRemove', { path: `${paths.manifestDir}/${app.alias}.fim` })
+          .then(() => {
+            this.$emit('log', {
+              level: 'debug',
+              message: `${this.componentName}: Installing app '${app.name}' (${app.alias}): removed old manifest`
+            })
+          })
+          .catch(error => this.rpcErrorHandler(error, 'storageRemove'))
+      }
+
+      await this.flipper.RPC('storageRename', { oldPath: `${paths.tempDir}/${app.id}.fim`, newPath: `${paths.manifestDir}/${app.alias}.fim` })
+        .then(() => {
+          this.$emit('log', {
+            level: 'debug',
+            message: `${this.componentName}: Installing app '${app.name}' (${app.alias}): moved new manifest`
+          })
+        })
+        .catch(error => this.rpcErrorHandler(error, 'storageRename'))
+      this.action.progress = 0.8
+      await asyncSleep(300)
+
+      dirList = await this.flipper.RPC('storageList', { path: paths.appDir })
+        .catch(error => this.rpcErrorHandler(error, 'storageList'))
+      const oldFap = dirList.find(e => e.name === `${app.alias}.fap`)
+      if (oldFap) {
+        await this.flipper.RPC('storageRemove', { path: `${paths.appDir}/${app.alias}.fap` })
+          .then(() => {
+            this.$emit('log', {
+              level: 'debug',
+              message: `${this.componentName}: Installing app '${app.name}' (${app.alias}): removed old .fap`
+            })
+          })
+          .catch(error => this.rpcErrorHandler(error, 'storageRemove'))
+      }
+
+      await this.flipper.RPC('storageRename', { oldPath: `${paths.tempDir}/${app.id}.fap`, newPath: `${paths.appDir}/${app.alias}.fap` })
+        .then(() => {
+          this.$emit('log', {
+            level: 'debug',
+            message: `${this.componentName}: Installing app '${app.name}' (${app.alias}): moved new .fap`
+          })
+        })
+        .catch(error => this.rpcErrorHandler(error, 'storageRename'))
+      this.action.progress = 1
+      await asyncSleep(300)
+
+      // post-install
+      await this.updateInstalledApps()
+
+      this.action.type = ''
+      this.action.progress = 0
+    },
+
+    async updateApp (app) {
+      return this.installApp(app)
+    },
+
+    async deleteApp (app) {
+      const paths = {
+        appDir: `/ext/apps/${this.categories.find(e => e.id === app.categoryId).name}`,
+        manifestDir: '/ext/apps_manifests'
+      }
+      await this.ensureCategoryPaths()
+
+      // remove .fap
+      let dirList = await this.flipper.RPC('storageList', { path: paths.appDir })
+        .catch(error => this.rpcErrorHandler(error, 'storageList'))
+      const fap = dirList.find(e => e.name === `${app.alias}.fap`)
+      if (fap) {
+        await this.flipper.RPC('storageRemove', { path: `${paths.appDir}/${app.alias}.fap` })
+          .then(() => {
+            this.$emit('log', {
+              level: 'debug',
+              message: `${this.componentName}: Deleting app '${app.name}' (${app.alias}): removed .fap`
+            })
+          })
+          .catch(error => this.rpcErrorHandler(error, 'storageRemove'))
+      }
+      this.action.progress = 0.5
+
+      // remove manifest
+      dirList = await this.flipper.RPC('storageList', { path: paths.manifestDir })
+        .catch(error => this.rpcErrorHandler(error, 'storageList'))
+      const manifest = dirList.find(e => e.name === `${app.alias}.fim`)
+      if (manifest) {
+        await this.flipper.RPC('storageRemove', { path: `${paths.manifestDir}/${app.alias}.fim` })
+          .then(() => {
+            this.$emit('log', {
+              level: 'debug',
+              message: `${this.componentName}: Deleting app '${app.name}' (${app.alias}): removed manifest`
+            })
+          })
+          .catch(error => this.rpcErrorHandler(error, 'storageRemove'))
+      }
+      this.action.progress = 1
+
+      // post-delete
+      await this.updateInstalledApps()
+
+      this.action.type = ''
+      this.action.progress = 0
+    },
+
+    async batchUpdate (apps) {
+      this.batch.totalCount = apps.length
+      this.batch.doneCount = 0
+      this.action.type = 'update'
+
+      for (const app of apps) {
+        try {
+          await this.updateApp(app)
+          this.batch.doneCount++
+        } catch (error) {
+          console.error(error)
+          this.batch.failed.push(app)
+        }
+      }
+      this.batch.totalCount = 0
+      this.batch.doneCount = 0
     },
 
     setCategory (name) {
@@ -350,32 +546,8 @@ export default defineComponent({
       })
       this.$emit('log', {
         level: 'error',
-        message: `Apps: RPC error in command '${command}': ${error}`
+        message: `${this.componentName}: RPC error in command '${command}': ${error}`
       })
-    },
-
-    watchParams () {
-      this.currentApp = null
-      this.initialCategory = null
-      if (this.$route.params.path) {
-        if (this.$route.params.path === 'installed') {
-          this.flags.installedPage = true
-        } else {
-          this.flags.installedPage = false
-          const category = this.categories.find(e => e.name.toLowerCase().replaceAll(' ', '-') ===
-            this.$route.params.path.toLowerCase().replaceAll(' ', '-'))
-          if (category) {
-            this.initialCategory = category
-          } else {
-            const app = this.apps.find(e => e.name.toLowerCase().replaceAll(' ', '-') ===
-              this.$route.params.path.toLowerCase().replaceAll(' ', '-'))
-            if (app) {
-              this.currentApp = app
-              this.initialCategory = this.categories.find(e => e.name === app.category)
-            }
-          }
-        }
-      }
     },
 
     toggleInstalled () {
@@ -387,59 +559,215 @@ export default defineComponent({
       }
     },
 
+    async ensureCommonPaths () {
+      if (this.flipperReady) {
+        let dir = await this.flipper.RPC('storageStat', { path: '/ext/apps_manifests' })
+          .catch(error => this.rpcErrorHandler(error, 'storageStat'))
+        if (!dir) {
+          await this.flipper.RPC('storageMkdir', { path: '/ext/apps_manifests' })
+            .catch(error => this.rpcErrorHandler(error, 'storageMkdir'))
+        }
+
+        dir = await this.flipper.RPC('storageStat', { path: '/ext/.tmp' })
+          .catch(error => this.rpcErrorHandler(error, 'storageStat'))
+        if (!dir) {
+          await this.flipper.RPC('storageMkdir', { path: '/ext/.tmp' })
+            .catch(error => this.rpcErrorHandler(error, 'storageMkdir'))
+        }
+
+        dir = await this.flipper.RPC('storageStat', { path: '/ext/.tmp/lab' })
+          .catch(error => this.rpcErrorHandler(error, 'storageStat'))
+        if (!dir) {
+          await this.flipper.RPC('storageMkdir', { path: '/ext/.tmp/lab' })
+            .catch(error => this.rpcErrorHandler(error, 'storageMkdir'))
+        }
+      }
+    },
+
+    async ensureCategoryPaths () {
+      for (const category of this.categories) {
+        const dir = await this.flipper.RPC('storageStat', { path: `/ext/apps/${category.name}` })
+          .catch(error => this.rpcErrorHandler(error, 'storageStat'))
+        if (!dir) {
+          await this.flipper.RPC('storageMkdir', { path: `/ext/apps/${category.name}` })
+            .catch(error => this.rpcErrorHandler(error, 'storageMkdir'))
+        }
+      }
+    },
+
+    async getInstalledApps () {
+      const installedApps = []
+      if (this.flipperReady) {
+        const manifestsList = await this.flipper.RPC('storageList', { path: '/ext/apps_manifests' })
+          .catch(error => this.rpcErrorHandler(error, 'storageList'))
+        const decoder = new TextDecoder()
+        for (const file of manifestsList) {
+          const manifestFile = await this.flipper.RPC('storageRead', { path: `/ext/apps_manifests/${file.name}` })
+            .catch(error => this.rpcErrorHandler(error, 'storageRead'))
+          const manifest = decoder.decode(manifestFile)
+          const app = {
+            id: '',
+            version: '',
+            versionId: '',
+            path: ''
+          }
+          for (const line of manifest.split('\r')) {
+            const key = line.slice(0, line.indexOf(': '))
+            const value = line.slice(line.indexOf(': ') + 2)
+            switch (key) {
+              case 'Version':
+                app.version = value
+                break
+              case 'UID':
+                app.id = value
+                break
+              case 'Version UID':
+                app.versionId = value
+                break
+              case 'Path':
+                app.path = value
+                break
+            }
+          }
+          installedApps.push(app)
+        }
+      }
+      this.installedApps = installedApps
+    },
+
+    async updateInstalledApps () {
+      await this.getInstalledApps()
+      for (const app of this.apps) {
+        const installed = this.installedApps.find(e => e.id === app.id)
+        if (installed) {
+          app.isInstalled = true
+          app.installedVersion = {
+            version: installed.version,
+            id: installed.versionId
+          }
+          app.currentVersion.version = '0.2'
+        } else {
+          app.isInstalled = false
+          app.installedVersion = null
+        }
+
+        if (this.currentApp && app.id === this.currentApp.id) {
+          this.currentApp.isInstalled = app.isInstalled
+          this.currentApp.installedVersion = app.installedVersion
+        }
+      }
+    },
+
+    async watchParams () {
+      this.currentApp = null
+      this.initialCategory = null
+      const path = this.$route.params.path
+      if (path) {
+        if (path === 'installed') {
+          this.flags.installedPage = true
+        } else {
+          const normalize = (string) => string.toLowerCase().replaceAll(' ', '-')
+          this.flags.installedPage = false
+          const category = this.categories.find(e => normalize(e.name) === normalize(path))
+          if (category) {
+            this.initialCategory = category
+          } else {
+            try {
+              const appFull = await fetchAppById(path)
+              this.currentApp = appFull
+
+              const installed = this.installedApps.find(e => e.id === this.currentApp.id)
+              if (installed) {
+                this.currentApp.isInstalled = true
+                this.currentApp.installedVersion = {
+                  version: installed.version,
+                  id: installed.versionId
+                }
+              }
+
+              this.initialCategory = this.categories.find(e => e.id === appFull.categoryId)
+            } catch (error) {
+              console.error(error)
+            }
+          }
+        }
+      }
+    },
+
     async start () {
       this.flags.rpcActive = this.rpcActive
-      if (this.connected && !this.rpcActive) {
-        setTimeout(() => {
-          if (!this.rpcActive) {
-            return this.restartRpc(true)
-          }
-        }, 1000)
-        await this.startRpc()
+      this.flags.loadingInitial = true
+      const params = {
+        limit: 500,
+        offset: 0,
+        sort_by: 'updated_at',
+        sort_order: -1,
+        is_latest_release_version: true
       }
+      const categoryParams = {
+        limit: 500
+      }
+
+      if (this.connected) {
+        if (!this.flags.rpcActive) {
+          await this.startRpc()
+          return
+        }
+        if (this.flipperReady) {
+          try {
+            params.target = `f${this.info.firmware.target}`
+            params.api = `${this.info.firmware.api.major}.${this.info.firmware.api.minor}`
+            delete params.is_latest_release_version
+            categoryParams.target = params.target
+            categoryParams.api = params.api
+          } catch (error) {
+            this.flags.outdatedAPIDialog = true
+          }
+
+          await this.ensureCommonPaths()
+          await this.getInstalledApps()
+        }
+      } else {
+        this.installedApps = []
+        this.$emit('connect')
+      }
+
+      this.categories = await fetchCategories(categoryParams)
+
+      await this.watchParams()
+      this.flags.loadingInitial = false
+
+      let newApps = [], allApps = []
+
+      do {
+        newApps = await fetchAppsShort(params)
+        allApps = allApps.concat(newApps)
+        if (newApps.length === params.limit) {
+          params.offset += params.limit
+        }
+      } while (newApps.length === params.limit)
+
+      for (const installed of this.installedApps) {
+        const app = allApps.find(e => e.id === installed.id)
+        if (app) {
+          app.isInstalled = true
+          app.installedVersion = {
+            version: installed.version,
+            id: installed.versionId
+          }
+        }
+      }
+
+      this.apps = allApps
+      console.log(this.apps)
     }
   },
 
-  mounted () {
+  async mounted () {
     if (localStorage.getItem('dev') !== 'true') {
       this.$router.push('/')
     }
-    for (let i = 0; i < 30; i++) {
-      const category = this.categories[Math.floor(Math.random() * this.categories.length)]
-      this.apps.push({
-        name: 'Sample App ' + i,
-        category: category.name,
-        stars: Math.floor(Math.random() * 100),
-        updated: Date.now() - Math.floor(Math.random() * 1000),
-        published: Date.now() - 10000 - Math.floor(Math.random() * 1000),
-        version: '1.0.1',
-        icon: 'https://cdn.flipperzero.one/dap-link-mock-icon.png',
-        screenshots: [
-          'https://cdn.flipperzero.one/bluetooth-remote-mock-screen.png?n=1',
-          'https://cdn.flipperzero.one/bluetooth-remote-mock-screen.png?n=2',
-          'https://cdn.flipperzero.one/bluetooth-remote-mock-screen.png?n=3',
-          'https://cdn.flipperzero.one/bluetooth-remote-mock-screen.png?n=4',
-          'https://cdn.flipperzero.one/bluetooth-remote-mock-screen.png?n=5',
-          'https://cdn.flipperzero.one/bluetooth-remote-mock-screen.png?n=6',
-          'https://cdn.flipperzero.one/bluetooth-remote-mock-screen.png?n=7',
-          'https://cdn.flipperzero.one/bluetooth-remote-mock-screen.png?n=8',
-          'https://cdn.flipperzero.one/bluetooth-remote-mock-screen.png?n=9'
-        ],
-        description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.\nEst nullam montes, sed elementum ligula. Dignissim in dignissim pulvinar iaculis sapien egestas enim sed semper. Diam eu porttitor maecenas nisl vel aliquam ultrices nunc. Lectus velit, dapibus nunc felis maecenas egestas iaculis semper sed. Lectus tellus sed maecenas purus tincidunt hac ut. Urna odio purus condimentum tempor non ultricies. Volutpat amet, integer sem id viverra nulla pellentesque. Egestas pharetra, pharetra accumsan sit ac, arcu.',
-        changelog: 'Last update Oct 20, 2022\nLorem ipsum dolor sit amet, consectetur adipiscing elit. Est nullam montes, sed elementum ligula.\nDignissim in dignissim pulvinar iaculis sapien egestas enim sed semper.\nDiam eu porttitor maecenas nisl vel aliquam ultrices nunc.\nLectus velit, dapibus nunc felis maecenas egestas iaculis semper sed.\nLectus tellus sed maecenas purus tincidunt hac ut. Urna odio purus condimentum tempor non ultricies.\nVolutpat amet, integer sem id viverra nulla pellentesque.\nEgestas pharetra, pharetra accumsan sit ac, arcu.',
-        repository: 'https://github.com/developername/apprepository',
-        manifest: 'https://github.com/developername/apprepository/manifest',
-        email: 'contactdata@gmail.com'
-      })
-    }
-    for (let i = 0; i < 10; i++) {
-      const app = this.apps[i * 3]
-      if (Math.random() > 0.6) {
-        app.installedVersion = '1.0.0'
-      }
-      app.isInstalled = true
-    }
-    this.watchParams()
+    this.start()
   },
 
   updated () {
