@@ -1,7 +1,7 @@
 <template>
   <q-page class="flex-center column full-width">
     <div class="flex-center column">
-      <div v-show="flags.updateInProgress || (connected && info !== null && this.info.storage.databases && flags.rpcActive && info.hardware.name)" class="device-screen column">
+      <div v-show="flags.updateInProgress || (connected && info !== null && info.doneReading && flags.rpcActive)" class="device-screen column">
         <div class="flex">
           <div class="info">
             <p>
@@ -185,7 +185,7 @@ export default defineComponent({
 
   watch: {
     async info (newInfo, oldInfo) {
-      if (newInfo !== null && newInfo.storage.databases.status && this.connected) {
+      if (newInfo !== null && this.info.doneReading && this.connected) {
         await this.start()
       }
     }

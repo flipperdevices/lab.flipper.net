@@ -20,13 +20,10 @@
           v-ripple
           @click="itemClicked(item)"
         >
-          <q-item-section v-if="apps.find(e => e.name === item)" avatar>
-            <q-avatar square size="24px">
-              <img :src="apps.find(e => e.name === item).icon">
+          <q-item-section v-if="apps.find(e => e.currentVersion.name === item)" avatar>
+            <q-avatar square size="24px" style="margin: 4px">
+              <img :src="apps.find(e => e.currentVersion.name === item).currentVersion.iconUri" style="image-rendering: pixelated;">
             </q-avatar>
-          </q-item-section>
-          <q-item-section v-else-if="categories.find(e => e.name === item)" avatar>
-            <q-icon :name="categories.find(e => e.name === item).icon" size="24px"/>
           </q-item-section>
           <q-item-section>{{ item }}</q-item-section>
         </q-item>
@@ -46,7 +43,6 @@ import { defineComponent, ref } from 'vue'
 export default defineComponent({
   name: 'SearchBar',
   props: {
-    categories: Array,
     apps: Array
   },
 
@@ -57,14 +53,11 @@ export default defineComponent({
   },
 
   computed: {
-    categoryNames () {
-      return this.categories.map(e => e.name)
-    },
     appNames () {
-      return this.apps.map(e => e.name)
+      return this.apps.map(e => e.currentVersion.name)
     },
     index () {
-      return this.categoryNames.concat(this.appNames)
+      return this.appNames
     },
     filteredIndex () {
       return this.index.filter(e => e.toLowerCase().includes(this.text.toLowerCase())).slice(0, 10)
@@ -73,16 +66,9 @@ export default defineComponent({
 
   methods: {
     itemClicked (item) {
-      if (this.apps.find(e => e.name === item)) {
-        this.$emit('openApp', this.apps.find(e => e.name === item))
-      } else if (this.categories.find(e => e.name === item)) {
-        this.$emit('setCategory', item)
-      }
+      this.$emit('openApp', this.apps.find(e => e.currentVersion.name === item))
       this.text = ''
     }
-  },
-
-  mounted () {
   }
 })
 </script>

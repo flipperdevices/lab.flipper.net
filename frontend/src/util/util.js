@@ -1,6 +1,18 @@
 import semver from 'semver'
 import { untar } from '../untar/untar.js'
 import pako from 'pako'
+import * as _ from 'lodash'
+
+const API_ENDPOINT = 'https://catalog.flipp.dev/api/v0'
+
+function camelCaseDeep (object) {
+  return Object.fromEntries(Object.entries(object).map(e => {
+    if (typeof e[1] === 'object') {
+      e[1] = camelCaseDeep(e[1])
+    }
+    return [_.camelCase(e[0]), e[1]]
+  }))
+}
 
 class Operation {
   constructor () {
@@ -136,11 +148,44 @@ function bytesToSize (bytes) {
   return `${(bytes / (1024 ** i)).toFixed(1)}${sizes[i]}`
 }
 
+async function fetchCategories (params) {
+  const res = await fetch(`${API_ENDPOINT}/category?${new URLSearchParams({ ...params }).toString()}`).then(res => res.json())
+  const categories = res.map(category => camelCaseDeep(category))
+  return categories
+}
+
+async function fetchAppsShort (params) {
+  const res = await fetch(`${API_ENDPOINT}/application?${new URLSearchParams({ ...params }).toString()}`).then(res => res.json())
+  const apps = res.map(app => camelCaseDeep(app))
+  return apps
+}
+
+async function fetchAppById (id) {
+  const res = await fetch(`${API_ENDPOINT}/application/${id}`).then(res => res.json())
+  return camelCaseDeep(res)
+}
+
+async function fetchAppFap (params) {
+  const file = await fetch(`${API_ENDPOINT}/application/version/${params.versionId}/build/${params.target}/${params.apiVersion}`)
+    .then((res) => {
+      if (res.status >= 400) {
+        throw new Error('Failed to fetch application build (' + res.status + ')')
+      }
+      return res.arrayBuffer()
+    })
+  return file
+}
+
 export {
+  camelCaseDeep,
   Operation,
   fetchChannels,
   fetchFirmware,
   fetchRegions,
   unpack,
-  bytesToSize
+  bytesToSize,
+  fetchCategories,
+  fetchAppsShort,
+  fetchAppById,
+  fetchAppFap
 }

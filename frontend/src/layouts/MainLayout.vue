@@ -223,7 +223,7 @@
 
     <q-page-container class="flex justify-center">
       <router-view
-        v-if="!flags.connectionRequired || flags.updateInProgress || (flags.serialSupported && info !== null && info.storage.databases.status)"
+        v-if="!flags.connectionRequired || flags.updateInProgress || (flags.serialSupported && info !== null && info.doneReading)"
         :flipper="flipper"
         :rpcActive="flags.rpcActive"
         :connected="flags.connected"
@@ -236,6 +236,7 @@
         @openFileIn="openFileIn"
         @showNotif="showNotif"
         @log="log"
+        @connect="start"
       />
       <q-page v-else class="flex-center column">
         <div
@@ -548,6 +549,7 @@ export default defineComponent({
 
     async readInfo () {
       this.info = {
+        doneReading: false,
         storage: {
           sdcard: {},
           databases: {},
@@ -621,6 +623,8 @@ export default defineComponent({
         level: 'info',
         message: `${this.componentName}: Fetched device info`
       })
+
+      this.info.doneReading = true
     },
 
     async setTime () {
