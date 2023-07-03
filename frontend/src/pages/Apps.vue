@@ -74,6 +74,8 @@
         :flipper="flipper"
         :action="action"
         :batch="batch"
+        :info="info"
+        :flipperReady="flipperReady"
         @showNotif="passNotif"
         @openApp="openApp"
         @action="handleAction"
@@ -89,6 +91,7 @@
         :connected="connected"
         :rpcActive="rpcActive"
         :info="info"
+        :flipperReady="flipperReady"
         :action="action"
         @showNotif="passNotif"
         @openApp="openApp"
@@ -104,6 +107,7 @@
         :connected="connected"
         :rpcActive="rpcActive"
         :info="info"
+        :flipperReady="flipperReady"
         :action="action"
         @showNotif="passNotif"
         @action="handleAction"
@@ -268,11 +272,14 @@ export default defineComponent({
     outdatedAppsAmount () {
       return this.apps.filter(e => {
         if (e.isInstalled === true && e.installedVersion) {
+          if (e.installedVersion.versionBuildApi !== `${this.info.firmware.api.major}.${this.info.firmware.api.minor}`) {
+            return true
+          }
           const iv = e.installedVersion.version + '.0'
           const cv = e.currentVersion.version + '.0'
           if (semver.lt(iv, cv)) {
             return true
-          } else if (semver.eq(iv, cv) && e.installedVersion.id !== e.currentVersion.id) {
+          } else if (semver.eq(iv, cv) && e.installedVersion.versionId !== e.currentVersion.id) {
             return true
           }
         }
@@ -336,7 +343,18 @@ export default defineComponent({
       })
 
       // generate manifest
-      const manifestText = `Filetype: Flipper Application Installation Manifest\rVersion: ${app.currentVersion.version}\rUID: ${app.id}\rVersion UID: ${app.currentVersion.id}\rPath: ${paths.appDir}/${app.alias}.fap`
+      function urlContentToDataUri (url) {
+        return fetch(url)
+          .then(response => response.blob())
+          .then(blob => new Promise(resolve => {
+            const reader = new FileReader()
+            reader.onload = function () { resolve(this.result) }
+            reader.readAsDataURL(blob)
+          }))
+      }
+      const dataUri = await urlContentToDataUri(app.currentVersion.iconUri)
+      const base64Icon = dataUri.split(',')[1]
+      const manifestText = `Filetype: Flipper Application Installation Manifest\rVersion: ${app.currentVersion.version}\rFull Name: ${app.currentVersion.name}\rIcon: ${base64Icon}\rVersion Build API: ${this.info.firmware.api.major}.${this.info.firmware.api.minor}\rUID: ${app.id}\rVersion UID: ${app.currentVersion.id}\rPath: ${paths.appDir}/${app.alias}.fap`
       const manifestFile = new TextEncoder().encode(manifestText)
       this.action.progress = 0.45
       await asyncSleep(300)
@@ -607,22 +625,34 @@ export default defineComponent({
           const manifest = decoder.decode(manifestFile)
           const app = {
             id: '',
+            name: '',
+            icon: '',
             version: '',
             versionId: '',
+            versionBuildApi: '',
             path: ''
           }
           for (const line of manifest.split('\r')) {
             const key = line.slice(0, line.indexOf(': '))
             const value = line.slice(line.indexOf(': ') + 2)
             switch (key) {
-              case 'Version':
-                app.version = value
-                break
               case 'UID':
                 app.id = value
                 break
+              case 'Full Name':
+                app.name = value
+                break
+              case 'Icon':
+                app.icon = value
+                break
+              case 'Version':
+                app.version = value
+                break
               case 'Version UID':
                 app.versionId = value
+                break
+              case 'Version Build API':
+                app.versionBuildApi = value
                 break
               case 'Path':
                 app.path = value
@@ -641,10 +671,7 @@ export default defineComponent({
         const installed = this.installedApps.find(e => e.id === app.id)
         if (installed) {
           app.isInstalled = true
-          app.installedVersion = {
-            version: installed.version,
-            id: installed.versionId
-          }
+          app.installedVersion = { ...installed }
           app.currentVersion.version = '0.2'
         } else {
           app.isInstalled = false
@@ -675,14 +702,12 @@ export default defineComponent({
             try {
               const appFull = await fetchAppById(path)
               this.currentApp = appFull
+              console.log(appFull)
 
               const installed = this.installedApps.find(e => e.id === this.currentApp.id)
               if (installed) {
                 this.currentApp.isInstalled = true
-                this.currentApp.installedVersion = {
-                  version: installed.version,
-                  id: installed.versionId
-                }
+                this.currentApp.installedVersion = { ...installed }
               }
 
               this.initialCategory = this.categories.find(e => e.id === appFull.categoryId)
@@ -710,10 +735,12 @@ export default defineComponent({
 
       if (this.connected) {
         if (!this.flags.rpcActive) {
+          // if flipper is connected without active RPC session (e.g. came from CLI app)
           await this.startRpc()
           return
         }
         if (this.flipperReady) {
+          // when RPC session is up and device info retreived, get firmware API version and device target
           try {
             params.target = `f${this.info.firmware.target}`
             params.api = `${this.info.firmware.api.major}.${this.info.firmware.api.minor}`
@@ -751,10 +778,7 @@ export default defineComponent({
         const app = allApps.find(e => e.id === installed.id)
         if (app) {
           app.isInstalled = true
-          app.installedVersion = {
-            version: installed.version,
-            id: installed.versionId
-          }
+          app.installedVersion = { ...installed }
         }
       }
 

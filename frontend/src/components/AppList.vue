@@ -124,6 +124,7 @@ export default defineComponent({
     connected: Boolean,
     rpcActive: Boolean,
     info: Object,
+    flipperReady: Boolean,
     action: Object
   },
 
@@ -213,10 +214,16 @@ export default defineComponent({
 
     actionButton (app) {
       if (app.isInstalled) {
+        if (this.flipperReady && (app.installedVersion.versionBuildApi !== `${this.info.firmware.api.major}.${this.info.firmware.api.minor}`)) {
+          return {
+            text: 'Update',
+            class: 'bg-positive'
+          }
+        }
         if (app.installedVersion) {
           const iv = app.installedVersion.version + '.0'
           const cv = app.currentVersion.version + '.0'
-          if (semver.lt(iv, cv) || (semver.eq(iv, cv) && app.installedVersion.id !== app.currentVersion.id)) {
+          if (semver.lt(iv, cv) || (semver.eq(iv, cv) && app.installedVersion.versionId !== app.currentVersion.id)) {
             return {
               text: 'Update',
               class: 'bg-positive'

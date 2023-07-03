@@ -193,6 +193,8 @@ export default defineComponent({
   props: {
     apps: Array,
     flipper: Object,
+    info: Object,
+    flipperReady: Boolean,
     action: Object,
     batch: Object
   },
@@ -211,11 +213,14 @@ export default defineComponent({
     outdatedApps () {
       return this.apps.filter(e => {
         if (e.isInstalled === true && e.installedVersion) {
+          if (this.flipperReady && (e.installedVersion.versionBuildApi !== `${this.info.firmware.api.major}.${this.info.firmware.api.minor}`)) {
+            return true
+          }
           const iv = e.installedVersion.version + '.0'
           const cv = e.currentVersion.version + '.0'
           if (semver.lt(iv, cv)) {
             return true
-          } else if (semver.eq(iv, cv) && e.installedVersion.id !== e.currentVersion.id) {
+          } else if (semver.eq(iv, cv) && e.installedVersion.versionId !== e.currentVersion.id) {
             return true
           }
         }
@@ -226,11 +231,14 @@ export default defineComponent({
     upToDateApps () {
       return this.apps.filter(e => {
         if (e.isInstalled === true && e.installedVersion) {
+          if (this.flipperReady && (e.installedVersion.versionBuildApi !== `${this.info.firmware.api.major}.${this.info.firmware.api.minor}`)) {
+            return false
+          }
           const iv = e.installedVersion.version + '.0'
           const cv = e.currentVersion.version + '.0'
           if (!semver.lt(iv, cv)) {
             return true
-          } else if (semver.gte(iv, cv) && e.installedVersion.id === e.currentVersion.id) {
+          } else if (semver.gte(iv, cv) && e.installedVersion.versionId === e.currentVersion.id) {
             return true
           }
         }
