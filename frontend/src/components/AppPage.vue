@@ -101,11 +101,27 @@
         icon="mdi-chevron-right"
       />
     </div>
-    <div class="column">
-      <div class="text-h6 q-my-sm">Description</div>
-      <p style="white-space: pre-wrap;">{{ app.currentVersion.description }}</p>
-      <div class="text-h6 q-my-sm">Changelog</div>
-      <p style="white-space: pre-wrap;">{{ app.currentVersion.changelog }}</p>
+    <div class="app-content column q-pr-md">
+      <div class="text-h5 q-my-sm">Description</div>
+      <q-markdown
+        no-heading-anchor-links
+        no-html
+        no-image
+        no-link
+        no-linkify
+        no-typographer
+        :src="app.currentVersion.description"
+      ></q-markdown>
+      <div class="text-h5 q-my-sm">Changelog</div>
+      <q-markdown
+        no-heading-anchor-links
+        no-html
+        no-image
+        no-link
+        no-linkify
+        no-typographer
+        :src="app.currentVersion.changelog"
+      ></q-markdown>
       <div class="text-h6 q-my-sm">Developer</div>
       <p>
         <a class="text-grey-7" :href="app.currentVersion.links.manifestUri" style="text-decoration: none;">
