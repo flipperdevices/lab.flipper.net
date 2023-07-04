@@ -45,7 +45,7 @@
       >
         <div class="flex no-wrap items-center cursor-pointer" @click="appClicked(app)">
           <div class="app-icon q-mr-md">
-            <q-img :src="app.currentVersion.iconUri" style="image-rendering: pixelated;"/>
+            <q-img :src="app.currentVersion.iconUri" style="image-rendering: pixelated; width: 38px"/>
           </div>
           <div class="col-10">
             <div class="text-h6" style="line-height: 1.5em; margin-bottom: 0.25rem;">{{ app.currentVersion.name }}</div>
@@ -284,6 +284,9 @@ export default defineComponent({
     upToDateApps () {
       return this.apps.filter(app => {
         if (app.isInstalled === true && app.installedVersion) {
+          if (this.sdk.api && app.installedVersion.api !== this.sdk.api) {
+            return false
+          }
           if (!app.installedVersion.isOutdated && app.currentVersion.status === 'READY') {
             return true
           }
