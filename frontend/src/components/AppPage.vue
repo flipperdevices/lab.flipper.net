@@ -19,9 +19,20 @@
             <span class="text-grey-7">Version:</span>
             <b class="q-ml-xs">{{ app.currentVersion.version }}</b>
           </div>
+
+          <template v-if="currentStatusHint">
+            <q-chip
+              :color="statusHints[currentStatusHint].color"
+              :icon="statusHints[currentStatusHint].icon"
+              :label="statusHints[currentStatusHint].text"
+              class="q-ml-lg q-my-none"
+            />
+          </template>
         </div>
       </div>
+
       <q-space />
+
       <template v-if="action.type">
         <q-linear-progress
           :value="action.progress"
@@ -53,10 +64,10 @@
           flat
           color="white"
           style="font-size: 22px; padding: 0 60px; border-radius: 10px;"
-          :label="actionButton().text"
+          :label="app.actionButton.text"
           class="no-shadow text-pixelated"
-          :class="actionButton().class + ' ' + ($q.screen.width > 670 ? 'q-mr-md' : 'q-my-md full-width')"
-          @click="handleAction(actionButton(app).text)"
+          :class="app.actionButton.class + ' ' + ($q.screen.width > 670 ? 'q-mr-md' : 'q-my-md full-width')"
+          @click="handleAction(app.actionButton.text)"
         />
       </template>
     </div>
@@ -169,7 +180,6 @@
 
 <script>
 import { defineComponent, ref } from 'vue'
-import semver from 'semver'
 
 export default defineComponent({
   name: 'AppPage',
@@ -179,8 +189,7 @@ export default defineComponent({
     flipper: Object,
     connected: Boolean,
     rpcActive: Boolean,
-    info: Object,
-    flipperReady: Boolean,
+    sdk: Object,
     action: Object,
     progress: Number
   },
@@ -194,7 +203,35 @@ export default defineComponent({
       category: ref({}),
       screenshotWidth: 256 + 4 + 8 + 8,
       position: ref(0),
-      scrollAreaRef: ref(null)
+      scrollAreaRef: ref(null),
+      currentStatusHint: ref(null),
+      statusHints: ref({
+        READY: {
+          text: 'Runs on latest firmware release',
+          icon: 'mdi-check-circle-outline',
+          color: 'light-green-2'
+        },
+        BUILD_RUNNING: {
+          text: 'App is rebuilding',
+          icon: 'mdi-alert-circle-outline',
+          color: 'yellow-2'
+        },
+        FLIPPER_OUTDATED: {
+          text: 'Flipper firmware is outdated',
+          icon: 'mdi-alert-circle-outline',
+          color: 'deep-orange-2'
+        },
+        UNSUPPORTED_APPLICATION: {
+          text: 'Outdated app',
+          icon: 'mdi-alert-circle-outline',
+          color: 'deep-orange-2'
+        },
+        UNSUPPORTED_SDK: {
+          text: 'Unsupported SDK',
+          icon: 'mdi-alert-circle-outline',
+          color: 'deep-orange-2'
+        }
+      })
     }
   },
 
@@ -245,36 +282,6 @@ export default defineComponent({
       this.scrollAreaRef.setScrollPosition('horizontal', this.position, 300)
     },
 
-    actionButton () {
-      if (this.app.isInstalled) {
-        if (this.app.installedVersion) {
-          if (this.flipperReady && (this.app.installedVersion.versionBuildApi !== `${this.info.firmware.api.major}.${this.info.firmware.api.minor}`)) {
-            return {
-              text: 'Update',
-              class: 'bg-positive'
-            }
-          }
-          const iv = this.app.installedVersion.version + '.0'
-          const cv = this.app.currentVersion.version + '.0'
-          if (semver.lt(iv, cv) || (semver.eq(iv, cv) && this.app.installedVersion.versionId !== this.app.currentVersion.id)) {
-            return {
-              text: 'Update',
-              class: 'bg-positive'
-            }
-          } else {
-            return {
-              text: 'Installed',
-              class: 'bg-grey-6'
-            }
-          }
-        }
-      }
-      return {
-        text: 'Install',
-        class: 'bg-primary'
-      }
-    },
-
     handleAction (value) {
       if (value === 'Installed') {
         this.actionType = ''
@@ -282,15 +289,25 @@ export default defineComponent({
         this.actionType = value.toLowerCase()
       }
       this.$emit('action', this.app, this.actionType)
+    },
+
+    start () {
+      const status = this.app.currentVersion.status
+      if (this.connected && status === 'READY') {
+        this.currentStatusHint = null
+      } else {
+        this.currentStatusHint = status
+      }
+      this.setCategory()
     }
   },
 
   mounted () {
-    this.setCategory()
+    this.start()
   },
 
   updated () {
-    this.setCategory()
+    this.start()
   }
 })
 </script>

@@ -7,7 +7,7 @@ const API_ENDPOINT = 'https://catalog.flipp.dev/api/v0'
 
 function camelCaseDeep (object) {
   return Object.fromEntries(Object.entries(object).map(e => {
-    if (typeof e[1] === 'object') {
+    if (!!e[1] && typeof e[1] === 'object') {
       e[1] = camelCaseDeep(e[1])
     }
     return [_.camelCase(e[0]), e[1]]
@@ -160,13 +160,19 @@ async function fetchAppsShort (params) {
   return apps
 }
 
-async function fetchAppById (id) {
-  const res = await fetch(`${API_ENDPOINT}/application/${id}`).then(res => res.json())
+async function fetchAppById (id, params) {
+  if (!params.target) {
+    delete params.target
+  }
+  if (!params.api) {
+    delete params.api
+  }
+  const res = await fetch(`${API_ENDPOINT}/application/${id}?${new URLSearchParams({ ...params }).toString()}`).then(res => res.json())
   return camelCaseDeep(res)
 }
 
 async function fetchAppFap (params) {
-  const file = await fetch(`${API_ENDPOINT}/application/version/${params.versionId}/build/${params.target}/${params.apiVersion}`)
+  const file = await fetch(`${API_ENDPOINT}/application/version/${params.versionId}/build/compatible/?${new URLSearchParams({ target: params.target, api: params.api }).toString()}`)
     .then((res) => {
       if (res.status >= 400) {
         throw new Error('Failed to fetch application build (' + res.status + ')')
@@ -174,6 +180,16 @@ async function fetchAppFap (params) {
       return res.arrayBuffer()
     })
   return file
+}
+
+async function fetchAppsVersions (uids) {
+  let query = ''
+  for (const uid of uids) {
+    query += 'uid=' + uid + '&'
+  }
+  const res = await fetch(`${API_ENDPOINT}/application/versions?${query}`).then(res => res.json())
+  const versions = res.map(version => camelCaseDeep(version))
+  return versions
 }
 
 export {
@@ -187,5 +203,6 @@ export {
   fetchCategories,
   fetchAppsShort,
   fetchAppById,
-  fetchAppFap
+  fetchAppFap,
+  fetchAppsVersions
 }
