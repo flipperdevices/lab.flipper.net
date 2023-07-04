@@ -354,7 +354,7 @@ export default defineComponent({
       }
       const dataUri = await urlContentToDataUri(app.currentVersion.iconUri)
       const base64Icon = dataUri.split(',')[1]
-      const manifestText = `Filetype: Flipper Application Installation Manifest\rVersion: ${app.currentVersion.version}\rFull Name: ${app.currentVersion.name}\rIcon: ${base64Icon}\rVersion Build API: ${this.info.firmware.api.major}.${this.info.firmware.api.minor}\rUID: ${app.id}\rVersion UID: ${app.currentVersion.id}\rPath: ${paths.appDir}/${app.alias}.fap`
+      const manifestText = `Filetype: Flipper Application Installation Manifest\r\nVersion: 1\r\nFull Name: ${app.currentVersion.name}\r\nIcon: ${base64Icon}\r\nVersion Build API: ${this.info.firmware.api.major}.${this.info.firmware.api.minor}\r\nUID: ${app.id}\r\nVersion UID: ${app.currentVersion.id}\r\nPath: ${paths.appDir}/${app.alias}.fap`
       const manifestFile = new TextEncoder().encode(manifestText)
       this.action.progress = 0.45
       await asyncSleep(300)
@@ -627,12 +627,11 @@ export default defineComponent({
             id: '',
             name: '',
             icon: '',
-            version: '',
             versionId: '',
             versionBuildApi: '',
             path: ''
           }
-          for (const line of manifest.split('\r')) {
+          for (const line of manifest.split('\r\n')) {
             const key = line.slice(0, line.indexOf(': '))
             const value = line.slice(line.indexOf(': ') + 2)
             switch (key) {
@@ -644,9 +643,6 @@ export default defineComponent({
                 break
               case 'Icon':
                 app.icon = value
-                break
-              case 'Version':
-                app.version = value
                 break
               case 'Version UID':
                 app.versionId = value
