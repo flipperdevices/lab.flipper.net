@@ -97,10 +97,10 @@
                 dense
                 color="white"
                 style="margin-left: 5px; padding: 0; border-radius: 5px; font-size: 16px; line-height: 16px;"
-                :label="actionButton(app).text"
+                :label="app.actionButton.text"
                 class="fit no-shadow text-pixelated"
-                :class="actionButton(app).class"
-                @click="handleAction(app, actionButton(app).text)"
+                :class="app.actionButton.class"
+                @click="handleAction(app, app.actionButton.text)"
               />
             </div>
           </div>
@@ -112,7 +112,7 @@
 
 <script>
 import { defineComponent, ref } from 'vue'
-import semver from 'semver'
+// import semver from 'semver'
 
 export default defineComponent({
   name: 'AppList',
@@ -123,8 +123,6 @@ export default defineComponent({
     flipper: Object,
     connected: Boolean,
     rpcActive: Boolean,
-    info: Object,
-    flipperReady: Boolean,
     action: Object
   },
 
@@ -210,36 +208,6 @@ export default defineComponent({
         return
       }
       this.$emit('openApp', app)
-    },
-
-    actionButton (app) {
-      if (app.isInstalled) {
-        if (this.flipperReady && (app.installedVersion.versionBuildApi !== `${this.info.firmware.api.major}.${this.info.firmware.api.minor}`)) {
-          return {
-            text: 'Update',
-            class: 'bg-positive'
-          }
-        }
-        if (app.installedVersion) {
-          const iv = app.installedVersion.version + '.0'
-          const cv = app.currentVersion.version + '.0'
-          if (semver.lt(iv, cv) || (semver.eq(iv, cv) && app.installedVersion.versionId !== app.currentVersion.id)) {
-            return {
-              text: 'Update',
-              class: 'bg-positive'
-            }
-          } else {
-            return {
-              text: 'Installed',
-              class: 'bg-grey-6'
-            }
-          }
-        }
-      }
-      return {
-        text: 'Install',
-        class: 'bg-primary'
-      }
     },
 
     handleAction (app, value) {

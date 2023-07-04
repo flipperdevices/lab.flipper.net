@@ -47,11 +47,11 @@
             label="Installed"
           >
             <q-badge
-              v-if="$q.screen.width > 365 && outdatedAppsAmount > 0"
+              v-if="$q.screen.width > 365 && updatableAppsAmount > 0"
               color="positive"
               floating
               class="outdated-badge"
-            >{{ outdatedAppsAmount }}</q-badge>
+            >{{ updatableAppsAmount }}</q-badge>
           </q-btn>
         </div>
         <div class="q-ml-md">
@@ -74,8 +74,8 @@
         :flipper="flipper"
         :action="action"
         :batch="batch"
-        :info="info"
-        :flipperReady="flipperReady"
+        :installedApps="installedApps"
+        :sdk="sdk"
         @showNotif="passNotif"
         @openApp="openApp"
         @action="handleAction"
@@ -90,8 +90,6 @@
         :flipper="flipper"
         :connected="connected"
         :rpcActive="rpcActive"
-        :info="info"
-        :flipperReady="flipperReady"
         :action="action"
         @showNotif="passNotif"
         @openApp="openApp"
@@ -106,8 +104,6 @@
         :flipper="flipper"
         :connected="connected"
         :rpcActive="rpcActive"
-        :info="info"
-        :flipperReady="flipperReady"
         :action="action"
         @showNotif="passNotif"
         @action="handleAction"
@@ -203,8 +199,7 @@ import SearchBar from 'components/SearchBar.vue'
 import AppList from 'components/AppList.vue'
 import AppPage from 'components/AppPage.vue'
 import InstalledApps from 'components/InstalledApps.vue'
-import { fetchCategories, fetchAppsShort, fetchAppById, fetchAppFap } from '../util/util'
-import semver from 'semver'
+import { fetchCategories, fetchAppsShort, fetchAppById, fetchAppFap, fetchAppsVersions } from '../util/util'
 import asyncSleep from 'simple-async-sleep'
 
 export default defineComponent({
@@ -254,6 +249,10 @@ export default defineComponent({
         totalCount: 0,
         doneCount: 0,
         failed: []
+      }),
+      sdk: ref({
+        target: null,
+        api: null
       })
     }
   },
@@ -261,6 +260,10 @@ export default defineComponent({
   watch: {
     flipperReady () {
       this.start()
+    },
+
+    async $route (to, from) {
+      await this.watchParams()
     }
   },
 
@@ -269,17 +272,13 @@ export default defineComponent({
       return this.rpcActive && this.info !== null && this.info.doneReading
     },
 
-    outdatedAppsAmount () {
-      return this.apps.filter(e => {
-        if (e.isInstalled === true && e.installedVersion) {
-          if (e.installedVersion.versionBuildApi !== `${this.info.firmware.api.major}.${this.info.firmware.api.minor}`) {
+    updatableAppsAmount () {
+      return this.apps.filter(app => {
+        if (app.isInstalled === true && app.installedVersion && app.currentVersion.status === 'READY') {
+          if (this.sdk.api && app.installedVersion.api !== this.sdk.api) {
             return true
           }
-          const iv = e.installedVersion.version + '.0'
-          const cv = e.currentVersion.version + '.0'
-          if (semver.lt(iv, cv)) {
-            return true
-          } else if (semver.eq(iv, cv) && e.installedVersion.versionId !== e.currentVersion.id) {
+          if (app.installedVersion.isOutdated) {
             return true
           }
         }
@@ -290,7 +289,6 @@ export default defineComponent({
 
   methods: {
     async openApp (app) {
-      this.currentApp = await fetchAppById(app.alias)
       let prefix = ''
       if (!location.pathname.startsWith('/apps/')) {
         prefix = 'apps/'
@@ -319,7 +317,7 @@ export default defineComponent({
       const fap = await fetchAppFap({
         versionId: app.currentVersion.id,
         target: `f${this.info.firmware.target}`,
-        apiVersion: `${this.info.firmware.api.major}.${this.info.firmware.api.minor}`
+        api: `${this.info.firmware.api.major}.${this.info.firmware.api.minor}`
       }).catch(error => {
         this.$emit('showNotif', {
           message: error.toString(),
@@ -447,9 +445,16 @@ export default defineComponent({
 
     async deleteApp (app) {
       const paths = {
-        appDir: `/ext/apps/${this.categories.find(e => e.id === app.categoryId).name}`,
+        appDir: '',
         manifestDir: '/ext/apps_manifests'
       }
+      if (app.categoryId) {
+        paths.appDir = `/ext/apps/${this.categories.find(e => e.id === app.categoryId).name}`
+      } else {
+        paths.appDir = app.path.slice(0, app.path.lastIndexOf('/'))
+        app.alias = app.path.slice(app.path.lastIndexOf('/') + 1, -4)
+      }
+
       await this.ensureCategoryPaths()
 
       // remove .fap
@@ -627,11 +632,13 @@ export default defineComponent({
             id: '',
             name: '',
             icon: '',
-            versionId: '',
-            versionBuildApi: '',
+            installedVersion: {
+              id: '',
+              api: ''
+            },
             path: ''
           }
-          for (const line of manifest.split('\r\n')) {
+          for (const line of manifest.replaceAll('\r', '').split('\n')) {
             const key = line.slice(0, line.indexOf(': '))
             const value = line.slice(line.indexOf(': ') + 2)
             switch (key) {
@@ -645,10 +652,10 @@ export default defineComponent({
                 app.icon = value
                 break
               case 'Version UID':
-                app.versionId = value
+                app.installedVersion.id = value
                 break
               case 'Version Build API':
-                app.versionBuildApi = value
+                app.installedVersion.api = value
                 break
               case 'Path':
                 app.path = value
@@ -658,26 +665,62 @@ export default defineComponent({
           installedApps.push(app)
         }
       }
+
+      const versions = await fetchAppsVersions(installedApps.map(app => app.installedVersion.id))
+      for (const version of versions) {
+        const app = installedApps.find(app => app.id === version.applicationId)
+        app.installedVersion = { ...app.installedVersion, ...version }
+      }
       this.installedApps = installedApps
     },
 
-    async updateInstalledApps () {
-      await this.getInstalledApps()
+    async updateInstalledApps (installed) {
+      if (!installed) {
+        await this.getInstalledApps()
+      }
       for (const app of this.apps) {
         const installed = this.installedApps.find(e => e.id === app.id)
         if (installed) {
           app.isInstalled = true
-          app.installedVersion = { ...installed }
-          app.currentVersion.version = '0.2'
+          app.installedVersion = installed.installedVersion
+
+          app.installedVersion.isOutdated = app.currentVersion.id !== app.installedVersion.id
         } else {
           app.isInstalled = false
           app.installedVersion = null
         }
 
+        app.actionButton = this.actionButton(app)
+
         if (this.currentApp && app.id === this.currentApp.id) {
           this.currentApp.isInstalled = app.isInstalled
           this.currentApp.installedVersion = app.installedVersion
         }
+      }
+      console.log('installed apps', this.installedApps)
+    },
+
+    actionButton (app) {
+      if (!this.sdk.api) {
+        return { text: 'Install', class: 'bg-primary' }
+      }
+      if (app.isInstalled && app.installedVersion) {
+        if (app.installedVersion.api !== this.sdk.api) {
+          if (app.currentVersion.status === 'READY') {
+            return { text: 'Update', class: 'bg-positive' }
+          }
+          return { text: 'Installed', class: 'bg-grey-6' }
+        } else {
+          if (app.installedVersion.isOutdated) {
+            return { text: 'Update', class: 'bg-positive' }
+          } else {
+            return { text: 'Installed', class: 'bg-grey-6' }
+          }
+        }
+      }
+      return {
+        text: 'Install',
+        class: 'bg-primary'
       }
     },
 
@@ -685,32 +728,37 @@ export default defineComponent({
       this.currentApp = null
       this.initialCategory = null
       const path = this.$route.params.path
-      if (path) {
-        if (path === 'installed') {
-          this.flags.installedPage = true
-        } else {
-          const normalize = (string) => string.toLowerCase().replaceAll(' ', '-')
-          this.flags.installedPage = false
-          const category = this.categories.find(e => normalize(e.name) === normalize(path))
-          if (category) {
-            this.initialCategory = category
-          } else {
-            try {
-              const appFull = await fetchAppById(path)
-              this.currentApp = appFull
-              console.log(appFull)
+      if (!path) {
+        return
+      }
+      if (path === 'installed') {
+        this.flags.installedPage = true
+        return
+      }
 
-              const installed = this.installedApps.find(e => e.id === this.currentApp.id)
-              if (installed) {
-                this.currentApp.isInstalled = true
-                this.currentApp.installedVersion = { ...installed }
-              }
+      this.flags.installedPage = false
+      const normalize = (string) => string.toLowerCase().replaceAll(' ', '-')
+      const category = this.categories.find(e => normalize(e.name) === normalize(path))
+      if (category) {
+        this.initialCategory = category
+      } else {
+        try {
+          const appFull = await fetchAppById(path, this.sdk)
+          this.currentApp = appFull
 
-              this.initialCategory = this.categories.find(e => e.id === appFull.categoryId)
-            } catch (error) {
-              console.error(error)
-            }
+          const installed = this.installedApps.find(e => e.id === this.currentApp.id)
+          if (installed) {
+            this.currentApp.isInstalled = true
+            this.currentApp.installedVersion = { ...installed }
+
+            this.currentApp.installedVersion.isOutdated = this.currentApp.currentVersion.id !== this.currentApp.installedVersion.id
           }
+          this.currentApp.actionButton = this.actionButton(this.currentApp)
+          console.log('current app', this.currentApp)
+
+          this.initialCategory = this.categories.find(e => e.id === appFull.categoryId)
+        } catch (error) {
+          console.error(error)
         }
       }
     },
@@ -738,17 +786,24 @@ export default defineComponent({
         if (this.flipperReady) {
           // when RPC session is up and device info retreived, get firmware API version and device target
           try {
+            this.sdk.api = `${this.info.firmware.api.major}.${this.info.firmware.api.minor}`
+            this.sdk.target = `f${this.info.firmware.target}`
+
             params.target = `f${this.info.firmware.target}`
             params.api = `${this.info.firmware.api.major}.${this.info.firmware.api.minor}`
             delete params.is_latest_release_version
+
             categoryParams.target = params.target
             categoryParams.api = params.api
           } catch (error) {
+            // firmware doesn't provide firmware api
             this.flags.outdatedAPIDialog = true
           }
 
           await this.ensureCommonPaths()
           await this.getInstalledApps()
+        } else {
+          return
         }
       } else {
         this.installedApps = []
@@ -761,7 +816,6 @@ export default defineComponent({
       this.flags.loadingInitial = false
 
       let newApps = [], allApps = []
-
       do {
         newApps = await fetchAppsShort(params)
         allApps = allApps.concat(newApps)
@@ -769,17 +823,10 @@ export default defineComponent({
           params.offset += params.limit
         }
       } while (newApps.length === params.limit)
-
-      for (const installed of this.installedApps) {
-        const app = allApps.find(e => e.id === installed.id)
-        if (app) {
-          app.isInstalled = true
-          app.installedVersion = { ...installed }
-        }
-      }
-
       this.apps = allApps
-      console.log(this.apps)
+
+      await this.updateInstalledApps(this.installedApps)
+      console.log('compatible apps', this.apps)
     }
   },
 
@@ -788,10 +835,6 @@ export default defineComponent({
       this.$router.push('/')
     }
     this.start()
-  },
-
-  updated () {
-    this.watchParams()
   }
 })
 </script>

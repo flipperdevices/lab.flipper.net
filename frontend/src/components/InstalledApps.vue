@@ -1,6 +1,6 @@
 <template>
   <div class="column full-width items-end">
-    <div v-if="outdatedApps.length" style="width: 140px">
+    <div v-if="updatableApps.length" style="width: 140px">
       <template v-if="batch.totalCount">
         <q-linear-progress
           :value="batch.doneCount / batch.totalCount + action.progress / batch.totalCount"
@@ -25,9 +25,9 @@
         style="margin-left: 5px; padding: 0; border-radius: 5px; font-size: 16px; line-height: 16px;"
         label="Update all"
         class="fit no-shadow text-pixelated bg-positive"
-        @click="this.$emit('batchUpdate', outdatedApps);"
+        @click="this.$emit('batchUpdate', updatableApps);"
       >
-        <div class="install-all-badge">{{ outdatedApps.length }}</div>
+        <div class="install-all-badge">{{ updatableApps.length }}</div>
       </q-btn>
     </div>
 
@@ -38,7 +38,7 @@
 
     <div class="column full-width" :class="batch.totalCount ? 'disabled' : ''">
       <div
-        v-for="app in outdatedApps"
+        v-for="app in updatableApps"
         :key="app.currentVersion.name"
         class="flex no-wrap items-center q-my-md"
         :class="action.type === 'delete' && action.id === app.id ? 'disabled' : ''"
@@ -99,7 +99,7 @@
         />
       </div>
 
-      <q-separator v-if="outdatedApps.length && upToDateApps.length" class="q-my-lg" />
+      <q-separator v-if="updatableApps.length && upToDateApps.length" class="q-my-lg" />
 
       <div
         v-for="app in upToDateApps"
@@ -143,6 +143,52 @@
           @click="appToDelete = app; flags.deleteConfirmationDialog = true"
         />
       </div>
+
+      <div
+        v-for="app in unsupportedApps"
+        :key="app.name"
+        class="flex no-wrap items-center q-my-md"
+        :class="action.type === 'delete' && action.id === app.id ? 'disabled' : ''"
+      >
+        <div class="flex no-wrap items-center cursor-pointer" @click="$router.push(`/apps/${app.id}`)">
+          <div class="app-icon q-mr-md">
+            <q-img :src="`data:image/png;base64,${app.icon}`" style="image-rendering: pixelated; width: 38px"/>
+          </div>
+          <div class="col-10">
+            <div class="flex flex-center">
+              <div class="text-h6 q-mr-sm" style="line-height: 1.5em; margin-bottom: 0.25rem;">{{ app.name }}</div>
+              <q-chip color="deep-orange-2" icon="mdi-alert-circle-outline" label="Outdated app" size="12px" dense class="q-px-sm"/>
+            </div>
+            <div class="text-grey-7">{{ app.installedVersion.shortDescription }}</div>
+          </div>
+        </div>
+
+        <q-space />
+
+        <div class="column items-end q-ml-md">
+          <span class="text-grey-7">Version:</span>
+          <b>{{ app.installedVersion.version }}</b>
+        </div>
+        <div class="q-ml-md" style="width: 80px;">
+          <q-btn
+            flat
+            dense
+            color="white"
+            style="margin-left: 5px; padding: 0; border-radius: 5px; font-size: 16px; line-height: 16px;"
+            label="Installed"
+            class="fit no-shadow text-pixelated bg-grey-6"
+          />
+        </div>
+        <q-btn
+          flat
+          round
+          dense
+          color="negative"
+          icon="svguse:common-icons.svg#delete"
+          class="q-ml-md"
+          @click="appToDelete = app; flags.deleteConfirmationDialog = true"
+        />
+      </div>
     </div>
 
     <q-dialog v-model="flags.deleteConfirmationDialog">
@@ -154,11 +200,22 @@
         <q-card-section class="q-pt-none q-my-md text-center">
           <div class="flex no-wrap items-center">
             <div class="app-icon q-mr-md">
-              <q-img :src="appToDelete.currentVersion.iconUri" style="image-rendering: pixelated;"/>
+              <template v-if="appToDelete.currentVersion">
+                <q-img :src="appToDelete.currentVersion.iconUri" style="image-rendering: pixelated; width: 38px"/>
+              </template>
+              <template v-else>
+                <q-img :src="`data:image/png;base64,${appToDelete.icon}`" style="image-rendering: pixelated; width: 38px"/>
+              </template>
             </div>
             <div class="column items-start">
-              <div class="text-h6" style="line-height: 1.5em; margin-bottom: 0.25rem;">{{ appToDelete.currentVersion.name }}</div>
-              <div class="text-grey-7"><b>v{{ appToDelete.currentVersion.version }}</b></div>
+              <template v-if="appToDelete.currentVersion">
+                <div class="text-h6" style="line-height: 1.5em; margin-bottom: 0.25rem;">{{ appToDelete.currentVersion.name }}</div>
+                <div class="text-grey-7"><b>v{{ appToDelete.currentVersion.version }}</b></div>
+              </template>
+              <template v-else>
+                <div class="text-h6" style="line-height: 1.5em; margin-bottom: 0.25rem;">{{ appToDelete.name }}</div>
+                <div class="text-grey-7"><b>v{{ appToDelete.installedVersion.version }}</b></div>
+              </template>
             </div>
           </div>
         </q-card-section>
@@ -186,15 +243,15 @@
 
 <script>
 import { defineComponent, ref } from 'vue'
-import semver from 'semver'
+// import semver from 'semver'
 
 export default defineComponent({
   name: 'InstalledApps',
   props: {
     apps: Array,
     flipper: Object,
-    info: Object,
-    flipperReady: Boolean,
+    installedApps: Array,
+    sdk: Object,
     action: Object,
     batch: Object
   },
@@ -210,17 +267,13 @@ export default defineComponent({
   },
 
   computed: {
-    outdatedApps () {
-      return this.apps.filter(e => {
-        if (e.isInstalled === true && e.installedVersion) {
-          if (this.flipperReady && (e.installedVersion.versionBuildApi !== `${this.info.firmware.api.major}.${this.info.firmware.api.minor}`)) {
+    updatableApps () {
+      return this.apps.filter(app => {
+        if (app.isInstalled === true && app.installedVersion && app.currentVersion.status === 'READY') {
+          if (this.sdk.api && app.installedVersion.api !== this.sdk.api) {
             return true
           }
-          const iv = e.installedVersion.version + '.0'
-          const cv = e.currentVersion.version + '.0'
-          if (semver.lt(iv, cv)) {
-            return true
-          } else if (semver.eq(iv, cv) && e.installedVersion.versionId !== e.currentVersion.id) {
+          if (app.installedVersion.isOutdated) {
             return true
           }
         }
@@ -229,18 +282,20 @@ export default defineComponent({
     },
 
     upToDateApps () {
-      return this.apps.filter(e => {
-        if (e.isInstalled === true && e.installedVersion) {
-          if (this.flipperReady && (e.installedVersion.versionBuildApi !== `${this.info.firmware.api.major}.${this.info.firmware.api.minor}`)) {
-            return false
-          }
-          const iv = e.installedVersion.version + '.0'
-          const cv = e.currentVersion.version + '.0'
-          if (!semver.lt(iv, cv)) {
-            return true
-          } else if (semver.gte(iv, cv) && e.installedVersion.versionId === e.currentVersion.id) {
+      return this.apps.filter(app => {
+        if (app.isInstalled === true && app.installedVersion) {
+          if (!app.installedVersion.isOutdated && app.currentVersion.status === 'READY') {
             return true
           }
+        }
+        return false
+      })
+    },
+
+    unsupportedApps () {
+      return this.installedApps.filter(installedApp => {
+        if (!this.apps.find(app => app.id === installedApp.id)) {
+          return true
         }
         return false
       })
