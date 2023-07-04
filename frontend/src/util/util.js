@@ -1,7 +1,7 @@
 import semver from 'semver'
 import { untar } from '../untar/untar.js'
 import pako from 'pako'
-import * as _ from 'lodash'
+import _ from 'lodash'
 
 const API_ENDPOINT = 'https://catalog.flipp.dev/api/v0'
 
