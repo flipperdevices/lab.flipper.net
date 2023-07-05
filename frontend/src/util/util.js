@@ -3,7 +3,14 @@ import { untar } from '../untar/untar.js'
 import pako from 'pako'
 import _ from 'lodash'
 
-const API_ENDPOINT = 'https://catalog.flipp.dev/api/v0'
+let API_ENDPOINT = 'https://catalog.flipperzero.one/api/v0'
+if (location.hostname !== 'lab.flipper.net') {
+  if (localStorage.getItem('catalogChannel') === 'production') {
+    API_ENDPOINT = 'https://catalog.flipperzero.one/api/v0'
+  } else {
+    API_ENDPOINT = 'https://catalog.flipp.dev/api/v0'
+  }
+}
 
 function camelCaseDeep (object) {
   return Object.fromEntries(Object.entries(object).map(e => {
