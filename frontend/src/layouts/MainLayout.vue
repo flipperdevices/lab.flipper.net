@@ -817,12 +817,6 @@ export default defineComponent({
       if (localStorage.getItem('installFromFile') === 'true') {
         this.flags.installFromFile = true
       }
-      if (localStorage.getItem('dev') !== 'true') {
-        const i = this.routes.findIndex(e => e.title === 'Apps')
-        if (i > -1) {
-          this.routes.splice(i, 1)
-        }
-      }
       navigator.serial.addEventListener('disconnect', e => {
         this.autoReconnect()
       })
