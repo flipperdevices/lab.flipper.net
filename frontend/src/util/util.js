@@ -192,6 +192,17 @@ async function fetchAppsVersions (uids) {
   return versions
 }
 
+async function submitAppReport (id, report) {
+  return fetch(`${API_ENDPOINT}/application/${id}/issue`, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(report)
+  })
+}
+
 export {
   camelCaseDeep,
   Operation,
@@ -204,5 +215,6 @@ export {
   fetchAppsShort,
   fetchAppById,
   fetchAppFap,
-  fetchAppsVersions
+  fetchAppsVersions,
+  submitAppReport
 }

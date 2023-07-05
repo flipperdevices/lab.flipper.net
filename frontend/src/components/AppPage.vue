@@ -19,6 +19,10 @@
             <span class="text-grey-7">Version:</span>
             <b class="q-ml-xs">{{ app.currentVersion.version }}</b>
           </div>
+          <div class="flex items-center q-ml-md">
+            <span class="text-grey-7" v-if="!!app.currentVersion.currentBuild">Size:</span>
+            <b class="q-ml-xs">{{ bytesToSize(app.currentVersion.currentBuild.metadata.length) }}</b>
+          </div>
 
           <template v-if="currentStatusHint">
             <q-chip
@@ -26,7 +30,13 @@
               :icon="statusHints[currentStatusHint].icon"
               :label="statusHints[currentStatusHint].text"
               class="q-ml-lg q-my-none"
-            />
+              :clickable="!!statusHints[currentStatusHint].dialog"
+              @click="$emit('showDialog', statusHints[currentStatusHint].dialog)"
+            >
+            <q-tooltip v-if="!!statusHints[currentStatusHint].tooltip">
+              {{ statusHints[currentStatusHint].tooltip }}
+            </q-tooltip>
+            </q-chip>
           </template>
         </div>
       </div>
@@ -135,6 +145,15 @@
         </a>
       </p>
     </div>
+    <q-btn
+      no-caps
+      outline
+      color="negative"
+      icon="mdi-alert-circle-outline"
+      label="Report app"
+      class="q-mt-lg"
+      @click="flags.reportDialog = true"
+    />
 
     <q-dialog v-model="flags.noFreeSpaceDialog">
       <q-card class="dialog">
@@ -191,11 +210,62 @@
         </q-card-section>
       </q-card>
     </q-dialog>
+    <q-dialog v-model="flags.reportDialog">
+      <q-card class="dialog" style="min-width: 300px;">
+        <q-card-section class="q-pb-none">
+          <div class="text-h6">Report app</div>
+        </q-card-section>
+
+        <q-card-section>
+          <q-select v-model="report.type" :options="[ 'bug', 'report' ]" label="What do you want to sumbit?" />
+        </q-card-section>
+
+        <q-card-section v-if="report.type === 'bug'">
+          Sorry, we don't provide support for third-party apps.<br />
+          You can file an issue on Github or contact the app developer.
+        </q-card-section>
+        <q-card-section v-if="report.type === 'report'">
+          <q-input
+            v-model="report.description"
+            placeholder="Describe your problem"
+            autogrow
+          />
+          <div v-if="flags.reportSubmitted" class="text-positive q-mt-md">We received your report. Thank you for the feedback!</div>
+        </q-card-section>
+
+        <q-card-section align="right">
+          <q-btn
+            flat
+            text-color="dark"
+            class="q-mr-md"
+            label="Cancel"
+            v-close-popup
+          ></q-btn>
+          <q-btn
+            v-if="!report.type || report.type === 'report'"
+            outline
+            color="primary"
+            label="Send"
+            :disabled="flags.reportSubmitted || !report.description"
+            @click="sendReport"
+          ></q-btn>
+          <q-btn
+            v-if="report.type === 'bug'"
+            outline
+            color="primary"
+            label="View on Github"
+            v-close-popup
+            :href="app.currentVersion.links.manifestUri"
+          ></q-btn>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
   </div>
 </template>
 
 <script>
 import { defineComponent, ref } from 'vue'
+import { bytesToSize, submitAppReport } from '../util/util'
 
 export default defineComponent({
   name: 'AppPage',
@@ -214,7 +284,9 @@ export default defineComponent({
     return {
       flags: ref({
         noFreeSpaceDialog: false,
-        deleteConfirmationDialog: false
+        deleteConfirmationDialog: false,
+        reportDialog: false,
+        reportSubmitted: false
       }),
       category: ref({}),
       screenshotWidth: 256 + 4 + 8 + 8,
@@ -230,23 +302,31 @@ export default defineComponent({
         BUILD_RUNNING: {
           text: 'App is rebuilding',
           icon: 'mdi-alert-circle-outline',
-          color: 'yellow-2'
+          color: 'yellow-2',
+          tooltip: 'This may take some time, come back later'
         },
         FLIPPER_OUTDATED: {
           text: 'Flipper firmware is outdated',
           icon: 'mdi-alert-circle-outline',
-          color: 'deep-orange-2'
+          color: 'deep-orange-2',
+          dialog: 'outdatedFirmwareDialog'
         },
         UNSUPPORTED_APPLICATION: {
           text: 'Outdated app',
           icon: 'mdi-alert-circle-outline',
-          color: 'deep-orange-2'
+          color: 'deep-orange-2',
+          dialog: 'outdatedAppDialog'
         },
         UNSUPPORTED_SDK: {
           text: 'Unsupported SDK',
           icon: 'mdi-alert-circle-outline',
-          color: 'deep-orange-2'
+          color: 'deep-orange-2',
+          dialog: 'outdatedFirmwareDialog'
         }
+      }),
+      report: ref({
+        type: '',
+        description: ''
       })
     }
   },
@@ -305,6 +385,13 @@ export default defineComponent({
         this.actionType = value.toLowerCase()
       }
       this.$emit('action', this.app, this.actionType)
+    },
+
+    bytesToSize: bytesToSize,
+
+    async sendReport () {
+      await submitAppReport(this.app.id, { description: this.report.description, description_type: this.report.type })
+      this.flags.reportSubmitted = true
     },
 
     start () {

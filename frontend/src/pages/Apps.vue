@@ -27,8 +27,7 @@
         :style="$q.screen.width <= 353 ? 'margin-top: 16px; width: 100%' : 'max-width: 300px; min-width: 140px'"
       >
         <SearchBar
-          :categories="categories"
-          :apps="apps"
+          :sdk="sdk"
           @setCategory="setCategory"
           @openApp="openApp"
         />
@@ -107,12 +106,13 @@
         :action="action"
         @showNotif="passNotif"
         @action="handleAction"
+        @showDialog="$event => flags[$event] = true"
       />
     </template>
 
-    <q-dialog v-model="flags.outdatedFirmwareDialog">
+    <q-dialog v-model="flags.outdatedFirmwareDialogPersistent" persistent>
       <q-card class="dialog">
-        <q-btn icon="close" flat round dense v-close-popup class="dialog-close-btn"/>
+        <!--<q-btn icon="close" flat round dense v-close-popup class="dialog-close-btn"/>-->
 
         <q-card-section class="q-pa-none q-ma-md" align="center">
           <q-icon name="mdi-alert-circle" color="negative" size="64px" />
@@ -125,18 +125,19 @@
             outline
             color="primary"
             label="Update"
+            @click="$router.push('/')"
           ></q-btn>
         </q-card-section>
       </q-card>
     </q-dialog>
-    <q-dialog v-model="flags.outdatedAPIDialog">
+    <q-dialog v-model="flags.outdatedFirmwareDialog">
       <q-card class="dialog">
         <q-btn icon="close" flat round dense v-close-popup class="dialog-close-btn"/>
 
         <q-card-section class="q-pa-none q-ma-md" align="center">
           <q-icon name="mdi-alert-circle" color="negative" size="64px" />
-          <div class="text-h6 q-my-sm">Outdated API Version</div>
-          <p>Firmware on your Flipper is outdated.<br />Click the link below to update your device.</p>
+          <div class="text-h6 q-my-sm">Outdated Firmware Version</div>
+          <p>Firmware version on your Flipper does not support this app.<br />Click the button below to update your device.</p>
         </q-card-section>
 
         <q-card-section class="q-pt-none" align="center">
@@ -144,26 +145,59 @@
             outline
             color="primary"
             label="Update"
+            @click="$router.push('/')"
           ></q-btn>
         </q-card-section>
       </q-card>
     </q-dialog>
-    <q-dialog v-model="flags.TOSDialog">
+    <q-dialog v-model="flags.outdatedAppDialog">
+      <q-card class="dialog">
+        <q-btn icon="close" flat round dense v-close-popup class="dialog-close-btn"/>
+
+        <q-card-section class="q-pa-none q-ma-md" align="center">
+          <q-icon name="mdi-alert-circle" color="negative" size="64px" />
+          <div class="text-h6 q-my-sm">Outdated app</div>
+          <p>Contact the developer to request further app support.</p>
+        </q-card-section>
+
+        <q-card-section class="q-pt-none" align="center">
+          <q-btn
+            outline
+            color="primary"
+            label="View on GitHub"
+            :href="currentApp.currentVersion.links.manifestUri"
+          ></q-btn>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
+    <q-dialog v-model="flags.connectFlipperDialog">
+      <q-card class="dialog">
+        <q-btn icon="close" flat round dense v-close-popup class="dialog-close-btn"/>
+
+        <q-card-section class="q-pa-none q-ma-md" align="center">
+          <q-icon name="mdi-alert-circle" color="primary" size="64px" />
+          <div class="text-h6 q-my-sm">Flipper disconnected</div>
+          <p>Plug in your Flipper and click the button below.</p>
+        </q-card-section>
+
+        <q-card-section class="q-pt-none" align="center">
+          <q-btn
+            outline
+            color="primary"
+            label="Connect"
+            @click="$emit('connect')"
+          ></q-btn>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
+    <!--<q-dialog v-model="flags.TOSDialog">
       <q-card class="dialog">
         <q-card-section>
           <div class="text-h6">Terms of Service</div>
         </q-card-section>
 
         <q-card-section class="q-pt-none">
-          <p>You accept our full Terms of Service by pressing Agree button.<br />The main ideas and rules fot this platform are listed below:</p>
-          <ul>
-            <li>Adipiscing ut tellus nibh pulvinar massa blandit. Ut rhoncus mi pulvinar nec nibh tortor turpis turpis.</li>
-            <li>Et diam nisl tempor morbi mattis turpis gravida congue nisi.  nibh euismod tristique. </li>
-            <li>Id quisque enim dictum gravida non fames semper at.</li>
-            <li>Adipiscing ut tellus nibh pulvinar massa blandit. Ut rhoncus mi pulvinar nec nibh tortor turpis turpis.</li>
-            <li>Et diam nisl tempor morbi mattis turpis gravida congue nisi.  nibh euismod tristique.</li>
-            <li>Id quisque enim dictum gravida non fames semper at.</li>
-          </ul>
+          <p>You accept our full Terms of Service by pressing Agree button.</p>
         </q-card-section>
 
         <q-card-section class="q-pt-none text-center">
@@ -188,7 +222,7 @@
           ></q-btn>
         </q-card-section>
       </q-card>
-    </q-dialog>
+    </q-dialog>-->
   </q-page>
 </template>
 
@@ -229,9 +263,11 @@ export default defineComponent({
         rpcActive: false,
         rpcToggling: false,
         installedPage: false,
+        outdatedFirmwareDialogPersistent: false,
         outdatedFirmwareDialog: false,
-        outdatedAPIDialog: false,
-        TOSDialog: false,
+        outdatedAppDialog: false,
+        connectFlipperDialog: false,
+        // TOSDialog: true,
         loadingInitial: true
       }),
       router,
@@ -288,6 +324,9 @@ export default defineComponent({
   },
 
   methods: {
+    log (e) {
+      console.log(e)
+    },
     async openApp (app) {
       let prefix = ''
       if (!location.pathname.startsWith('/apps/')) {
@@ -297,12 +336,21 @@ export default defineComponent({
     },
 
     handleAction (app, actionType) {
-      if (actionType) {
+      if (!this.connected) {
         this.action.type = actionType
-        this.action.progress = 0
-        this.action.id = app.id
-        return this[`${this.action.type}App`](app)
+        this.flags.connectFlipperDialog = true
+        setTimeout(() => {
+          this.action.type = ''
+        }, 300)
+        return
       }
+      if (!actionType) {
+        return
+      }
+      this.action.type = actionType
+      this.action.progress = 0
+      this.action.id = app.id
+      return this[`${this.action.type}App`](app)
     },
 
     async installApp (app) {
@@ -733,6 +781,9 @@ export default defineComponent({
       }
       if (path === 'installed') {
         this.flags.installedPage = true
+        if (!this.connected) {
+          this.flags.connectFlipperDialog = true
+        }
         return
       }
 
@@ -744,6 +795,10 @@ export default defineComponent({
       } else {
         try {
           const appFull = await fetchAppById(path, this.sdk)
+          if (appFull.detail && appFull.detail.status === 'error') {
+            this.$router.push('/apps')
+            return
+          }
           this.currentApp = appFull
 
           const installed = this.installedApps.find(e => e.id === this.currentApp.id)
@@ -796,8 +851,7 @@ export default defineComponent({
             categoryParams.target = params.target
             categoryParams.api = params.api
           } catch (error) {
-            // firmware doesn't provide firmware api
-            this.flags.outdatedAPIDialog = true
+            this.flags.outdatedFirmwareDialogPersistent = true
           }
 
           await this.ensureCommonPaths()
@@ -831,9 +885,6 @@ export default defineComponent({
   },
 
   async mounted () {
-    if (localStorage.getItem('dev') !== 'true') {
-      this.$router.push('/')
-    }
     this.start()
   }
 })
