@@ -179,7 +179,7 @@ async function fetchAppById (id, params) {
 }
 
 async function fetchAppFap (params) {
-  const file = await fetch(`${API_ENDPOINT}/application/version/${params.versionId}/build/compatible/?${new URLSearchParams({ target: params.target, api: params.api }).toString()}`)
+  const file = await fetch(`${API_ENDPOINT}/application/version/${params.versionId}/build/compatible?${new URLSearchParams({ target: params.target, api: params.api }).toString()}`)
     .then((res) => {
       if (res.status >= 400) {
         throw new Error('Failed to fetch application build (' + res.status + ')')
