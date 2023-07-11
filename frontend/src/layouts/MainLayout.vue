@@ -699,11 +699,19 @@ export default defineComponent({
     },
 
     checkConnectionRequirement (path) {
+      console.log(path)
       this.flags.connectionRequired = true
       for (const link of this.canLoadWithoutFlipper) {
         if ((path && path.includes(link)) || location.pathname.includes(link)) {
           this.flags.connectionRequired = false
           break
+        }
+      }
+
+      if (location.hostname === 'lab.flipper.net' && localStorage.getItem('dev') !== 'true') {
+        this.routes = this.routes.filter(e => e.link !== '/apps')
+        if (location.pathname === '/apps') {
+          this.$router.push('/')
         }
       }
     },
