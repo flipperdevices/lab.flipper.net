@@ -399,7 +399,7 @@ export class Analyzer {
   }
 
   console_log () {
-    /* const guess = this.guess()
+    const guess = this.guess()
     console.log('Analyzing pulses...')
     console.log(`Total count: ${this.pulses.length}`)
     console.log('Pulse width distribution:')
@@ -412,7 +412,7 @@ export class Analyzer {
     this.hist_timings.console_print()
     console.log(`DC bias (Pulse/Gap skew): ${(this.pulse_gap_skew * 100).toFixed(1)}`)
     console.log('Guessing modulation:')
-    console.log(guess) */
+    console.log(guess)
   }
 
   print_plain (messages) {

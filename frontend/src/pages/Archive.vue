@@ -297,7 +297,7 @@
 import { defineComponent, ref } from 'vue'
 import { exportFile } from 'quasar'
 import ProgressBar from 'components/ProgressBar.vue'
-// import asyncSleep from 'simple-async-sleep'
+import asyncSleep from 'simple-async-sleep'
 
 export default defineComponent({
   name: 'PageArchive',
@@ -314,8 +314,6 @@ export default defineComponent({
 
   setup () {
     return {
-      componentName: 'Archive',
-
       path: ref('/'),
       dir: ref([]),
       flags: ref({
@@ -350,54 +348,70 @@ export default defineComponent({
   methods: {
     async startRpc () {
       this.flags.rpcToggling = true
-      await this.flipper.startRPCSession()
-        .catch(error => {
-          console.error(error)
-          this.$emit('log', {
-            level: 'error',
-            message: `${this.componentName}: Error while starting RPC: ${error.toString()}`
-          })
+      const ping = await this.flipper.commands.startRpcSession(this.flipper)
+      if (!ping.resolved || ping.error) {
+        this.$emit('showNotif', {
+          message: 'Unable to start RPC session. Reload the page or reconnect Flipper manually.',
+          color: 'negative',
+          reloadBtn: true
         })
+        this.$emit('log', {
+          level: 'error',
+          message: 'Archive: Couldn\'t start rpc session'
+        })
+        throw new Error('Couldn\'t start rpc session')
+      }
       this.flags.rpcActive = true
-      this.$emit('setRpcStatus', true)
       this.flags.rpcToggling = false
+      this.$emit('setRpcStatus', true)
       this.$emit('log', {
         level: 'info',
-        message: `${this.componentName}: RPC started`
+        message: 'Archive: RPC started'
       })
     },
-
     async stopRpc () {
       this.flags.rpcToggling = true
-      await this.flipper.setReadingMode('text', 'promptBreak')
+      await this.flipper.commands.stopRpcSession()
       this.flags.rpcActive = false
-      this.$emit('setRpcStatus', false)
       this.flags.rpcToggling = false
+      this.$emit('setRpcStatus', false)
       this.$emit('log', {
         level: 'info',
-        message: `${this.componentName}: RPC stopped`
+        message: 'Archive: RPC stopped'
       })
+    },
+    async restartRpc (force) {
+      if (this.connected && (this.rpcActive || force)) {
+        this.flags.restarting = true
+        await this.flipper.closeReader()
+        await asyncSleep(300)
+        await this.flipper.disconnect()
+        await asyncSleep(300)
+        await this.flipper.connect()
+        await this.startRpc()
+      }
     },
 
     async list () {
-      const list = await this.flipper.RPC('storageList', { path: this.path })
-        .catch(error => this.rpcErrorHandler(error, 'storageList'))
+      let res = await this.flipper.commands.storage.list(this.path)
+        .catch(error => this.rpcErrorHandler(error, 'storage.list'))
         .finally(() => {
           this.$emit('log', {
             level: 'debug',
-            message: `${this.componentName}: storageList: ${this.path}`
+            message: 'Archive: storage.list: ' + this.path
           })
         })
-      if (list.length === 0) {
-        this.dir = []
+      if (res.length === 0) {
+        this.dir = res
         return
       }
-
-      if (this.path === '/') {
-        this.dir = list.filter(e => e.name !== 'any')
-      } else {
-        this.dir = list
+      if (res === 'empty response' || res[0] === undefined) {
+        return setTimeout(this.list, 300)
       }
+      if (this.path === '/') {
+        res = res.filter(e => e.name !== 'any')
+      }
+      this.dir = res.sort((a, b) => { return (b.type || 0) - a.type })
     },
 
     async read (path, preventDownload) {
@@ -405,16 +419,19 @@ export default defineComponent({
       this.file.name = path.slice(path.lastIndexOf('/') + 1)
       const file = this.dir.find(e => e.name === this.file.name && !e.type)
       const total = file.size
+      let maxChunks = 0
       const unbind = this.flipper.emitter.on('storageReadRequest/progress', chunks => {
-        this.file.progress = Math.min(chunks * 512, total) / total
+        if (maxChunks < chunks) {
+          maxChunks = chunks
+          this.file.progress = Math.min(maxChunks * 512, total) / total
+        }
       })
-
-      const res = await this.flipper.RPC('storageRead', { path })
-        .catch(error => this.rpcErrorHandler(error, 'storageRead'))
+      const res = await this.flipper.commands.storage.read(path)
+        .catch(error => this.rpcErrorHandler(error, 'storage.read'))
         .finally(() => {
           this.$emit('log', {
             level: 'debug',
-            message: `${this.componentName}: storageRead: ${path}`
+            message: 'Archive: storage.read: ' + path
           })
         })
       const s = path.split('/')
@@ -429,36 +446,36 @@ export default defineComponent({
     },
 
     async remove (path, isRecursive) {
-      await this.flipper.RPC('storageRemove', { path, recursive: isRecursive })
-        .catch(error => this.rpcErrorHandler(error, 'storageRemove'))
+      await this.flipper.commands.storage.remove(path, isRecursive)
+        .catch(error => this.rpcErrorHandler(error, 'storage.remove'))
         .finally(() => {
           this.$emit('log', {
             level: 'debug',
-            message: `${this.componentName}: storageRemove: ${path}, recursive: ${isRecursive}`
+            message: `Archive: storage.remove: ${path}, recursive: ${isRecursive}`
           })
         })
       this.list()
     },
 
     async rename (path, oldName, newName) {
-      await this.flipper.RPC('storageRename', { oldPath: path + '/' + oldName, newPath: path + '/' + newName })
-        .catch(error => this.rpcErrorHandler(error, 'storageRename'))
+      await this.flipper.commands.storage.rename(path, oldName, newName)
+        .catch(error => this.rpcErrorHandler(error, 'storage.rename'))
         .finally(() => {
           this.$emit('log', {
             level: 'debug',
-            message: `${this.componentName}: storageRename: ${path}, old name: ${oldName}, new name: ${newName}`
+            message: `Archive: storage.rename: ${path}, old name: ${oldName}, new name: ${newName}`
           })
         })
       this.list()
     },
 
     async mkdir (path) {
-      await this.flipper.RPC('storageMkdir', { path })
-        .catch(error => this.rpcErrorHandler(error, 'storageMkdir'))
+      await this.flipper.commands.storage.mkdir(path)
+        .catch(error => this.rpcErrorHandler(error, 'storage.mkdir'))
         .finally(() => {
           this.$emit('log', {
             level: 'debug',
-            message: `${this.componentName}: storageMkdir: ${path}`
+            message: 'Archive: storage.mkdir: ' + path
           })
         })
       this.list()
@@ -478,23 +495,25 @@ export default defineComponent({
           path.pop()
           while (path.length > 0) {
             dir += '/' + path.shift()
-            const stat = await this.flipper.RPC('storageStat', { path: dir })
-            if (!stat) {
-              await this.flipper.RPC('storageMkdir', { path: dir })
-            }
+            await this.flipper.commands.storage.stat(dir).catch(async e => {
+              if (e === 'ERROR_STORAGE_NOT_EXIST') {
+                await this.flipper.commands.storage.mkdir(dir)
+              } else {
+                throw e
+              }
+            })
           }
         }
 
         const unbind = this.flipper.emitter.on('storageWriteRequest/progress', e => {
           this.file.progress = e.progress / e.total
         })
-
-        await this.flipper.RPC('storageWrite', { path: dir + '/' + file.name, buffer: await file.arrayBuffer() })
-          .catch(error => this.rpcErrorHandler(error, 'storageWrite'))
+        await this.flipper.commands.storage.write(dir + '/' + file.name, await file.arrayBuffer())
+          .catch(error => this.rpcErrorHandler(error, 'storage.write'))
           .finally(() => {
             this.$emit('log', {
               level: 'debug',
-              message: `${this.componentName}: storageWrite: ${this.path}/${file.name}`
+              message: 'Archive: storage.write: ' + this.path + '/' + file.name
             })
           })
         unbind()
@@ -567,13 +586,18 @@ export default defineComponent({
       })
       this.$emit('log', {
         level: 'error',
-        message: `${this.componentName}: RPC error in command '${command}': ${error}`
+        message: `Archive: RPC error in command '${command}': ${error}`
       })
     },
 
     async start () {
       this.flags.rpcActive = this.rpcActive
       if (!this.rpcActive) {
+        setTimeout(() => {
+          if (!this.rpcActive) {
+            return this.restartRpc(true)
+          }
+        }, 1000)
         await this.startRpc()
       }
       await this.list()

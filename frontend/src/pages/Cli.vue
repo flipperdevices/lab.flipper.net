@@ -13,7 +13,23 @@
     </div>
     <div v-if="connected && !flags.rpcActive" class="full-width" style="height: calc(100vh - 50px)">
       <div id="terminal-container" class="fit bg-black"></div>
-
+      <!--<q-btn
+        v-if="flags.sharingEnabled"
+        @click="flags.sharePopup = true"
+        outline
+        color="white"
+        class="absolute-top-right q-ma-sm z-top shadow-2"
+        style="margin-right: 25px"
+      >
+        {{ flags.serverActive ? 'Session live' : 'Share session' }}
+        <q-badge
+          v-if="flags.serverActive"
+          :label="clientsCount > 0 ? clientsCount : ''"
+          rounded
+          color="green"
+          class="q-ml-md"
+        />
+      </q-btn>-->
       <q-btn
         color="black"
         icon="tune"
@@ -91,7 +107,6 @@ import 'xterm/css/xterm.css'
 import { FitAddon } from 'xterm-addon-fit'
 import { SerializeAddon } from 'xterm-addon-serialize'
 import { io } from 'socket.io-client'
-import asyncSleep from 'simple-async-sleep'
 
 export default defineComponent({
   name: 'PageCli',
@@ -105,8 +120,6 @@ export default defineComponent({
 
   setup () {
     return {
-      componentName: 'CLI',
-
       flags: ref({
         rpcActive: false,
         rpcToggling: false,
@@ -159,8 +172,8 @@ export default defineComponent({
       this.terminal.focus()
       fitAddon.fit()
 
-      this.write('\r\n\x01\r\n')
-      // this.read()
+      this.write('\x01')
+      this.read()
 
       let dumpTimeout
       this.terminal.onData(async data => {
@@ -175,7 +188,11 @@ export default defineComponent({
     },
 
     write (data) {
-      this.flipper.write(data)
+      this.flipper.write('cli', data)
+    },
+
+    read () {
+      this.flipper.read('cli')
     },
 
     downloadDump () {
@@ -196,19 +213,19 @@ export default defineComponent({
 
     async stopRpc () {
       this.flags.rpcToggling = true
-      await this.flipper.setReadingMode('text', 'promptBreak')
+      await this.flipper.commands.stopRpcSession()
       this.flags.rpcActive = false
-      this.$emit('setRpcStatus', false)
       this.flags.rpcToggling = false
+      this.$emit('setRpcStatus', false)
       this.$emit('log', {
         level: 'info',
-        message: `${this.componentName}: RPC stopped`
+        message: 'CLI: RPC stopped'
       })
     },
 
     startServer () {
       this.flags.serverToggling = true
-      this.roomName = this.info.hardware.name
+      this.roomName = this.info.hardware_name
       if (!this.socket) {
         this.socket = io('ws://lab.flipper.net:3000')
       }
@@ -216,7 +233,7 @@ export default defineComponent({
       this.socket.on('connect', () => {
         this.$emit('log', {
           level: 'info',
-          message: `${this.componentName}: Connected to cli server. My id: ${this.socket.id}, room name: ${this.roomName}`
+          message: `CLI: Connected to cli server. My id: ${this.socket.id}, room name: ${this.roomName}`
         })
 
         this.socket.emit('claimRoomName', this.roomName, (res) => {
@@ -227,7 +244,7 @@ export default defineComponent({
             })
             this.$emit('log', {
               level: 'error',
-              message: `${this.componentName}: Failed to claim room ${this.roomName}: ${res.error.toString()}`
+              message: `CLI: Failed to claim room ${this.roomName}: ${res.error.toString()}`
             })
           }
         })
@@ -240,12 +257,12 @@ export default defineComponent({
             })
             this.$emit('log', {
               level: 'error',
-              message: `${this.componentName}: Failed to join room ${this.roomName}: ${res.error.toString()}`
+              message: `CLI: Failed to join room ${this.roomName}: ${res.error.toString()}`
             })
           } else {
             this.$emit('log', {
               level: 'info',
-              message: `${this.componentName}: Hosting room ${this.roomName}`
+              message: `CLI: Hosting room ${this.roomName}`
             })
 
             this.clientsPollingInterval = setInterval(() => {
@@ -271,7 +288,7 @@ export default defineComponent({
         })
         this.$emit('log', {
           level: 'warn',
-          message: `${this.componentName}: Disconnected from CLI server`
+          message: 'CLI: Disconnected from cli server'
         })
         if (this.flags.serverActive !== false) {
           this.stopServer()
@@ -298,7 +315,7 @@ export default defineComponent({
         if (res.error) {
           this.$emit('log', {
             level: 'error',
-            message: `${this.componentName}: Failed to broadcast: ${res.error.toString()}`
+            message: `Remote CLI: Failed to broadcast: ${res.error.toString()}`
           })
           console.error(res.message)
         }
@@ -315,13 +332,51 @@ export default defineComponent({
       } else if (window.innerWidth < 463) {
         this.fontSize = 11
       }
-
       setTimeout(this.init, 500)
-      await asyncSleep(1000)
-      await this.flipper.setReadingMode('text')
 
-      this.unbind = this.flipper.emitter.on('cli/output', data => {
-        this.terminal.write(data)
+      let isUnicode = false,
+        unicodeBytesLeft = 0,
+        unicodeBuffer = []
+
+      this.unbind = this.flipper.emitter.on('cli output', data => {
+        if (data.byteLength === 1) {
+          const byte = data[0]
+          if (!isUnicode && byte >> 7 === 1) {
+            isUnicode = true
+            data = undefined
+            unicodeBuffer.push(byte)
+            for (let i = 6; i >= 4; i--) {
+              if ((byte >> i) % 2 === 1) {
+                unicodeBytesLeft++
+              } else {
+                break
+              }
+            }
+          } else {
+            if (unicodeBytesLeft > 0 && byte >> 6 === 2) {
+              unicodeBuffer.push(byte)
+              unicodeBytesLeft--
+              if (unicodeBytesLeft === 0) {
+                data = new Uint8Array(unicodeBuffer)
+                isUnicode = false
+                unicodeBuffer = []
+              } else {
+                data = undefined
+              }
+            } else {
+              isUnicode = false
+              unicodeBytesLeft = 0
+              unicodeBuffer = []
+            }
+          }
+        }
+        if (data) {
+          const text = new TextDecoder().decode(data).replaceAll('\x7F', '')
+          this.terminal.write(text)
+          if (this.flags.serverActive) {
+            this.broadcast(text)
+          }
+        }
       })
     }
   },

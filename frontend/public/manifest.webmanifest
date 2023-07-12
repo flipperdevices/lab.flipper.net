@@ -1,45 +1,6 @@
 {
-    "name": "Flipper Lab",
-    "short_name": "Flipper Lab",
-    "display": "standalone",
-    "start_url": ".",
-    "background_color": "#fff",
-    "related_applications": [
-        {
-            "platform": "play",
-            "id": "com.flipperdevices.app",
-            "url": "https://play.google.com/store/apps/details?id=com.flipperdevices.app"
-        }
-    ],
-    "shortcuts": [
-        {
-            "name": "Files",
-            "url": "/archive"
-        },
-        {
-            "name": "Cli",
-            "url": "/cli"
-        },
-        {
-            "name": "NFC tools",
-            "url": "/nfc-tools"
-        },
-        {
-            "name": "Radio tools",
-            "url": "/pulse-plotter"
-        }
-    ],
-    "theme_color": "#ff8200",
-    "icons": [
-        {
-            "src": "/icons/icon-192.png",
-            "type": "image/png",
-            "sizes": "192x192"
-        },
-        {
-            "src": "/icons/icon-512.png",
-            "type": "image/png",
-            "sizes": "512x512"
-        }
-    ]
+	"icons": [
+    { "src": "/icons/icon-192.png", "type": "image/png", "sizes": "192x192" },
+    { "src": "/icons/icon-512.png", "type": "image/png", "sizes": "512x512" }
+	]
 }

@@ -614,242 +614,6 @@ export const PB_App = $root.PB_App = (() => {
     return AppStateResponse
   })()
 
-  PB_App.GetErrorRequest = (function () {
-    function GetErrorRequest (properties) {
-      if (properties) {
-        for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i) {
-          if (properties[keys[i]] != null) { this[keys[i]] = properties[keys[i]] }
-        }
-      }
-    }
-
-    GetErrorRequest.create = function create (properties) {
-      return new GetErrorRequest(properties)
-    }
-
-    GetErrorRequest.encode = function encode (message, writer) {
-      if (!writer) { writer = $Writer.create() }
-      return writer
-    }
-
-    GetErrorRequest.encodeDelimited = function encodeDelimited (message, writer) {
-      return this.encode(message, writer).ldelim()
-    }
-
-    GetErrorRequest.decode = function decode (reader, length) {
-      if (!(reader instanceof $Reader)) { reader = $Reader.create(reader) }
-      const end = length === undefined ? reader.len : reader.pos + length, message = new $root.PB_App.GetErrorRequest()
-      while (reader.pos < end) {
-        const tag = reader.uint32()
-        switch (tag >>> 3) {
-          default:
-            reader.skipType(tag & 7)
-            break
-        }
-      }
-      return message
-    }
-
-    GetErrorRequest.decodeDelimited = function decodeDelimited (reader) {
-      if (!(reader instanceof $Reader)) { reader = new $Reader(reader) }
-      return this.decode(reader, reader.uint32())
-    }
-
-    GetErrorRequest.verify = function verify (message) {
-      if (typeof message !== 'object' || message === null) { return 'object expected' }
-      return null
-    }
-
-    GetErrorRequest.fromObject = function fromObject (object) {
-      if (object instanceof $root.PB_App.GetErrorRequest) { return object }
-      return new $root.PB_App.GetErrorRequest()
-    }
-
-    GetErrorRequest.toObject = function toObject () {
-      return {}
-    }
-
-    GetErrorRequest.prototype.toJSON = function toJSON () {
-      return this.constructor.toObject(this, $protobuf.util.toJSONOptions)
-    }
-
-    return GetErrorRequest
-  })()
-
-  PB_App.GetErrorResponse = (function () {
-    function GetErrorResponse (properties) {
-      if (properties) {
-        for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i) {
-          if (properties[keys[i]] != null) { this[keys[i]] = properties[keys[i]] }
-        }
-      }
-    }
-
-    GetErrorResponse.prototype.code = 0
-    GetErrorResponse.prototype.text = ''
-
-    GetErrorResponse.create = function create (properties) {
-      return new GetErrorResponse(properties)
-    }
-
-    GetErrorResponse.encode = function encode (message, writer) {
-      if (!writer) { writer = $Writer.create() }
-      if (message.code != null && Object.hasOwnProperty.call(message, 'code')) { writer.uint32(8).uint32(message.code) }
-      if (message.text != null && Object.hasOwnProperty.call(message, 'text')) { writer.uint32(18).string(message.text) }
-      return writer
-    }
-
-    GetErrorResponse.encodeDelimited = function encodeDelimited (message, writer) {
-      return this.encode(message, writer).ldelim()
-    }
-
-    GetErrorResponse.decode = function decode (reader, length) {
-      if (!(reader instanceof $Reader)) { reader = $Reader.create(reader) }
-      const end = length === undefined ? reader.len : reader.pos + length, message = new $root.PB_App.GetErrorResponse()
-      while (reader.pos < end) {
-        const tag = reader.uint32()
-        switch (tag >>> 3) {
-          case 1:
-            message.code = reader.uint32()
-            break
-          case 2:
-            message.text = reader.string()
-            break
-          default:
-            reader.skipType(tag & 7)
-            break
-        }
-      }
-      return message
-    }
-
-    GetErrorResponse.decodeDelimited = function decodeDelimited (reader) {
-      if (!(reader instanceof $Reader)) { reader = new $Reader(reader) }
-      return this.decode(reader, reader.uint32())
-    }
-
-    GetErrorResponse.verify = function verify (message) {
-      if (typeof message !== 'object' || message === null) { return 'object expected' }
-      if (message.code != null && message.hasOwnProperty('code')) {
-        if (!$util.isInteger(message.code)) { return 'code: integer expected' }
-      }
-      if (message.text != null && message.hasOwnProperty('text')) {
-        if (!$util.isString(message.text)) { return 'text: string expected' }
-      }
-      return null
-    }
-
-    GetErrorResponse.fromObject = function fromObject (object) {
-      if (object instanceof $root.PB_App.GetErrorResponse) { return object }
-      const message = new $root.PB_App.GetErrorResponse()
-      if (object.code != null) { message.code = object.code >>> 0 }
-      if (object.text != null) { message.text = String(object.text) }
-      return message
-    }
-
-    GetErrorResponse.toObject = function toObject (message, options) {
-      if (!options) { options = {} }
-      const object = {}
-      if (options.defaults) {
-        object.code = 0
-        object.text = ''
-      }
-      if (message.code != null && message.hasOwnProperty('code')) { object.code = message.code }
-      if (message.text != null && message.hasOwnProperty('text')) { object.text = message.text }
-      return object
-    }
-
-    GetErrorResponse.prototype.toJSON = function toJSON () {
-      return this.constructor.toObject(this, $protobuf.util.toJSONOptions)
-    }
-
-    return GetErrorResponse
-  })()
-
-  PB_App.DataExchangeRequest = (function () {
-    function DataExchangeRequest (properties) {
-      if (properties) {
-        for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i) {
-          if (properties[keys[i]] != null) { this[keys[i]] = properties[keys[i]] }
-        }
-      }
-    }
-
-    DataExchangeRequest.prototype.data = $util.newBuffer([])
-
-    DataExchangeRequest.create = function create (properties) {
-      return new DataExchangeRequest(properties)
-    }
-
-    DataExchangeRequest.encode = function encode (message, writer) {
-      if (!writer) { writer = $Writer.create() }
-      if (message.data != null && Object.hasOwnProperty.call(message, 'data')) { writer.uint32(10).bytes(message.data) }
-      return writer
-    }
-
-    DataExchangeRequest.encodeDelimited = function encodeDelimited (message, writer) {
-      return this.encode(message, writer).ldelim()
-    }
-
-    DataExchangeRequest.decode = function decode (reader, length) {
-      if (!(reader instanceof $Reader)) { reader = $Reader.create(reader) }
-      const end = length === undefined ? reader.len : reader.pos + length, message = new $root.PB_App.DataExchangeRequest()
-      while (reader.pos < end) {
-        const tag = reader.uint32()
-        switch (tag >>> 3) {
-          case 1:
-            message.data = reader.bytes()
-            break
-          default:
-            reader.skipType(tag & 7)
-            break
-        }
-      }
-      return message
-    }
-
-    DataExchangeRequest.decodeDelimited = function decodeDelimited (reader) {
-      if (!(reader instanceof $Reader)) { reader = new $Reader(reader) }
-      return this.decode(reader, reader.uint32())
-    }
-
-    DataExchangeRequest.verify = function verify (message) {
-      if (typeof message !== 'object' || message === null) { return 'object expected' }
-      if (message.data != null && message.hasOwnProperty('data')) {
-        if (!(message.data && typeof message.data.length === 'number' || $util.isString(message.data))) { return 'data: buffer expected' }
-      }
-      return null
-    }
-
-    DataExchangeRequest.fromObject = function fromObject (object) {
-      if (object instanceof $root.PB_App.DataExchangeRequest) { return object }
-      const message = new $root.PB_App.DataExchangeRequest()
-      if (object.data != null) {
-        if (typeof object.data === 'string') { $util.base64.decode(object.data, message.data = $util.newBuffer($util.base64.length(object.data)), 0) } else if (object.data.length) { message.data = object.data }
-      }
-      return message
-    }
-
-    DataExchangeRequest.toObject = function toObject (message, options) {
-      if (!options) { options = {} }
-      const object = {}
-      if (options.defaults) {
-        if (options.bytes === String) { object.data = '' } else {
-          object.data = []
-          if (options.bytes !== Array) { object.data = $util.newBuffer(object.data) }
-        }
-      }
-      if (message.data != null && message.hasOwnProperty('data')) { object.data = options.bytes === String ? $util.base64.encode(message.data, 0, message.data.length) : options.bytes === Array ? Array.prototype.slice.call(message.data) : message.data }
-      return object
-    }
-
-    DataExchangeRequest.prototype.toJSON = function toJSON () {
-      return this.constructor.toObject(this, $protobuf.util.toJSONOptions)
-    }
-
-    return DataExchangeRequest
-  })()
-
   return PB_App
 })()
 
@@ -1065,9 +829,6 @@ export const PB = $root.PB = (() => {
     Main.prototype.appLoadFileRequest = null
     Main.prototype.appButtonPressRequest = null
     Main.prototype.appButtonReleaseRequest = null
-    Main.prototype.appGetErrorRequest = null
-    Main.prototype.appGetErrorResponse = null
-    Main.prototype.appDataExchangeRequest = null
     Main.prototype.guiStartScreenStreamRequest = null
     Main.prototype.guiStopScreenStreamRequest = null
     Main.prototype.guiScreenFrame = null
@@ -1082,13 +843,11 @@ export const PB = $root.PB = (() => {
     Main.prototype.gpioReadPinResponse = null
     Main.prototype.gpioWritePin = null
     Main.prototype.appStateResponse = null
-    Main.prototype.propertyGetRequest = null
-    Main.prototype.propertyGetResponse = null
 
     let $oneOfFields
 
     Object.defineProperty(Main.prototype, 'content', {
-      get: $util.oneOfGetter($oneOfFields = ['empty', 'stopSession', 'systemPingRequest', 'systemPingResponse', 'systemRebootRequest', 'systemDeviceInfoRequest', 'systemDeviceInfoResponse', 'systemFactoryResetRequest', 'systemGetDatetimeRequest', 'systemGetDatetimeResponse', 'systemSetDatetimeRequest', 'systemPlayAudiovisualAlertRequest', 'systemProtobufVersionRequest', 'systemProtobufVersionResponse', 'systemUpdateRequest', 'systemUpdateResponse', 'systemPowerInfoRequest', 'systemPowerInfoResponse', 'storageInfoRequest', 'storageInfoResponse', 'storageTimestampRequest', 'storageTimestampResponse', 'storageStatRequest', 'storageStatResponse', 'storageListRequest', 'storageListResponse', 'storageReadRequest', 'storageReadResponse', 'storageWriteRequest', 'storageDeleteRequest', 'storageMkdirRequest', 'storageMd5sumRequest', 'storageMd5sumResponse', 'storageRenameRequest', 'storageBackupCreateRequest', 'storageBackupRestoreRequest', 'appStartRequest', 'appLockStatusRequest', 'appLockStatusResponse', 'appExitRequest', 'appLoadFileRequest', 'appButtonPressRequest', 'appButtonReleaseRequest', 'appGetErrorRequest', 'appGetErrorResponse', 'appDataExchangeRequest', 'guiStartScreenStreamRequest', 'guiStopScreenStreamRequest', 'guiScreenFrame', 'guiSendInputEventRequest', 'guiStartVirtualDisplayRequest', 'guiStopVirtualDisplayRequest', 'gpioSetPinMode', 'gpioSetInputPull', 'gpioGetPinMode', 'gpioGetPinModeResponse', 'gpioReadPin', 'gpioReadPinResponse', 'gpioWritePin', 'appStateResponse', 'propertyGetRequest', 'propertyGetResponse']),
+      get: $util.oneOfGetter($oneOfFields = ['empty', 'stopSession', 'systemPingRequest', 'systemPingResponse', 'systemRebootRequest', 'systemDeviceInfoRequest', 'systemDeviceInfoResponse', 'systemFactoryResetRequest', 'systemGetDatetimeRequest', 'systemGetDatetimeResponse', 'systemSetDatetimeRequest', 'systemPlayAudiovisualAlertRequest', 'systemProtobufVersionRequest', 'systemProtobufVersionResponse', 'systemUpdateRequest', 'systemUpdateResponse', 'systemPowerInfoRequest', 'systemPowerInfoResponse', 'storageInfoRequest', 'storageInfoResponse', 'storageTimestampRequest', 'storageTimestampResponse', 'storageStatRequest', 'storageStatResponse', 'storageListRequest', 'storageListResponse', 'storageReadRequest', 'storageReadResponse', 'storageWriteRequest', 'storageDeleteRequest', 'storageMkdirRequest', 'storageMd5sumRequest', 'storageMd5sumResponse', 'storageRenameRequest', 'storageBackupCreateRequest', 'storageBackupRestoreRequest', 'appStartRequest', 'appLockStatusRequest', 'appLockStatusResponse', 'appExitRequest', 'appLoadFileRequest', 'appButtonPressRequest', 'appButtonReleaseRequest', 'guiStartScreenStreamRequest', 'guiStopScreenStreamRequest', 'guiScreenFrame', 'guiSendInputEventRequest', 'guiStartVirtualDisplayRequest', 'guiStopVirtualDisplayRequest', 'gpioSetPinMode', 'gpioSetInputPull', 'gpioGetPinMode', 'gpioGetPinModeResponse', 'gpioReadPin', 'gpioReadPinResponse', 'gpioWritePin', 'appStateResponse']),
       set: $util.oneOfSetter($oneOfFields)
     })
 
@@ -1158,11 +917,6 @@ export const PB = $root.PB = (() => {
       if (message.appStateResponse != null && Object.hasOwnProperty.call(message, 'appStateResponse')) { $root.PB_App.AppStateResponse.encode(message.appStateResponse, writer.uint32(466).fork()).ldelim() }
       if (message.storageTimestampRequest != null && Object.hasOwnProperty.call(message, 'storageTimestampRequest')) { $root.PB_Storage.TimestampRequest.encode(message.storageTimestampRequest, writer.uint32(474).fork()).ldelim() }
       if (message.storageTimestampResponse != null && Object.hasOwnProperty.call(message, 'storageTimestampResponse')) { $root.PB_Storage.TimestampResponse.encode(message.storageTimestampResponse, writer.uint32(482).fork()).ldelim() }
-      if (message.propertyGetRequest != null && Object.hasOwnProperty.call(message, 'propertyGetRequest')) { $root.PB_Property.GetRequest.encode(message.propertyGetRequest, writer.uint32(490).fork()).ldelim() }
-      if (message.propertyGetResponse != null && Object.hasOwnProperty.call(message, 'propertyGetResponse')) { $root.PB_Property.GetResponse.encode(message.propertyGetResponse, writer.uint32(498).fork()).ldelim() }
-      if (message.appGetErrorRequest != null && Object.hasOwnProperty.call(message, 'appGetErrorRequest')) { $root.PB_App.GetErrorRequest.encode(message.appGetErrorRequest, writer.uint32(506).fork()).ldelim() }
-      if (message.appGetErrorResponse != null && Object.hasOwnProperty.call(message, 'appGetErrorResponse')) { $root.PB_App.GetErrorResponse.encode(message.appGetErrorResponse, writer.uint32(514).fork()).ldelim() }
-      if (message.appDataExchangeRequest != null && Object.hasOwnProperty.call(message, 'appDataExchangeRequest')) { $root.PB_App.DataExchangeRequest.encode(message.appDataExchangeRequest, writer.uint32(522).fork()).ldelim() }
       return writer
     }
 
@@ -1314,15 +1068,6 @@ export const PB = $root.PB = (() => {
           case 50:
             message.appButtonReleaseRequest = $root.PB_App.AppButtonReleaseRequest.decode(reader, reader.uint32())
             break
-          case 63:
-            message.appGetErrorRequest = $root.PB_App.GetErrorRequest.decode(reader, reader.uint32())
-            break
-          case 64:
-            message.appGetErrorResponse = $root.PB_App.GetErrorResponse.decode(reader, reader.uint32())
-            break
-          case 65:
-            message.appDataExchangeRequest = $root.PB_App.DataExchangeRequest.decode(reader, reader.uint32())
-            break
           case 20:
             message.guiStartScreenStreamRequest = $root.PB_Gui.StartScreenStreamRequest.decode(reader, reader.uint32())
             break
@@ -1364,12 +1109,6 @@ export const PB = $root.PB = (() => {
             break
           case 58:
             message.appStateResponse = $root.PB_App.AppStateResponse.decode(reader, reader.uint32())
-            break
-          case 61:
-            message.propertyGetRequest = $root.PB_Property.GetRequest.decode(reader, reader.uint32())
-            break
-          case 62:
-            message.propertyGetResponse = $root.PB_Property.GetResponse.decode(reader, reader.uint32())
             break
           default:
             reader.skipType(tag & 7)
@@ -1768,30 +1507,6 @@ export const PB = $root.PB = (() => {
           if (error) { return 'appButtonReleaseRequest.' + error }
         }
       }
-      if (message.appGetErrorRequest != null && message.hasOwnProperty('appGetErrorRequest')) {
-        if (properties.content === 1) { return 'content: multiple values' }
-        properties.content = 1
-        {
-          const error = $root.PB_App.GetErrorRequest.verify(message.appGetErrorRequest)
-          if (error) { return 'appGetErrorRequest.' + error }
-        }
-      }
-      if (message.appGetErrorResponse != null && message.hasOwnProperty('appGetErrorResponse')) {
-        if (properties.content === 1) { return 'content: multiple values' }
-        properties.content = 1
-        {
-          const error = $root.PB_App.GetErrorResponse.verify(message.appGetErrorResponse)
-          if (error) { return 'appGetErrorResponse.' + error }
-        }
-      }
-      if (message.appDataExchangeRequest != null && message.hasOwnProperty('appDataExchangeRequest')) {
-        if (properties.content === 1) { return 'content: multiple values' }
-        properties.content = 1
-        {
-          const error = $root.PB_App.DataExchangeRequest.verify(message.appDataExchangeRequest)
-          if (error) { return 'appDataExchangeRequest.' + error }
-        }
-      }
       if (message.guiStartScreenStreamRequest != null && message.hasOwnProperty('guiStartScreenStreamRequest')) {
         if (properties.content === 1) { return 'content: multiple values' }
         properties.content = 1
@@ -1902,22 +1617,6 @@ export const PB = $root.PB = (() => {
         {
           const error = $root.PB_App.AppStateResponse.verify(message.appStateResponse)
           if (error) { return 'appStateResponse.' + error }
-        }
-      }
-      if (message.propertyGetRequest != null && message.hasOwnProperty('propertyGetRequest')) {
-        if (properties.content === 1) { return 'content: multiple values' }
-        properties.content = 1
-        {
-          const error = $root.PB_Property.GetRequest.verify(message.propertyGetRequest)
-          if (error) { return 'propertyGetRequest.' + error }
-        }
-      }
-      if (message.propertyGetResponse != null && message.hasOwnProperty('propertyGetResponse')) {
-        if (properties.content === 1) { return 'content: multiple values' }
-        properties.content = 1
-        {
-          const error = $root.PB_Property.GetResponse.verify(message.propertyGetResponse)
-          if (error) { return 'propertyGetResponse.' + error }
         }
       }
       return null
@@ -2202,18 +1901,6 @@ export const PB = $root.PB = (() => {
         if (typeof object.appButtonReleaseRequest !== 'object') { throw TypeError('.PB.Main.appButtonReleaseRequest: object expected') }
         message.appButtonReleaseRequest = $root.PB_App.AppButtonReleaseRequest.fromObject(object.appButtonReleaseRequest)
       }
-      if (object.appGetErrorRequest != null) {
-        if (typeof object.appGetErrorRequest !== 'object') { throw TypeError('.PB.Main.appGetErrorRequest: object expected') }
-        message.appGetErrorRequest = $root.PB_App.GetErrorRequest.fromObject(object.appGetErrorRequest)
-      }
-      if (object.appGetErrorResponse != null) {
-        if (typeof object.appGetErrorResponse !== 'object') { throw TypeError('.PB.Main.appGetErrorResponse: object expected') }
-        message.appGetErrorResponse = $root.PB_App.GetErrorResponse.fromObject(object.appGetErrorResponse)
-      }
-      if (object.appDataExchangeRequest != null) {
-        if (typeof object.appDataExchangeRequest !== 'object') { throw TypeError('.PB.Main.appDataExchangeRequest: object expected') }
-        message.appDataExchangeRequest = $root.PB_App.DataExchangeRequest.fromObject(object.appDataExchangeRequest)
-      }
       if (object.guiStartScreenStreamRequest != null) {
         if (typeof object.guiStartScreenStreamRequest !== 'object') { throw TypeError('.PB.Main.guiStartScreenStreamRequest: object expected') }
         message.guiStartScreenStreamRequest = $root.PB_Gui.StartScreenStreamRequest.fromObject(object.guiStartScreenStreamRequest)
@@ -2269,14 +1956,6 @@ export const PB = $root.PB = (() => {
       if (object.appStateResponse != null) {
         if (typeof object.appStateResponse !== 'object') { throw TypeError('.PB.Main.appStateResponse: object expected') }
         message.appStateResponse = $root.PB_App.AppStateResponse.fromObject(object.appStateResponse)
-      }
-      if (object.propertyGetRequest != null) {
-        if (typeof object.propertyGetRequest !== 'object') { throw TypeError('.PB.Main.propertyGetRequest: object expected') }
-        message.propertyGetRequest = $root.PB_Property.GetRequest.fromObject(object.propertyGetRequest)
-      }
-      if (object.propertyGetResponse != null) {
-        if (typeof object.propertyGetResponse !== 'object') { throw TypeError('.PB.Main.propertyGetResponse: object expected') }
-        message.propertyGetResponse = $root.PB_Property.GetResponse.fromObject(object.propertyGetResponse)
       }
       return message
     }
@@ -2519,26 +2198,6 @@ export const PB = $root.PB = (() => {
       if (message.storageTimestampResponse != null && message.hasOwnProperty('storageTimestampResponse')) {
         object.storageTimestampResponse = $root.PB_Storage.TimestampResponse.toObject(message.storageTimestampResponse, options)
         if (options.oneofs) { object.content = 'storageTimestampResponse' }
-      }
-      if (message.propertyGetRequest != null && message.hasOwnProperty('propertyGetRequest')) {
-        object.propertyGetRequest = $root.PB_Property.GetRequest.toObject(message.propertyGetRequest, options)
-        if (options.oneofs) { object.content = 'propertyGetRequest' }
-      }
-      if (message.propertyGetResponse != null && message.hasOwnProperty('propertyGetResponse')) {
-        object.propertyGetResponse = $root.PB_Property.GetResponse.toObject(message.propertyGetResponse, options)
-        if (options.oneofs) { object.content = 'propertyGetResponse' }
-      }
-      if (message.appGetErrorRequest != null && message.hasOwnProperty('appGetErrorRequest')) {
-        object.appGetErrorRequest = $root.PB_App.GetErrorRequest.toObject(message.appGetErrorRequest, options)
-        if (options.oneofs) { object.content = 'appGetErrorRequest' }
-      }
-      if (message.appGetErrorResponse != null && message.hasOwnProperty('appGetErrorResponse')) {
-        object.appGetErrorResponse = $root.PB_App.GetErrorResponse.toObject(message.appGetErrorResponse, options)
-        if (options.oneofs) { object.content = 'appGetErrorResponse' }
-      }
-      if (message.appDataExchangeRequest != null && message.hasOwnProperty('appDataExchangeRequest')) {
-        object.appDataExchangeRequest = $root.PB_App.DataExchangeRequest.toObject(message.appDataExchangeRequest, options)
-        if (options.oneofs) { object.content = 'appDataExchangeRequest' }
       }
       return object
     }
@@ -5887,15 +5546,6 @@ export const PB_Gui = $root.PB_Gui = (() => {
     return values
   })()
 
-  PB_Gui.ScreenOrientation = (function () {
-    const valuesById = {}, values = Object.create(valuesById)
-    values[valuesById[0] = 'HORIZONTAL'] = 0
-    values[valuesById[1] = 'HORIZONTAL_FLIP'] = 1
-    values[valuesById[2] = 'VERTICAL'] = 2
-    values[valuesById[3] = 'VERTICAL_FLIP'] = 3
-    return values
-  })()
-
   PB_Gui.ScreenFrame = (function () {
     function ScreenFrame (properties) {
       if (properties) {
@@ -5906,7 +5556,6 @@ export const PB_Gui = $root.PB_Gui = (() => {
     }
 
     ScreenFrame.prototype.data = $util.newBuffer([])
-    ScreenFrame.prototype.orientation = 0
 
     ScreenFrame.create = function create (properties) {
       return new ScreenFrame(properties)
@@ -5915,7 +5564,6 @@ export const PB_Gui = $root.PB_Gui = (() => {
     ScreenFrame.encode = function encode (message, writer) {
       if (!writer) { writer = $Writer.create() }
       if (message.data != null && Object.hasOwnProperty.call(message, 'data')) { writer.uint32(10).bytes(message.data) }
-      if (message.orientation != null && Object.hasOwnProperty.call(message, 'orientation')) { writer.uint32(16).int32(message.orientation) }
       return writer
     }
 
@@ -5931,9 +5579,6 @@ export const PB_Gui = $root.PB_Gui = (() => {
         switch (tag >>> 3) {
           case 1:
             message.data = reader.bytes()
-            break
-          case 2:
-            message.orientation = reader.int32()
             break
           default:
             reader.skipType(tag & 7)
@@ -5953,17 +5598,6 @@ export const PB_Gui = $root.PB_Gui = (() => {
       if (message.data != null && message.hasOwnProperty('data')) {
         if (!(message.data && typeof message.data.length === 'number' || $util.isString(message.data))) { return 'data: buffer expected' }
       }
-      if (message.orientation != null && message.hasOwnProperty('orientation')) {
-        switch (message.orientation) {
-          default:
-            return 'orientation: enum value expected'
-          case 0:
-          case 1:
-          case 2:
-          case 3:
-            break
-        }
-      }
       return null
     }
 
@@ -5972,24 +5606,6 @@ export const PB_Gui = $root.PB_Gui = (() => {
       const message = new $root.PB_Gui.ScreenFrame()
       if (object.data != null) {
         if (typeof object.data === 'string') { $util.base64.decode(object.data, message.data = $util.newBuffer($util.base64.length(object.data)), 0) } else if (object.data.length) { message.data = object.data }
-      }
-      switch (object.orientation) {
-        case 'HORIZONTAL':
-        case 0:
-          message.orientation = 0
-          break
-        case 'HORIZONTAL_FLIP':
-        case 1:
-          message.orientation = 1
-          break
-        case 'VERTICAL':
-        case 2:
-          message.orientation = 2
-          break
-        case 'VERTICAL_FLIP':
-        case 3:
-          message.orientation = 3
-          break
       }
       return message
     }
@@ -6002,10 +5618,8 @@ export const PB_Gui = $root.PB_Gui = (() => {
           object.data = []
           if (options.bytes !== Array) { object.data = $util.newBuffer(object.data) }
         }
-        object.orientation = options.enums === String ? 'HORIZONTAL' : 0
       }
       if (message.data != null && message.hasOwnProperty('data')) { object.data = options.bytes === String ? $util.base64.encode(message.data, 0, message.data.length) : options.bytes === Array ? Array.prototype.slice.call(message.data) : message.data }
-      if (message.orientation != null && message.hasOwnProperty('orientation')) { object.orientation = options.enums === String ? $root.PB_Gui.ScreenOrientation[message.orientation] : message.orientation }
       return object
     }
 
@@ -7326,179 +6940,6 @@ export const PB_Gpio = $root.PB_Gpio = (() => {
   })()
 
   return PB_Gpio
-})()
-
-export const PB_Property = $root.PB_Property = (() => {
-  const PB_Property = {}
-
-  PB_Property.GetRequest = (function () {
-    function GetRequest (properties) {
-      if (properties) {
-        for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i) {
-          if (properties[keys[i]] != null) { this[keys[i]] = properties[keys[i]] }
-        }
-      }
-    }
-
-    GetRequest.prototype.key = ''
-
-    GetRequest.create = function create (properties) {
-      return new GetRequest(properties)
-    }
-
-    GetRequest.encode = function encode (message, writer) {
-      if (!writer) { writer = $Writer.create() }
-      if (message.key != null && Object.hasOwnProperty.call(message, 'key')) { writer.uint32(10).string(message.key) }
-      return writer
-    }
-
-    GetRequest.encodeDelimited = function encodeDelimited (message, writer) {
-      return this.encode(message, writer).ldelim()
-    }
-
-    GetRequest.decode = function decode (reader, length) {
-      if (!(reader instanceof $Reader)) { reader = $Reader.create(reader) }
-      const end = length === undefined ? reader.len : reader.pos + length, message = new $root.PB_Property.GetRequest()
-      while (reader.pos < end) {
-        const tag = reader.uint32()
-        switch (tag >>> 3) {
-          case 1:
-            message.key = reader.string()
-            break
-          default:
-            reader.skipType(tag & 7)
-            break
-        }
-      }
-      return message
-    }
-
-    GetRequest.decodeDelimited = function decodeDelimited (reader) {
-      if (!(reader instanceof $Reader)) { reader = new $Reader(reader) }
-      return this.decode(reader, reader.uint32())
-    }
-
-    GetRequest.verify = function verify (message) {
-      if (typeof message !== 'object' || message === null) { return 'object expected' }
-      if (message.key != null && message.hasOwnProperty('key')) {
-        if (!$util.isString(message.key)) { return 'key: string expected' }
-      }
-      return null
-    }
-
-    GetRequest.fromObject = function fromObject (object) {
-      if (object instanceof $root.PB_Property.GetRequest) { return object }
-      const message = new $root.PB_Property.GetRequest()
-      if (object.key != null) { message.key = String(object.key) }
-      return message
-    }
-
-    GetRequest.toObject = function toObject (message, options) {
-      if (!options) { options = {} }
-      const object = {}
-      if (options.defaults) { object.key = '' }
-      if (message.key != null && message.hasOwnProperty('key')) { object.key = message.key }
-      return object
-    }
-
-    GetRequest.prototype.toJSON = function toJSON () {
-      return this.constructor.toObject(this, $protobuf.util.toJSONOptions)
-    }
-
-    return GetRequest
-  })()
-
-  PB_Property.GetResponse = (function () {
-    function GetResponse (properties) {
-      if (properties) {
-        for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i) {
-          if (properties[keys[i]] != null) { this[keys[i]] = properties[keys[i]] }
-        }
-      }
-    }
-
-    GetResponse.prototype.key = ''
-    GetResponse.prototype.value = ''
-
-    GetResponse.create = function create (properties) {
-      return new GetResponse(properties)
-    }
-
-    GetResponse.encode = function encode (message, writer) {
-      if (!writer) { writer = $Writer.create() }
-      if (message.key != null && Object.hasOwnProperty.call(message, 'key')) { writer.uint32(10).string(message.key) }
-      if (message.value != null && Object.hasOwnProperty.call(message, 'value')) { writer.uint32(18).string(message.value) }
-      return writer
-    }
-
-    GetResponse.encodeDelimited = function encodeDelimited (message, writer) {
-      return this.encode(message, writer).ldelim()
-    }
-
-    GetResponse.decode = function decode (reader, length) {
-      if (!(reader instanceof $Reader)) { reader = $Reader.create(reader) }
-      const end = length === undefined ? reader.len : reader.pos + length, message = new $root.PB_Property.GetResponse()
-      while (reader.pos < end) {
-        const tag = reader.uint32()
-        switch (tag >>> 3) {
-          case 1:
-            message.key = reader.string()
-            break
-          case 2:
-            message.value = reader.string()
-            break
-          default:
-            reader.skipType(tag & 7)
-            break
-        }
-      }
-      return message
-    }
-
-    GetResponse.decodeDelimited = function decodeDelimited (reader) {
-      if (!(reader instanceof $Reader)) { reader = new $Reader(reader) }
-      return this.decode(reader, reader.uint32())
-    }
-
-    GetResponse.verify = function verify (message) {
-      if (typeof message !== 'object' || message === null) { return 'object expected' }
-      if (message.key != null && message.hasOwnProperty('key')) {
-        if (!$util.isString(message.key)) { return 'key: string expected' }
-      }
-      if (message.value != null && message.hasOwnProperty('value')) {
-        if (!$util.isString(message.value)) { return 'value: string expected' }
-      }
-      return null
-    }
-
-    GetResponse.fromObject = function fromObject (object) {
-      if (object instanceof $root.PB_Property.GetResponse) { return object }
-      const message = new $root.PB_Property.GetResponse()
-      if (object.key != null) { message.key = String(object.key) }
-      if (object.value != null) { message.value = String(object.value) }
-      return message
-    }
-
-    GetResponse.toObject = function toObject (message, options) {
-      if (!options) { options = {} }
-      const object = {}
-      if (options.defaults) {
-        object.key = ''
-        object.value = ''
-      }
-      if (message.key != null && message.hasOwnProperty('key')) { object.key = message.key }
-      if (message.value != null && message.hasOwnProperty('value')) { object.value = message.value }
-      return object
-    }
-
-    GetResponse.prototype.toJSON = function toJSON () {
-      return this.constructor.toObject(this, $protobuf.util.toJSONOptions)
-    }
-
-    return GetResponse
-  })()
-
-  return PB_Property
 })()
 
 export { $root as default }
