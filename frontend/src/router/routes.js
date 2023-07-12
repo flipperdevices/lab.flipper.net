@@ -36,13 +36,6 @@ const routes = [
     ]
   },
   {
-    path: '/remote-cli',
-    component: () => import('layouts/MainLayout.vue'),
-    children: [
-      { path: '/remote-cli', component: () => import('pages/RemoteCli.vue') }
-    ]
-  },
-  {
     path: '/paint',
     component: () => import('layouts/MainLayout.vue'),
     children: [

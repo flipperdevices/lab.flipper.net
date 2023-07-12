@@ -1,6 +1,12 @@
 @font-face
   font-family: "Born2bSportyV2"
   src: url("https://cdn.flipperzero.one/Born2bSportyV2.ttf") format("truetype")
+@font-face
+  font-family: "HaxrCorp"
+  src: url("https://cdn.flipperzero.one/haxrcorp-4089.ttf") format("truetype")
+
+body
+  overscroll-behavior: none
 
 .text-h4
   font-weight: 500
@@ -8,7 +14,7 @@
 .text-pixelated
   font-family: 'Born2bSportyV2', sans-serif
   letter-spacing: 0.035em
-  
+
 .nav-links a
   color: #000000 !important
   text-decoration: none !important
@@ -22,7 +28,7 @@
   .nav-links a
     margin: 0 0.85rem
     color: #ffffff !important
-  
+
 .device-screen
   .info
     margin: 8px 3rem 0 0
@@ -87,7 +93,7 @@
   border-radius: 5px
   &.custom
     background-color: $dark
-  &.release 
+  &.release
     background-color: $positive
   &.rc
     background-color: $accent
@@ -121,3 +127,23 @@
 
 .xterm-viewport
   height: calc(100vh - 50px)
+
+.app-progress-label
+  font-family: 'HaxrCorp', monospace
+  line-height: 100%
+  color: #ffffff
+
+// Markdown
+.app-content
+  .q-markdown--heading-h1
+    font-size: 1.3rem !important
+    line-height: 1.3rem !important
+    padding: 0.75rem 0
+    font-weight: 500
+    margin: 0.5rem 0 0.75rem
+  .q-markdown--heading-h2
+    font-size: 1.1rem !important
+    line-height: 1.1rem !important
+    padding: 0.5rem 0
+    font-weight: 500
+    margin: 0.5rem 0 0.75rem

@@ -1,6 +1,9 @@
 <template>
   <div>
-    <div class="row q-pr-md" :class="$q.screen.width > 670 ? 'no-wrap' : 'justify-center'">
+    <div
+      class="row q-pr-md"
+      :class="`${$q.screen.width > 670 ? 'no-wrap' : 'justify-center'} ${action.type ? 'disabled' : ''}`"
+    >
       <q-list class="categories row" :class="$q.screen.width > 670 ? 'col-8' : 'justify-center'">
         <div
           :style="`opacity: ${currentCategory && currentCategory.name !== 'All apps' ? '0.5' : '1'}`"
@@ -13,12 +16,12 @@
         <div
           v-for="category in categories"
           :key="category.name"
-          :style="`background-color: ${category.color}; opacity: ${currentCategory && currentCategory.name !== category.name ? '0.5' : '1'}`"
+          :style="`background-color: #${category.color}; opacity: ${currentCategory && currentCategory.name !== category.name ? '0.5' : '1'}`"
           style="border-radius: 20px; padding: 4px 13px; cursor: pointer;"
           class="row no-wrap items-center q-mr-md q-mb-md q-py-xs q-px-md"
-          @click="currentCategory = category"
+          @click="currentCategory = category;"
         >
-          <q-icon v-if="category.icon" :name="category.icon" size="18px" class="q-my-xs q-mr-sm"/>
+          <q-icon v-if="category.iconUri" :name="`img:${category.iconUri}`" size="14px" class="q-my-xs q-mr-sm"/>
           <span style="white-space: nowrap;">{{ category.name }}</span>
         </div>
       </q-list>
@@ -43,6 +46,7 @@
         :key="app.name"
         class="flex justify-center q-pa-none card-container"
         style="width: fit-content"
+        :class="action.type && action.id !== app.id ? 'disabled' : ''"
       >
         <div
           style="width: calc(256px + 4px + 8px)"
@@ -50,30 +54,53 @@
           @click="appClicked(app)"
         >
           <div class="screenshot q-mb-sm">
-            <img :src="app.screenshots[0]" />
+            <img :src="app.currentVersion.screenshots[0]" style="width: 256px" />
           </div>
 
           <div class="flex justify-between" style="padding: 0 4px">
-            <div class="text-h6">{{ app.name }}</div>
+            <div class="text-h6">{{ app.currentVersion.name }}</div>
             <div style="font-size: 18px; line-height: 18px;">
               <span>
-                <q-icon :name="categories.find(e => e.name === app.category).icon" class="q-mr-sm"/>
-                <span style="font-size: 13px">{{ app.category }}</span>
+                <q-icon :name="`img:${categories.find(e => e.id === app.categoryId).iconUri}`" size="14px" class="q-mr-sm"/>
+                <span style="font-size: 13px">{{ categories.find(e => e.id === app.categoryId).name }}</span>
               </span>
             </div>
           </div>
 
-          <div class="flex no-wrap items-end justify-between" style="padding: 0 4px">
-            <span class="col-shrink desc text-grey-7">{{ app.description.split('\n')[0] }}</span>
-            <div class="col-grow" style="width: 80px;">
+          <div
+            style="display: grid;grid-template-columns: 1fr auto;padding-left: 4px;align-items: end;"
+            :style="`padding-right: ${action.type && action.id === app.id ? 0 : 4}px`"
+          >
+            <span class="col-shrink desc text-grey-7" style="margin-bottom: 2px;max-height: 30px;overflow: hidden;display: -webkit-box;-webkit-line-clamp: 2;-webkit-box-orient: vertical;">
+              {{ app.currentVersion.shortDescription }}
+            </span>
+            <div class="col-shrink" style="width: 80px;">
+              <template v-if="action.type && action.id === app.id">
+                <q-linear-progress
+                  :value="action.progress"
+                  size="32px"
+                  :color="actionColors.bar"
+                  :track-color="actionColors.track"
+                  style="width: 80px; border-radius: 5px;"
+                >
+                  <div class="absolute-full flex flex-center" style="border: 2px solid; border-radius: 5px;">
+                    <div
+                      class="app-progress-label"
+                      style="font-size: 28px;"
+                    >{{ `${action.progress * 100}%` }}</div>
+                  </div>
+                </q-linear-progress>
+              </template>
               <q-btn
+                v-else
                 flat
                 dense
                 color="white"
                 style="margin-left: 5px; padding: 0; border-radius: 5px; font-size: 16px; line-height: 16px;"
-                :label="actionButton(app).text"
+                :label="app.actionButton.text"
                 class="fit no-shadow text-pixelated"
-                :class="actionButton(app).class"
+                :class="app.actionButton.class"
+                @click="handleAction(app, app.actionButton.text)"
               />
             </div>
           </div>
@@ -85,7 +112,7 @@
 
 <script>
 import { defineComponent, ref } from 'vue'
-import semver from 'semver'
+// import semver from 'semver'
 
 export default defineComponent({
   name: 'AppList',
@@ -96,7 +123,7 @@ export default defineComponent({
     flipper: Object,
     connected: Boolean,
     rpcActive: Boolean,
-    info: Object
+    action: Object
   },
 
   setup () {
@@ -108,13 +135,14 @@ export default defineComponent({
         'Old Updates',
         'Old Releases'
       ],
-      sortModel: ref('Recently Updated')
+      sortModel: ref('New Updates'),
+      actionType: null
     }
   },
 
   watch: {
-    initialCategory (newCat, oldCat) {
-      this.currentCategory = newCat
+    initialCategory (newCategory) {
+      this.currentCategory = newCategory
     }
   },
 
@@ -122,7 +150,7 @@ export default defineComponent({
     filteredSortedApps () {
       let filtered
       if (this.currentCategory) {
-        filtered = this.apps.filter(e => e.category === this.currentCategory.name)
+        filtered = this.apps.filter(app => app.categoryId === this.currentCategory.id)
       } else {
         filtered = this.apps
       }
@@ -130,17 +158,17 @@ export default defineComponent({
       let sortBy = '', direction = -1
       switch (this.sortModel) {
         case 'New Updates':
-          sortBy = 'updated'
+          sortBy = 'updatedAt'
           break
         case 'Old Updates':
-          sortBy = 'updated'
+          sortBy = 'updatedAt'
           direction = 1
           break
         case 'New Releases':
-          sortBy = 'published'
+          sortBy = 'createdAt'
           break
         case 'Old Releases':
-          sortBy = 'published'
+          sortBy = 'createdAt'
           direction = 1
           break
       }
@@ -151,31 +179,44 @@ export default defineComponent({
         }
         return -1 * direction
       })
+    },
+
+    actionColors () {
+      switch (this.action.type) {
+        case 'delete':
+          return {
+            bar: 'negative',
+            track: 'deep-orange-5'
+          }
+        case 'install':
+          return {
+            bar: 'primary',
+            track: 'orange-6'
+          }
+        default:
+          return {
+            bar: 'positive',
+            track: 'green-6'
+          }
+      }
     }
   },
 
   methods: {
     appClicked (app) {
+      if (this.action.type) {
+        return
+      }
       this.$emit('openApp', app)
     },
 
-    actionButton (app) {
-      if (app.isInstalled) {
-        if (app.installedVersion && semver.lt(app.installedVersion, app.version)) {
-          return {
-            text: 'Update',
-            class: 'bg-positive'
-          }
-        }
-        return {
-          text: 'Installed',
-          class: 'bg-grey-6'
-        }
+    handleAction (app, value) {
+      if (value === 'Installed') {
+        this.actionType = ''
+      } else {
+        this.actionType = value.toLowerCase()
       }
-      return {
-        text: 'Install',
-        class: 'bg-primary'
-      }
+      this.$emit('action', app, this.actionType)
     }
   },
 
