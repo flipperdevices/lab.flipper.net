@@ -1,16 +1,16 @@
 <template>
   <q-page class="flex-center column full-width">
     <div class="flex-center column">
-      <div v-show="flags.updateInProgress || (connected && info !== null && info.doneReading && flags.rpcActive)" class="device-screen column">
+      <div v-show="flags.updateInProgress || (connected && info !== null && this.info.storage_databases_present && flags.rpcActive && info.hardware_name)" class="device-screen column">
         <div class="flex">
           <div class="info">
             <p>
               <span>Firmware:</span>
-              <span>{{ info.firmware.version !== 'unknown' ? info.firmware.version : info.firmware.commit }}</span>
+              <span>{{ info.firmware_version !== 'unknown' ? info.firmware_version : info.firmware_commit }}</span>
             </p>
             <p>
               <span>Build date:</span>
-              <span>{{ info.firmware.build.date }}</span>
+              <span>{{ info.firmware_build_date }}</span>
             </p>
             <p>
               <span>SD card:</span>
@@ -18,15 +18,15 @@
             </p>
             <p>
               <span>Databases:</span>
-              <span>{{ info.storage.databases.status }}</span>
+              <span>{{ info.storage_databases_present }}</span>
             </p>
             <p>
               <span>Hardware:</span>
-              <span>{{ info.hardware.ver + '.F' + info.hardware.target + 'B' + info.hardware.body + 'C' + info.hardware.connect }}</span>
+              <span>{{ info.hardware_ver + '.F' + info.hardware_target + 'B' + info.hardware_body + 'C' + info.hardware_connect }}</span>
             </p>
             <p>
               <span>Radio FW:</span>
-              <span>{{ info.radio.alive !== false ? info.radio.stack.major + '.' + info.radio.stack.minor + '.' + info.radio.stack.sub : 'corrupt' }}</span>
+              <span>{{ info.radio_alive !== false ? info.radio_stack_major + '.' + info.radio_stack_minor + '.' + info.radio_stack_sub : 'corrupt' }}</span>
             </p>
             <p>
               <span>Radio stack:</span>
@@ -34,24 +34,19 @@
             </p>
           </div>
           <div class="column items-center">
-            <h5>{{ info.hardware.name }}</h5>
+            <h5>{{ info.hardware_name }}</h5>
             <div
               class="flipper"
-              :class="info.hardware.color === '1' ? 'body-black' : 'body-white'"
+              :class="info.hardware_color === '1' ? 'body-black' : 'body-white'"
             >
               <canvas
                 v-show="flags.screenStream"
                 :width="128 * screenScale"
                 :height="64 * screenScale"
                 style="image-rendering: pixelated;"
-                :style="`rotate: ${flags.leftHanded ? 180 : 0}deg`"
                 ref="screenStreamCanvas"
               ></canvas>
-              <img
-                v-if="flags.updateInProgress"
-                src="../assets/flipper-screen-updating.png"
-                style="image-rendering: pixelated; position: relative; top: -2px;"
-              />
+              <img v-if="flags.updateInProgress" src="../assets/flipper-screen-updating.png"/>
             </div>
           </div>
         </div>
@@ -103,15 +98,12 @@ export default defineComponent({
 
   setup () {
     return {
-      componentName: 'Device',
-
       flags: ref({
         restarting: false,
         rpcActive: false,
         rpcToggling: false,
         screenStream: false,
-        updateInProgress: false,
-        leftHanded: false
+        updateInProgress: false
       }),
       screenScale: ref(1),
       channels: ref({})
@@ -120,7 +112,7 @@ export default defineComponent({
 
   computed: {
     radioStackType () {
-      switch (parseInt(this.info.radio.stack.type)) {
+      switch (parseInt(this.info.radio_stack_type)) {
         case 0x01:
           return 'full'
         case 0x02:
@@ -174,18 +166,18 @@ export default defineComponent({
         case 0x90:
           return 'BLE_MAC_STATIC'
         default:
-          return this.info.radio.stack.type
+          return this.info.radio_stack_type
       }
     },
 
     sdCardUsage () {
-      return `${bytesToSize(this.info.storage.sdcard.totalSpace - this.info.storage.sdcard.freeSpace)} / ${bytesToSize(this.info.storage.sdcard.totalSpace)}`
+      return `${bytesToSize(this.info.storage_sdcard_totalSpace - this.info.storage_sdcard_freeSpace)} / ${bytesToSize(this.info.storage_sdcard_totalSpace)}`
     }
   },
 
   watch: {
     async info (newInfo, oldInfo) {
-      if (newInfo !== null && this.info.doneReading && this.connected) {
+      if (newInfo !== null && newInfo.storage_databases_present && this.connected) {
         await this.start()
       }
     }
@@ -194,42 +186,64 @@ export default defineComponent({
   methods: {
     async startRpc () {
       this.flags.rpcToggling = true
-      await this.flipper.startRPCSession()
-        .catch(error => {
-          console.error(error)
-          this.$emit('log', {
-            level: 'error',
-            message: `${this.componentName}: Error while starting RPC: ${error.toString()}`
-          })
+      const ping = await this.flipper.commands.startRpcSession(this.flipper)
+      if (!ping.resolved || ping.error) {
+        this.$emit('showNotif', {
+          message: 'Unable to start RPC session. Reload the page or reconnect Flipper manually.',
+          color: 'negative',
+          reloadBtn: true
         })
+        this.$emit('log', {
+          level: 'error',
+          message: 'Device: Couldn\'t start rpc session'
+        })
+        throw new Error('Couldn\'t start rpc session')
+      }
       this.flags.rpcActive = true
-      this.$emit('setRpcStatus', true)
       this.flags.rpcToggling = false
+      this.$emit('setRpcStatus', true)
       this.$emit('log', {
         level: 'info',
-        message: `${this.componentName}: RPC started`
+        message: 'Device: RPC started'
       })
     },
 
     async stopRpc () {
       this.flags.rpcToggling = true
-      await this.flipper.setReadingMode('text', 'promptBreak')
+      await this.flipper.commands.stopRpcSession()
       this.flags.rpcActive = false
-      this.$emit('setRpcStatus', false)
       this.flags.rpcToggling = false
+      this.$emit('setRpcStatus', false)
       this.$emit('log', {
         level: 'info',
-        message: `${this.componentName}: RPC stopped`
+        message: 'Device: RPC stopped'
       })
     },
 
+    async restartRpc (force) {
+      if ((this.connected && this.flags.rpcActive && !this.flags.restarting) || force) {
+        this.flags.restarting = true
+        await this.flipper.closeReader()
+        await asyncSleep(300)
+        await this.flipper.disconnect()
+        await asyncSleep(300)
+        await this.flipper.connect()
+        await this.startRpc()
+        this.$emit('log', {
+          level: 'info',
+          message: 'Device: Restarted RPC'
+        })
+        return this.startScreenStream()
+      }
+    },
+
     async startScreenStream () {
-      await this.flipper.RPC('guiStartScreenStream')
-        .catch(error => this.rpcErrorHandler(error, 'guiStartScreenStream'))
+      await this.flipper.commands.gui.startScreenStreamRequest()
+        .catch(error => this.rpcErrorHandler(error, 'gui.startScreenStreamRequest'))
         .finally(() => {
           this.$emit('log', {
             level: 'debug',
-            message: `${this.componentName}: guiStartScreenStream: OK`
+            message: 'Device: gui.startScreenStreamRequest: OK'
           })
         })
       this.flags.screenStream = true
@@ -242,17 +256,7 @@ export default defineComponent({
       ctx.fillRect(0, 0, 128 * this.screenScale, 64 * this.screenScale)
       ctx.fillStyle = 'black'
 
-      const unbind = this.flipper.emitter.on('screenStream/frame', (data, orientation) => {
-        if (!data) {
-          return
-        }
-
-        if (orientation && !this.flags.leftHanded) {
-          this.flags.leftHanded = true
-        } else if (!orientation && this.flags.leftHanded) {
-          this.flags.leftHanded = false
-        }
-
+      const unbind = this.flipper.emitter.on('screen frame', data => {
         for (let x = 0; x < 128; x++) {
           for (let y = 0; y < 64; y++) {
             const i = Math.floor(y / 8) * 128 + x
@@ -267,21 +271,27 @@ export default defineComponent({
           }
         }
 
-        const unbindStop = this.flipper.emitter.on('screenStream/stop', () => {
+        const unbindStop = this.flipper.emitter.on('stop screen streaming', () => {
           this.flags.screenStream = false
           unbind()
           unbindStop()
         })
       })
+
+      this.unbindRestart = this.flipper.emitter.on('restart session', () => {
+        this.flags.screenStream = false
+        this.unbindRestart()
+        return this.restartRpc()
+      })
     },
 
     async stopScreenStream () {
-      await this.flipper.RPC('guiStopScreenStream')
-        .catch(error => this.rpcErrorHandler(error, 'guiStopScreenStream'))
+      await this.flipper.commands.gui.stopScreenStreamRequest()
+        .catch(error => this.rpcErrorHandler(error, 'gui.stopScreenStreamRequest'))
         .finally(() => {
           this.$emit('log', {
             level: 'debug',
-            message: `${this.componentName}: guiStopScreenStream: OK`
+            message: 'Device: gui.stopScreenStreamRequest: OK'
           })
         })
       this.flags.screenStream = false
@@ -315,13 +325,18 @@ export default defineComponent({
       })
       this.$emit('log', {
         level: 'error',
-        message: `${this.componentName}: RPC error in command '${command}': ${error}`
+        message: `Device: RPC error in command '${command}': ${error}`
       })
     },
 
     async start () {
       this.flags.rpcActive = this.rpcActive
       if (!this.rpcActive) {
+        setTimeout(() => {
+          if (!this.rpcActive) {
+            return this.restartRpc(true)
+          }
+        }, 1000)
         await this.startRpc()
       }
       if (!this.flags.screenStream) {
@@ -331,7 +346,7 @@ export default defineComponent({
   },
 
   async mounted () {
-    if (this.connected && this.info !== null && this.info.storage.databases.status) {
+    if (this.connected && this.info !== null && this.info.storage_databases_present) {
       await this.start()
     }
     navigator.serial.addEventListener('disconnect', e => {
@@ -343,6 +358,7 @@ export default defineComponent({
   },
 
   async beforeUnmount () {
+    this.unbindRestart()
     await this.stopScreenStream()
     await asyncSleep(3000)
   }
