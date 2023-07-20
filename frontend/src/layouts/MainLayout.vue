@@ -363,8 +363,8 @@ export default defineComponent({
 
         catalogCanBeEnabled: false,
         catalogCanSwitchChannel: false,
-        catalogEnabled: false,
-        catalogChannelProduction: false
+        catalogEnabled: true,
+        catalogChannelProduction: true
       }),
       routes: [
         {
@@ -862,8 +862,8 @@ export default defineComponent({
       if (localStorage.getItem('catalogEnabled') === 'true') {
         this.flags.catalogEnabled = true
       }
-      if (localStorage.getItem('catalogChannel') === 'production') {
-        this.flags.catalogChannelProduction = true
+      if (localStorage.getItem('catalogChannel') && localStorage.getItem('catalogChannel') !== 'production') {
+        this.flags.catalogChannelProduction = false
       }
       if (!process.env.PRODUCTION) {
         this.flags.catalogCanSwitchChannel = true
