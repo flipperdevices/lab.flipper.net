@@ -63,12 +63,12 @@ jobs:
           file: Dockerfile-prod
 
       - name: 'Show dev image digest'
-        if: ${{ github.event.client_payload.image_tag == '0.0.0' }}
+        if: ${{ steps.tag.outputs.image_tag == '0.0.0' }}
         run: |
           echo ${{ steps.docker_build_dev.outputs.digest }}
 
       - name: 'Show prod image digest'
-        if: ${{ github.event.client_payload.image_tag != '0.0.0' }}
+        if: ${{ steps.tag.outputs.image_tag != '0.0.0' }}
         run: |
           echo ${{ steps.docker_build_prod.outputs.digest }}
 
