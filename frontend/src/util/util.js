@@ -3,11 +3,11 @@ import { untar } from '../untar/untar.js'
 import pako from 'pako'
 import _ from 'lodash'
 
-let API_ENDPOINT = 'https://catalog.flipperzero.one/api/v0'
-if (location.hostname !== 'lab.flipper.net') {
+let API_ENDPOINT = process.env.ARCHIVARIUS_API_ENDPOINT
+if (localStorage.getItem('catalogChannel') !== null) {
   if (localStorage.getItem('catalogChannel') === 'production') {
     API_ENDPOINT = 'https://catalog.flipperzero.one/api/v0'
-  } else {
+  } else if (localStorage.getItem('catalogChannel') === 'dev') {
     API_ENDPOINT = 'https://catalog.flipp.dev/api/v0'
   }
 }

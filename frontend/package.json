@@ -9,7 +9,8 @@
     "lint": "eslint --ext .js,.vue ./",
     "dev/web": "quasar dev",
     "dev/electron": "quasar dev -m electron",
-    "build/web": "quasar build",
+    "build": "PRODUCTION=TRUE quasar build -m spa",
+    "build/dev": "DEV=TRUE quasar build -m spa",
     "build/electron": "quasar build -m electron",
     "compile-protofiles": "npx pbjs -t static-module -w es6 --no-comments --lint \"eslint-disable block-scoped-var, id-length, no-control-regex, no-magic-numbers, no-prototype-builtins, no-redeclare, no-shadow, no-var, sort-vars, camelcase, default-case-last, no-mixed-operators\" -o src/flipper/protobuf/proto-compiled.js ./flipperzero-protobuf/*.proto && eslint --fix src/flipper-js/protobuf/protobufCompiled.js"
   },

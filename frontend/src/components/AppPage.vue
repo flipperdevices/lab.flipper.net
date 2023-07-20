@@ -6,7 +6,7 @@
       </div>
       <div :class="$q.screen.width > 350 ? 'q-mr-md' : ''">
         <div class="text-h6" style="line-height: 1.5em; margin-bottom: 0.25rem;">{{ app.currentVersion.name }}</div>
-        <div class="row">
+        <div class="row q-gutter-md">
           <div
             :style="`background-color: #${category.color};`"
             style="border-radius: 20px; padding: 4px 13px; width: fit-content;"
@@ -25,18 +25,20 @@
           </div>
 
           <template v-if="currentStatusHint">
-            <q-chip
-              :color="statusHints[currentStatusHint].color"
-              :icon="statusHints[currentStatusHint].icon"
-              :label="statusHints[currentStatusHint].text"
-              class="q-ml-lg q-my-none"
-              :clickable="!!statusHints[currentStatusHint].dialog"
-              @click="$emit('showDialog', statusHints[currentStatusHint].dialog)"
-            >
-            <q-tooltip v-if="!!statusHints[currentStatusHint].tooltip">
-              {{ statusHints[currentStatusHint].tooltip }}
-            </q-tooltip>
-            </q-chip>
+            <div>
+              <q-chip
+                :color="statusHints[currentStatusHint].color"
+                :icon="statusHints[currentStatusHint].icon"
+                :label="statusHints[currentStatusHint].text"
+                class="q-my-none"
+                :clickable="!!statusHints[currentStatusHint].dialog"
+                @click="$emit('showDialog', statusHints[currentStatusHint].dialog)"
+              >
+              <q-tooltip v-if="!!statusHints[currentStatusHint].tooltip">
+                {{ statusHints[currentStatusHint].tooltip }}
+              </q-tooltip>
+              </q-chip>
+            </div>
           </template>
         </div>
       </div>

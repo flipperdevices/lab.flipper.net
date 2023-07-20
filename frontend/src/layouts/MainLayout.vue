@@ -188,6 +188,25 @@
                   @click="toggleInstallFromFile"
                   label="Third-party FW"
                 ></q-toggle>
+
+                <q-toggle
+                  v-if="flags.catalogCanBeEnabled"
+                  size="2.25rem"
+                  dense
+                  class="q-mt-lg q-mb-sm"
+                  v-model="flags.catalogEnabled"
+                  @click="toggleCatalogEnabled"
+                  label="Enable Apps"
+                ></q-toggle>
+                <q-toggle
+                  v-if="flags.catalogCanSwitchChannel && flags.catalogEnabled"
+                  size="2.25rem"
+                  dense
+                  class="q-my-sm"
+                  v-model="flags.catalogChannelProduction"
+                  @click="toggleCatalogChannel"
+                  label="Production Apps"
+                ></q-toggle>
               </div>
             </div>
             <q-item
@@ -340,7 +359,12 @@ export default defineComponent({
         updateInProgress: false,
         installFromFile: false,
         logsPopup: false,
-        settingsView: false
+        settingsView: false,
+
+        catalogCanBeEnabled: false,
+        catalogCanSwitchChannel: false,
+        catalogEnabled: false,
+        catalogChannelProduction: false
       }),
       routes: [
         {
@@ -676,6 +700,14 @@ export default defineComponent({
     toggleInstallFromFile () {
       localStorage.setItem('installFromFile', this.flags.installFromFile)
     },
+    toggleCatalogEnabled () {
+      localStorage.setItem('catalogEnabled', this.flags.catalogEnabled)
+      location.reload()
+    },
+    toggleCatalogChannel () {
+      localStorage.setItem('catalogChannel', this.flags.catalogChannelProduction ? 'production' : 'dev')
+      location.reload()
+    },
     setRpcStatus (s) {
       this.flags.rpcActive = s
     },
@@ -699,7 +731,6 @@ export default defineComponent({
     },
 
     checkConnectionRequirement (path) {
-      console.log(path)
       this.flags.connectionRequired = true
       for (const link of this.canLoadWithoutFlipper) {
         if ((path && path.includes(link)) || location.pathname.includes(link)) {
@@ -708,7 +739,7 @@ export default defineComponent({
         }
       }
 
-      if (location.hostname === 'lab.flipper.net' && localStorage.getItem('dev') !== 'true') {
+      if (this.flags.catalogEnabled !== true) {
         this.routes = this.routes.filter(e => e.link !== '/apps')
         if (location.pathname === '/apps') {
           this.$router.push('/')
@@ -798,7 +829,7 @@ export default defineComponent({
           await this.startRpc()
           await this.readInfo()
           await this.setTime()
-        }, 300)
+        }, 500)
       } else {
         this.flags.portSelectRequired = true
         if (manual) {
@@ -809,7 +840,9 @@ export default defineComponent({
   },
 
   async mounted () {
-    this.checkConnectionRequirement()
+    if (this.$q.screen.width < 900) {
+      this.leftDrawer = false
+    }
     if ('serial' in navigator) {
       if (localStorage.getItem('connectOnStart') !== 'false') {
         this.flags.connectOnStart = true
@@ -825,12 +858,23 @@ export default defineComponent({
       if (localStorage.getItem('installFromFile') === 'true') {
         this.flags.installFromFile = true
       }
+
+      if (localStorage.getItem('catalogEnabled') === 'true') {
+        this.flags.catalogEnabled = true
+      }
+      if (localStorage.getItem('catalogChannel') === 'production') {
+        this.flags.catalogChannelProduction = true
+      }
+      if (!process.env.PRODUCTION) {
+        this.flags.catalogCanSwitchChannel = true
+      }
       navigator.serial.addEventListener('disconnect', e => {
         this.autoReconnect()
       })
     } else {
       this.flags.serialSupported = false
     }
+    this.checkConnectionRequirement()
 
     navigator.serial.addEventListener('disconnect', (e) => {
       if (!this.flags.updateInProgress) {

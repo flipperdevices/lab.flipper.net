@@ -24,7 +24,7 @@
       <q-space />
       <div
         class="col-grow"
-        :style="$q.screen.width <= 353 ? 'margin-top: 16px; width: 100%' : 'max-width: 300px; min-width: 140px'"
+        :style="$q.screen.width <= 353 ? 'margin-top: 16px; width: 100%' : 'max-width: 300px; min-width: 140px; width: 100%; margin: 0.6rem 0;'"
       >
         <SearchBar
           :sdk="sdk"
@@ -63,6 +63,7 @@
             icon="mdi-github"
             label="Contribute"
             :stack="$q.screen.width <= 365"
+            href="https://github.com/flipperdevices/flipper-application-catalog"
           />
         </div>
       </div>
@@ -190,6 +191,27 @@
         </q-card-section>
       </q-card>
     </q-dialog>
+    <q-dialog v-model="flags.mobileAppDialog">
+      <q-card class="dialog">
+        <q-btn icon="close" flat round dense v-close-popup class="dialog-close-btn"/>
+
+        <q-card-section class="q-pa-none q-ma-md" align="center">
+          <q-icon name="mdi-alert-circle" color="primary" size="64px" />
+          <div class="text-h6 q-my-sm">Apps don't work in mobile browsers</div>
+          <p>Mobile browsers can't connect to Flipper, meaning you won't be able to install apps.</p>
+          <p>Get the official mobile app – it has the same features!</p>
+        </q-card-section>
+
+        <q-card-section class="q-pt-none" align="center">
+          <q-btn
+            outline
+            color="primary"
+            label="Download app"
+            href="https://flpr.app"
+          ></q-btn>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
     <!--<q-dialog v-model="flags.TOSDialog">
       <q-card class="dialog">
         <q-card-section>
@@ -267,6 +289,7 @@ export default defineComponent({
         outdatedFirmwareDialog: false,
         outdatedAppDialog: false,
         connectFlipperDialog: false,
+        mobileAppDialog: false,
         // TOSDialog: true,
         loadingInitial: true
       }),
@@ -886,6 +909,9 @@ export default defineComponent({
 
   async mounted () {
     this.start()
+    if (this.$q.platform.is.mobile) {
+      this.flags.mobileAppDialog = true
+    }
   }
 })
 </script>

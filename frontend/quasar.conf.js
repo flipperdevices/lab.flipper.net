@@ -48,6 +48,12 @@ module.exports = configure(function (ctx) {
     build: {
       vueRouterMode: 'history', // available values: 'hash', 'history'
 
+      env: {
+        ARCHIVARIUS_API_ENDPOINT: process.env.PRODUCTION
+          ? 'https://catalog.flipperzero.one/api/v0'
+          : 'https://catalog.flipp.dev/api/v0',
+        PRODUCTION: process.env.PRODUCTION
+      },
       // transpile: false,
       // publicPath: '/',
 
