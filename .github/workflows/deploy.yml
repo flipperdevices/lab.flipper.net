@@ -7,6 +7,7 @@ on:
       - dev
     tags:
       - '*'
+  pull_request:
 
 env:
   IMAGE_NAME: "ghcr.io/flipperdevices/lab.flipper.net"
