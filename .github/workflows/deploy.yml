@@ -46,7 +46,7 @@ jobs:
 
       - name: 'Build and push dev'
         if: ${{ github.event.client_payload.image_tag == '0.0.0' }}
-        id: docker_build
+        id: docker_build_dev
         uses: docker/build-push-action@v4
         with:
           push: true
@@ -55,16 +55,22 @@ jobs:
 
       - name: 'Build and push prod'
         if: ${{ github.event.client_payload.image_tag != '0.0.0' }}
-        id: docker_build
+        id: docker_build_prod
         uses: docker/build-push-action@v4
         with:
           push: true
           tags: ${{steps.tag.outputs.image_name}}:${{steps.tag.outputs.image_tag}}
           file: Dockerfile-prod
 
-      - name: 'Image digest'
+      - name: 'Show dev image digest'
+        if: ${{ github.event.client_payload.image_tag == '0.0.0' }}
         run: |
-          echo ${{ steps.docker_build.outputs.digest }}
+          echo ${{ steps.docker_build_dev.outputs.digest }}
+
+      - name: 'Show prod image digest'
+        if: ${{ github.event.client_payload.image_tag != '0.0.0' }}
+        run: |
+          echo ${{ steps.docker_build_prod.outputs.digest }}
 
       - name: 'Trigger k8s to use new image'
         uses: peter-evans/repository-dispatch@v2
