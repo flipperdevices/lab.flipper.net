@@ -858,12 +858,12 @@ export default defineComponent({
       if (localStorage.getItem('installFromFile') === 'true') {
         this.flags.installFromFile = true
       }
+      if (localStorage.getItem('catalogChannel') && localStorage.getItem('catalogChannel') !== 'production') {
+        this.flags.catalogChannelProduction = false
+      }
 
       if (localStorage.getItem('catalogEnabled') === 'true') {
         this.flags.catalogEnabled = true
-      }
-      if (localStorage.getItem('catalogChannel') && localStorage.getItem('catalogChannel') !== 'production') {
-        this.flags.catalogChannelProduction = false
       }
       if (!process.env.PRODUCTION) {
         this.flags.catalogCanSwitchChannel = true
@@ -871,6 +871,8 @@ export default defineComponent({
       // FIXME
       if (location.host === 'lab.flipper.net') {
         this.flags.catalogCanSwitchChannel = false
+        this.flags.catalogChannelProduction = true
+        localStorage.setItem('catalogChannel', 'production')
       } else if (location.host === 'lab.flipp.dev') {
         this.flags.catalogCanSwitchChannel = false
         if (!localStorage.getItem('catalogChannel')) {
