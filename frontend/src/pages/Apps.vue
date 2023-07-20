@@ -740,7 +740,9 @@ export default defineComponent({
       const versions = await fetchAppsVersions(installedApps.map(app => app.installedVersion.id))
       for (const version of versions) {
         const app = installedApps.find(app => app.id === version.applicationId)
-        app.installedVersion = { ...app.installedVersion, ...version }
+        if (app) {
+          app.installedVersion = { ...app.installedVersion, ...version }
+        }
       }
       this.installedApps = installedApps
     },
