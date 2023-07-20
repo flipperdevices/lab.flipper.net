@@ -868,6 +868,16 @@ export default defineComponent({
       if (!process.env.PRODUCTION) {
         this.flags.catalogCanSwitchChannel = true
       }
+      // FIXME
+      if (location.host === 'lab.flipper.net') {
+        this.flags.catalogCanSwitchChannel = false
+      } else if (location.host === 'lab.flipp.dev') {
+        this.flags.catalogCanSwitchChannel = false
+        if (!localStorage.getItem('catalogChannel')) {
+          this.flags.catalogChannelProduction = false
+          this.toggleCatalogChannel()
+        }
+      }
       navigator.serial.addEventListener('disconnect', e => {
         this.autoReconnect()
       })

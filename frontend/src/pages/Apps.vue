@@ -829,7 +829,7 @@ export default defineComponent({
           const installed = this.installedApps.find(e => e.id === this.currentApp.id)
           if (installed) {
             this.currentApp.isInstalled = true
-            this.currentApp.installedVersion = { ...installed }
+            this.currentApp.installedVersion = installed.installedVersion
 
             this.currentApp.installedVersion.isOutdated = this.currentApp.currentVersion.id !== this.currentApp.installedVersion.id
           }
