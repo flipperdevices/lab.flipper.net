@@ -321,6 +321,27 @@
           </q-card-section>
         </q-card>
       </q-dialog>
+
+      <q-dialog v-model="flags.flipperOccupiedDialog">
+        <q-card class="dialog">
+          <q-btn icon="close" flat round dense v-close-popup class="dialog-close-btn"/>
+
+          <q-card-section class="q-pa-none q-ma-md" align="center">
+            <q-icon name="mdi-alert-circle" color="primary" size="64px" />
+            <div class="text-h6 q-my-sm">Can't connect to Flipper</div>
+            <p>It seems that the serial port is occupied. Close any other app (e.g. qFlipper) connected to Flipper and try again.</p>
+          </q-card-section>
+
+          <q-card-section class="q-pt-none" align="center">
+            <q-btn
+              outline
+              color="primary"
+              label="Try again"
+              @click="start"
+            ></q-btn>
+          </q-card-section>
+        </q-card>
+      </q-dialog>
     </q-page-container>
   </q-layout>
 </template>
@@ -360,6 +381,7 @@ export default defineComponent({
         installFromFile: false,
         logsPopup: false,
         settingsView: false,
+        flipperOccupiedDialog: false,
 
         catalogCanBeEnabled: false,
         catalogCanSwitchChannel: false,
@@ -496,6 +518,7 @@ export default defineComponent({
           this.flags.portSelectRequired = false
           this.connectionStatus = 'Flipper connected'
           this.flags.connected = true
+          this.flags.flipperOccupiedDialog = false
           this.log({
             level: 'info',
             message: `${this.componentName}: Flipper connected`
@@ -507,7 +530,14 @@ export default defineComponent({
         .catch((error) => {
           if (error.toString() === 'Error: No known ports') {
             this.flags.portSelectRequired = true
+          } else if (error.toString().includes('Failed to open serial port')) {
+            this.flags.portSelectRequired = true
+            this.flags.flipperOccupiedDialog = true
           } else {
+            this.log({
+              level: 'error',
+              message: `${this.componentName}: Failed to connect: ${error}`
+            })
             this.connectionStatus = error.toString()
           }
         })
@@ -543,6 +573,9 @@ export default defineComponent({
     },
 
     async startRpc () {
+      if (!this.flags.connected) {
+        return
+      }
       this.flags.rpcToggling = true
       await this.flipper.startRPCSession()
         .catch(error => {
@@ -572,6 +605,9 @@ export default defineComponent({
     },
 
     async readInfo () {
+      if (!this.flags.connected) {
+        return
+      }
       this.info = {
         doneReading: false,
         storage: {
@@ -652,6 +688,9 @@ export default defineComponent({
     },
 
     async setTime () {
+      if (!this.flags.connected) {
+        return
+      }
       await this.flipper.RPC('systemSetDatetime', { date: new Date() })
         .catch(error => this.rpcErrorHandler(error, 'systemSetDatetime'))
         .finally(() => {
@@ -858,28 +897,25 @@ export default defineComponent({
       if (localStorage.getItem('installFromFile') === 'true') {
         this.flags.installFromFile = true
       }
-      if (localStorage.getItem('catalogChannel') && localStorage.getItem('catalogChannel') !== 'production') {
-        this.flags.catalogChannelProduction = false
-      }
 
-      if (localStorage.getItem('catalogEnabled') === 'true') {
-        this.flags.catalogEnabled = true
-      }
-      if (!process.env.PRODUCTION) {
-        this.flags.catalogCanSwitchChannel = true
-      }
-      // FIXME
-      if (location.host === 'lab.flipper.net') {
-        this.flags.catalogCanSwitchChannel = false
-        this.flags.catalogChannelProduction = true
-        localStorage.setItem('catalogChannel', 'production')
-      } else if (location.host === 'lab.flipp.dev') {
-        this.flags.catalogCanSwitchChannel = false
-        if (!localStorage.getItem('catalogChannel')) {
+      const isProd = process.env.PRODUCTION
+      const savedChannel = localStorage.getItem('catalogChannel')
+      if (savedChannel) {
+        if (savedChannel !== 'production') {
           this.flags.catalogChannelProduction = false
-          this.toggleCatalogChannel()
+        } else {
+          this.flags.catalogCanSwitchChannel = true
+        }
+      } else {
+        if (isProd) {
+          localStorage.setItem('catalogChannel', 'production')
+        } else {
+          localStorage.setItem('catalogChannel', 'dev')
+          this.flags.catalogChannelProduction = false
+          this.flags.catalogCanSwitchChannel = true
         }
       }
+
       navigator.serial.addEventListener('disconnect', e => {
         this.autoReconnect()
       })

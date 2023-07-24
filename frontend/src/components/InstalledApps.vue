@@ -49,7 +49,7 @@
           </div>
           <div class="col-10">
             <div class="text-h6" style="line-height: 1.5em; margin-bottom: 0.25rem;">{{ app.currentVersion.name }}</div>
-            <div class="text-grey-7">{{ app.currentVersion.shortDescription }}</div>
+            <div class="text-grey-7" style="margin-right: 80px;">{{ app.currentVersion.shortDescription }}</div>
           </div>
         </div>
 
@@ -113,7 +113,7 @@
           </div>
           <div class="col-10">
             <div class="text-h6" style="line-height: 1.5em; margin-bottom: 0.25rem;">{{ app.currentVersion.name }}</div>
-            <div class="text-grey-7">{{ app.currentVersion.shortDescription }}</div>
+            <div class="text-grey-7" style="margin-right: 80px;">{{ app.currentVersion.shortDescription }}</div>
           </div>
         </div>
 

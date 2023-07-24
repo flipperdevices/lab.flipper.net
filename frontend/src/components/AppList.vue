@@ -58,8 +58,8 @@
               <img :src="app.currentVersion.screenshots[0]" style="width: 256px" />
             </div>
 
-            <div class="flex justify-between" style="padding: 0 4px">
-              <div class="text-h6">{{ app.currentVersion.name }}</div>
+            <div class="flex justify-between no-wrap" style="padding: 0 4px">
+              <div class="text-h6 ellipsis" style="flex-grow: 1;flex-basis: 179px;margin-right: 3px;">{{ app.currentVersion.name }}</div>
               <div style="font-size: 18px; line-height: 18px;">
                 <span>
                   <q-icon :name="`img:${categories.find(e => e.id === app.categoryId).iconUri}`" size="14px" class="q-mr-sm"/>
