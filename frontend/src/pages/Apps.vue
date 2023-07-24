@@ -318,6 +318,7 @@ export default defineComponent({
 
   watch: {
     flipperReady () {
+      this.flags.connectFlipperDialog = false
       this.start()
     },
 
@@ -933,13 +934,4 @@ export default defineComponent({
   font-size: 10px
   border: 1px #ffffff solid
   border-radius: 17px
-
-// Dialogs
-.dialog
-  border-radius: 20px
-  padding: 16px
-.dialog-close-btn
-  position: absolute
-  top: 0.5rem
-  right: 0.5rem
 </style>

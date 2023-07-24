@@ -7,7 +7,7 @@ let API_ENDPOINT = process.env.ARCHIVARIUS_API_ENDPOINT
 if (localStorage.getItem('catalogChannel') !== null) {
   if (localStorage.getItem('catalogChannel') === 'production') {
     API_ENDPOINT = 'https://catalog.flipperzero.one/api/v0'
-  } else if (localStorage.getItem('catalogChannel') === 'dev') {
+  } else {
     API_ENDPOINT = 'https://catalog.flipp.dev/api/v0'
   }
 }
