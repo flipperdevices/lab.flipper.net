@@ -4,56 +4,50 @@ const routes = [
     path: '/',
     component: () => import('layouts/MainLayout.vue'),
     children: [
-      { path: '/', component: () => import('pages/Device.vue') }
+      { name: 'Device', path: '', component: () => import('pages/Device.vue') }
     ]
   },
   {
     path: '/apps',
     component: () => import('layouts/MainLayout.vue'),
     children: [
-      { path: '/apps', component: () => import('pages/Apps.vue') }
-    ]
-  },
-  {
-    path: '/apps/:path',
-    component: () => import('layouts/MainLayout.vue'),
-    children: [
-      { path: '/apps/:path', component: () => import('pages/Apps.vue') }
+      { name: 'Apps', path: '', component: () => import('pages/Apps.vue') },
+      { name: 'AppsPath', path: ':path', component: () => import('pages/Apps.vue') }
     ]
   },
   {
     path: '/archive',
     component: () => import('layouts/MainLayout.vue'),
     children: [
-      { path: '/archive', component: () => import('pages/Archive.vue') }
+      { name: 'Archive', path: '', component: () => import('pages/Archive.vue') }
     ]
   },
   {
     path: '/cli',
     component: () => import('layouts/MainLayout.vue'),
     children: [
-      { path: '/cli', component: () => import('pages/Cli.vue') }
+      { name: 'CLI', path: '', component: () => import('pages/Cli.vue') }
     ]
   },
   {
     path: '/paint',
     component: () => import('layouts/MainLayout.vue'),
     children: [
-      { path: '/paint', component: () => import('pages/Paint.vue') }
+      { name: 'Paint', path: '', component: () => import('pages/Paint.vue') }
     ]
   },
   {
     path: '/pulse-plotter',
     component: () => import('layouts/MainLayout.vue'),
     children: [
-      { path: '/pulse-plotter', component: () => import('pages/Pulseplot.vue') }
+      { name: 'PulsePlotter', path: '', component: () => import('pages/Pulseplot.vue') }
     ]
   },
   {
     path: '/nfc-tools',
     component: () => import('layouts/MainLayout.vue'),
     children: [
-      { path: '/nfc-tools', component: () => import('pages/NfcTools.vue') }
+      { name: 'NFCTools', path: '', component: () => import('pages/NfcTools.vue') }
     ]
   },
   {
