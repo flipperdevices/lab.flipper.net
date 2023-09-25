@@ -170,7 +170,9 @@ export default defineComponent({
         this.mfkeyStatus = `Attacking nonce ${i + 1} of ${nonces.length}`
         try {
           const key = await this.mfkey(args)
-          keys.add(key)
+          if (!key.startsWith('Error')) {
+            keys.add(key)
+          }
           this.$emit('log', {
             level: 'debug',
             message: `${this.componentName}: cracked nonce: ${args}, key: ${key}`
@@ -205,6 +207,7 @@ export default defineComponent({
         }
       }
 
+      dictionary = dictionary.filter(e => e !== 'Error: mfkey run killed on timeout')
       dictionary = new Set(dictionary)
       const dictLength = Array.from(dictionary).length
       for (const key of keys) {
