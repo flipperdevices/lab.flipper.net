@@ -7,5 +7,7 @@
     "source.fixAll.eslint"
   ],
   "eslint.validate": ["javascript", "javascriptreact", "typescript", "vue"],
-  
+  "eslint.workingDirectories": [
+    { "mode": "auto" }
+  ],
 }

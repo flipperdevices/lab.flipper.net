@@ -98,10 +98,10 @@
                   dense
                   color="white"
                   style="margin-left: 5px; padding: 0; border-radius: 5px; font-size: 16px; line-height: 16px;"
-                  :label="app.actionButton.text"
+                  :label="app.actionButton?.text"
                   class="fit no-shadow text-pixelated"
-                  :class="app.actionButton.class"
-                  @click="handleAction(app, app.actionButton.text)"
+                  :class="app.actionButton?.class"
+                  @click="handleAction(app, app.actionButton?.text)"
                 />
               </div>
             </div>
@@ -123,7 +123,7 @@
 </template>
 
 <script>
-import { defineComponent, ref } from 'vue'
+import { computed, defineComponent, onMounted, ref, watch } from 'vue'
 // import semver from 'semver'
 
 export default defineComponent({
@@ -138,37 +138,29 @@ export default defineComponent({
     action: Object
   },
 
-  setup () {
-    return {
-      currentCategory: ref(null),
-      sortOptions: [
-        'New Updates',
-        'New Releases',
-        'Old Updates',
-        'Old Releases'
-      ],
-      sortModel: ref('New Updates'),
-      actionType: null
-    }
-  },
+  emit: ['showNotif', 'openApp', 'action', 'batchUpdate'],
 
-  watch: {
-    initialCategory (newCategory) {
-      this.currentCategory = newCategory
-    }
-  },
+  setup (props, { emit }) {
+    onMounted(() => {
+      currentCategory.value = props.initialCategory
+    })
 
-  computed: {
-    filteredSortedApps () {
+    const initialCategoryRef = computed(() => props.initialCategory)
+
+    watch(initialCategoryRef, (newCategory) => {
+      currentCategory.value = newCategory
+    })
+
+    const filteredSortedApps = computed(() => {
       let filtered
-      if (this.currentCategory) {
-        filtered = this.apps.filter(app => app.categoryId === this.currentCategory.id)
+      if (currentCategory.value) {
+        filtered = props.apps.filter(app => app.categoryId === currentCategory.value.id)
       } else {
-        filtered = this.apps
+        filtered = props.apps
       }
 
       let sortBy = '', direction = -1
-      switch (this.sortModel) {
+      switch (sortModel.value) {
         case 'New Updates':
           sortBy = 'updatedAt'
           break
@@ -191,10 +183,10 @@ export default defineComponent({
         }
         return -1 * direction
       })
-    },
+    })
 
-    actionColors () {
-      switch (this.action.type) {
+    const actionColors = computed(() => {
+      switch (props.action.type) {
         case 'delete':
           return {
             bar: 'negative',
@@ -211,29 +203,46 @@ export default defineComponent({
             track: 'green-6'
           }
       }
-    }
-  },
+    })
 
-  methods: {
-    appClicked (app) {
-      if (this.action.type) {
+    const currentCategory = ref(null)
+    const sortOptions = [
+      'New Updates',
+      'New Releases',
+      'Old Updates',
+      'Old Releases'
+    ]
+    const sortModel = ref('New Updates')
+    const actionType = ref(null)
+
+    const appClicked = (app) => {
+      if (props.action.type) {
         return
       }
-      this.$emit('openApp', app)
-    },
-
-    handleAction (app, value) {
-      if (value === 'Installed') {
-        this.actionType = ''
-      } else {
-        this.actionType = value.toLowerCase()
-      }
-      this.$emit('action', app, this.actionType)
+      emit('openApp', app)
     }
-  },
 
-  mounted () {
-    this.currentCategory = this.initialCategory
+    const handleAction = (app, value) => {
+      if (value === 'Installed') {
+        actionType.value = ''
+      } else {
+        actionType.value = value.toLowerCase()
+      }
+      emit('action', app, actionType.value)
+    }
+
+    return {
+      filteredSortedApps,
+      actionColors,
+
+      currentCategory,
+      sortOptions,
+      sortModel,
+      actionType,
+
+      appClicked,
+      handleAction
+    }
   }
 })
 </script>
