@@ -280,7 +280,7 @@ export default defineComponent({
     const $q = useQuasar()
     const componentName = 'Apps'
 
-    onMounted(async () => {
+    onMounted(() => {
       start()
       if ($q.platform.is.mobile) {
         flags.value.mobileAppDialog = true
@@ -300,7 +300,6 @@ export default defineComponent({
       outdatedAppDialog: false,
       connectFlipperDialog: false,
       mobileAppDialog: false,
-      // TOSDialog: true,
       loadingInitial: true
     })
 
@@ -355,7 +354,15 @@ export default defineComponent({
       action.value.type = actionType
       action.value.progress = 0
       action.value.id = app.id
-      return this[`${action.value.type}App`](app)
+
+      switch (action.value.type) {
+        case 'install':
+          return installApp(app)
+        case 'update':
+          return updateApp(app)
+        case 'delete':
+          return deleteApp(app)
+      }
     }
 
     const installApp = async (app) => {
@@ -672,7 +679,7 @@ export default defineComponent({
     }
 
     const getInstalledApps = async () => {
-      const installedApps = []
+      const installed = []
       if (flipperReady.value) {
         const manifestsList = await props.flipper.RPC('storageList', { path: '/ext/apps_manifests' })
           .catch(error => rpcErrorHandler(error, 'storageList'))
@@ -715,18 +722,18 @@ export default defineComponent({
                 break
             }
           }
-          installedApps.push(app)
+          installed.push(app)
         }
       }
 
-      const versions = await fetchAppsVersions(installedApps.map(app => app.installedVersion.id))
+      const versions = await fetchAppsVersions(installed.map(app => app.installedVersion.id))
       for (const version of versions) {
-        const app = installedApps.find(app => app.id === version.applicationId)
+        const app = installed.find(app => app.id === version.applicationId)
         if (app) {
           app.installedVersion = { ...app.installedVersion, ...version }
         }
       }
-      installedApps.value = installedApps
+      installedApps.value = installed
     }
 
     const updateInstalledApps = async (installed) => {
@@ -899,10 +906,6 @@ export default defineComponent({
       await watchParams()
     })
 
-    const log = (e) => {
-      console.log(e)
-    }
-
     const openApp = async (app) => {
       router.push({ name: 'AppsPath', params: { path: app.alias } })
     }
@@ -923,7 +926,6 @@ export default defineComponent({
 
       updatableAppsAmount,
 
-      log,
       handleAction,
       installApp,
       updateApp,
