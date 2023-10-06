@@ -57,19 +57,6 @@ class FlipperPlotterOffscreen {
     this.drawCanvas(this.data)
   }
 
-  initialOffscreen () {
-    // this.width = this.pulsesCanvasNode.clientWidth
-    // this.height = defaults.height
-    // this.pulsesOffscreen = this.pulsesCanvasNode.transferControlToOffscreen()
-    // this.hintsOffscreen = this.hintsCanvasNode.transferControlToOffscreen()
-    // this.textOffscreen = this.textCanvasNode.transferControlToOffscreen()
-    // this.worker.postMessage({ message: 'getCanvas', canvas: this.pulsesOffscreen, height: this.height, width: this.width, dpi: window.devicePixelRatio }, [this.pulsesOffscreen])
-    // this.worker.postMessage({ message: 'getCanvas', canvas: this.hintsOffscreen, height: this.height, width: this.width, dpi: window.devicePixelRatio }, [this.hintsOffscreen])
-    // this.worker.postMessage({ message: 'getCanvas', canvas: this.textOffscreen, height: this.height, width: this.width, dpi: window.devicePixelRatio }, [this.textOffscreen])
-    // this.processData(this.data)
-    // this.drawCanvas(this.data)
-  }
-
   setTheme (options) {
     const defaults = {
       spaceFill: '#fafafa',

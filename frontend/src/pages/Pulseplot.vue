@@ -108,7 +108,6 @@
 import { defineComponent, ref } from 'vue'
 // import { Pulseplot as PulseplotOffscreen } from '../util/pulseplot/pulseplot-offscreen'
 // import { Pulseplot } from '../util/pulseplot/pulseplot'
-import * as observablePlot from '@observablehq/plot'
 import FlipperPlotter from 'src/components/FlipperPlotter.vue'
 
 export default defineComponent({
@@ -124,8 +123,6 @@ export default defineComponent({
 
   setup () {
     return {
-      observablePlot,
-
       flags: ref({
         wrongFileType: false,
         offscreenCanvasSupported: true,
