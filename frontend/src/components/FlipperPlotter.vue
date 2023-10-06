@@ -14,24 +14,28 @@
       <q-input
         class="col-1"
         v-model.number.trim="currentSlicer.short"
+        @keypress="useNumbersOnly"
         type="text"
         label="Short"
       />
       <q-input
         class="col-1"
         v-model.number.trim="currentSlicer.long"
+        @keypress="useNumbersOnly"
         type="text"
         label="Long"
       />
       <q-input
         class="col-1"
         v-model.number.trim="currentSlicer.sync"
+        @keypress="useNumbersOnly"
         type="text"
         label="Sync"
       />
       <q-input
         class="col-1"
         v-model.number.trim="currentSlicer.gap"
+        @keypress="useNumbersOnly"
         type="text"
         label="Gap"
       />
@@ -57,6 +61,7 @@
 import { onMounted, ref, watch, defineProps } from 'vue'
 import { FlipperPlotter } from 'util/flipperPlotter/flipperPlotter.js'
 import { FlipperPlotterOffscreen } from 'util/flipperPlotter/flipperPlotterOffscreen.js'
+import { useNumbersOnly } from 'composables/useNumberOnly.js'
 
 const props = defineProps(['data', 'offscreen'])
 const timings = ref(null)
