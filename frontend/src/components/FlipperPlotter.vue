@@ -53,72 +53,55 @@
   </div>
 </template>
 
-<script>
-import { defineComponent, onMounted, ref, watch } from 'vue'
+<script setup>
+import { onMounted, ref, watch, defineProps } from 'vue'
 import { FlipperPlotter } from 'util/flipperPlotter/flipperPlotter.js'
 import { FlipperPlotterOffscreen } from 'util/flipperPlotter/flipperPlotterOffscreen.js'
 
-export default defineComponent({
-  name: 'FlipperPlotter',
+const props = defineProps(['data', 'offscreen'])
+const timings = ref(null)
+const bits = ref(null)
 
-  props: ['data', 'offscreen'],
-
-  setup (props) {
-    const timings = ref(null)
-    const bits = ref(null)
-
-    const plot = ref(null)
-    const slicerOptions = ref(null)
-    const currentSlicer = ref({
-      modulation: '',
-      short: 0,
-      long: 0,
-      sync: 0,
-      gap: 0
-    })
-
-    const onSlice = () => {
-      plot.value.setSlicer(currentSlicer.value)
-    }
-
-    const draw = () => {
-      const config = {
-        data: props.data,
-        timings: timings.value,
-        messages: bits.value
-      }
-
-      if (props.offscreen) {
-        plot.value = new FlipperPlotterOffscreen(config)
-      } else {
-        plot.value = new FlipperPlotter(config)
-      }
-
-      slicerOptions.value = plot.value.slicerOptions
-      currentSlicer.value = plot.value.slicer
-    }
-
-    onMounted(() => {
-      draw()
-    })
-
-    watch(
-      () => props.data,
-      () => {
-        plot.value.destroy()
-        draw()
-      }
-    )
-
-    return {
-      timings,
-      bits,
-
-      slicerOptions,
-      currentSlicer,
-
-      onSlice
-    }
-  }
+const plot = ref(null)
+const slicerOptions = ref(null)
+const currentSlicer = ref({
+  modulation: '',
+  short: 0,
+  long: 0,
+  sync: 0,
+  gap: 0
 })
+
+const onSlice = () => {
+  plot.value.setSlicer(currentSlicer.value)
+}
+
+const draw = () => {
+  const config = {
+    data: props.data,
+    timings: timings.value,
+    messages: bits.value
+  }
+
+  if (props.offscreen) {
+    plot.value = new FlipperPlotterOffscreen(config)
+  } else {
+    plot.value = new FlipperPlotter(config)
+  }
+
+  slicerOptions.value = plot.value.slicerOptions
+  currentSlicer.value = plot.value.slicer
+}
+
+onMounted(() => {
+  draw()
+})
+
+watch(
+  () => props.data,
+  () => {
+    plot.value.destroy()
+    draw()
+  }
+)
 </script>
