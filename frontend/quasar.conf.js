@@ -79,6 +79,8 @@ module.exports = configure(function (ctx) {
           .use(ESLintPlugin, [{ extensions: ['js', 'vue'] }]),
         chain.resolve.alias
           .set('util', path.resolve(__dirname, './src/util'))
+        chain.resolve.alias
+          .set('composables', path.resolve(__dirname, './src/composables'))
       }
     },
 
