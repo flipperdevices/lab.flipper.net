@@ -23,7 +23,9 @@
       style="min-width: 200px;"
     />
 
-    <div class="pulseplot fit position-relative" v-show="!flags.wrongFileType">
+    <FlipperPlotter v-if="plot" :data="data" :offscreen="flags.offscreenCanvasSupported"/>
+
+    <!-- <div class="pulseplot fit position-relative" v-show="!flags.wrongFileType">
       <q-scroll-area
         ref="scrollAreaRef"
         v-if="plot"
@@ -98,17 +100,22 @@
       </div>
       <div class="pulseplot-timings overflow-auto q-py-sm"></div>
       <div class="pulseplot-messages q-py-sm" style="word-break: break-all;"></div>
-    </div>
+    </div> -->
   </q-page>
 </template>
 
 <script>
 import { defineComponent, ref } from 'vue'
-import { Pulseplot as PulseplotOffscreen } from '../util/pulseplot/pulseplot-offscreen'
-import { Pulseplot } from '../util/pulseplot/pulseplot'
+// import { Pulseplot as PulseplotOffscreen } from '../util/pulseplot/pulseplot-offscreen'
+// import { Pulseplot } from '../util/pulseplot/pulseplot'
+import FlipperPlotter from 'src/components/FlipperPlotter.vue'
 
 export default defineComponent({
   name: 'Pulseplot',
+
+  components: {
+    FlipperPlotter
+  },
 
   props: {
     passedFile: Object
@@ -169,7 +176,7 @@ export default defineComponent({
   watch: {
     uploadedFile (newFile, oldFile) {
       if (this.plot) {
-        this.plot.destroy()
+        // this.plot.destroy()
       }
       this.flags.wrongFileType = false
       this.signals = null
@@ -179,7 +186,7 @@ export default defineComponent({
     currentSignal (newSignal, oldSignal) {
       if (newSignal) {
         if (this.plot) {
-          this.plot.destroy()
+          // this.plot.destroy()
         }
         this.data = {
           centerfreq_Hz: newSignal.frequency,
@@ -349,43 +356,44 @@ export default defineComponent({
     },
 
     draw () {
-      const config = {
-        parent: '.pulseplot',
-        data: this.data,
-        height: 300
-      }
+      this.plot = true
+      // const config = {
+      //   parent: '.pulseplot',
+      //   data: this.data,
+      //   height: 300
+      // }
 
-      if (this.plot) {
-        this.plot.destroy()
-        this.prevScroll = null
-        this.nextVanityScroll = {
-          percentage: null,
-          position: null
-        }
-        const oldCanvas = document.querySelector('.pulseplot-canvas')
-        oldCanvas.remove()
-        const canvas = document.createElement('canvas')
-        canvas.classList.add('pulseplot-canvas')
-        canvas.style.imageRendering = 'pixelated'
-        document.querySelector('.zoom-controls').before(canvas)
-      }
+      // if (this.plot) {
+      //   this.plot.destroy()
+      //   this.prevScroll = null
+      //   this.nextVanityScroll = {
+      //     percentage: null,
+      //     position: null
+      //   }
+      //   const oldCanvas = document.querySelector('.pulseplot-canvas')
+      //   oldCanvas.remove()
+      //   const canvas = document.createElement('canvas')
+      //   canvas.classList.add('pulseplot-canvas')
+      //   canvas.style.imageRendering = 'pixelated'
+      //   document.querySelector('.zoom-controls').before(canvas)
+      // }
 
-      if (this.flags.offscreenCanvasSupported) {
-        this.plot = new PulseplotOffscreen(config)
-      } else {
-        this.plot = new Pulseplot(config)
-      }
+      // if (this.flags.offscreenCanvasSupported) {
+      //   this.plot = new PulseplotOffscreen(config)
+      // } else {
+      //   this.plot = new Pulseplot(config)
+      // }
 
-      // console.log(this.plot)
-      this.plot.enableScrollZoom()
-      if (this.plot.slicer.name !== 'No clue...' && this.plot.slicer.modulation) {
-        this.slicer.modulation = this.plot.slicer.modulation
-        this.slicer.short = this.plot.slicer.short || 0
-        this.slicer.long = this.plot.slicer.long || 0
-        this.slicer.sync = this.plot.slicer.sync || 0
-        this.slicer.gap = this.plot.slicer.gap || 0
-        this.setSlicer()
-      }
+      // // console.log(this.plot)
+      // this.plot.enableScrollZoom()
+      // if (this.plot.slicer.name !== 'No clue...' && this.plot.slicer.modulation) {
+      //   this.slicer.modulation = this.plot.slicer.modulation
+      //   this.slicer.short = this.plot.slicer.short || 0
+      //   this.slicer.long = this.plot.slicer.long || 0
+      //   this.slicer.sync = this.plot.slicer.sync || 0
+      //   this.slicer.gap = this.plot.slicer.gap || 0
+      //   this.setSlicer()
+      // }
     },
 
     setSlicer () {
@@ -408,13 +416,32 @@ export default defineComponent({
       } else {
         const dy = e.verticalPosition - this.prevScroll.verticalPosition
         const dx = e.horizontalPosition - this.prevScroll.horizontalPosition
+
         this.prevScroll = e
         if (dx !== 0) {
           this.plot.scroll = e.horizontalPosition - 10
         }
+
         if (dy !== 0 && dy !== this.zoomLimit.max) {
           const val = (this.zoomLimit.max - e.verticalPosition) > 0 ? this.zoomLimit.max - e.verticalPosition : this.zoomLimit.min
-          this.zoom({ val })
+
+          let plotZoom
+          if (this.sliderZoom < 100) {
+            // this.scrollAreaRef.setScrollPosition('vertical', plotZoom)
+            if (dy < 0) {
+              plotZoom = this.plot.zoom * 1.1
+              // plotZoom = val * 0.1
+            } else {
+              plotZoom = this.plot.zoom * 0.9
+              // plotZoom = val * 1.1
+            }
+          } else {
+            plotZoom = val
+          }
+
+          // console.log(e, this.zoomLimit.max - e.verticalPosition, plotZoom, this.plot.zoom)
+
+          this.zoom({ val: plotZoom })
         } else {
           this.plot.redrawCanvas()
         }
@@ -433,6 +460,7 @@ export default defineComponent({
       } else if (val) {
         result = val
       }
+
       if (result <= this.zoomLimit.min) {
         this.plot.zoom = this.zoomLimit.min
       } else if (result >= this.zoomLimit.max) {
