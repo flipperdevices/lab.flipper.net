@@ -293,297 +293,261 @@
   </q-page>
 </template>
 
-<script>
-import { defineComponent, ref } from 'vue'
-import { exportFile } from 'quasar'
+<script setup>
+import { ref, defineProps, defineEmits, watch, onMounted } from 'vue'
 import ProgressBar from 'components/ProgressBar.vue'
-// import asyncSleep from 'simple-async-sleep'
+import { exportFile } from 'quasar'
 
-export default defineComponent({
-  name: 'PageArchive',
+const props = defineProps({
+  flipper: Object,
+  connected: Boolean,
+  rpcActive: Boolean
+})
+const emit = defineEmits(['setRpcStatus', 'log', 'showNotif'])
 
-  components: {
-    ProgressBar
-  },
+const componentName = 'Archive'
+const path = ref('/')
+const dir = ref([])
+const flags = ref({
+  rpcActive: false,
+  rpcToggling: false,
+  uploadPopup: false,
+  uploadFolderPopup: false,
+  renamePopup: false,
+  mkdirPopup: false,
+  blockingOperationPopup: false,
+  deletePopup: false
+})
+const uploadedFiles = ref(null)
+const editorText = ref('')
+const oldName = ref('')
+const file = ref({
+  name: '',
+  progress: 0
+})
+const itemToDelete = ref(null)
 
-  props: {
-    flipper: Object,
-    connected: Boolean,
-    rpcActive: Boolean
-  },
+watch(ref(props.connected), (newStatus) => {
+  if (newStatus) {
+    start()
+  }
+})
 
-  setup () {
-    return {
-      componentName: 'Archive',
-
-      path: ref('/'),
-      dir: ref([]),
-      flags: ref({
-        rpcActive: false,
-        rpcToggling: false,
-        uploadPopup: false,
-        uploadFolderPopup: false,
-        renamePopup: false,
-        mkdirPopup: false,
-        blockingOperationPopup: false,
-        deletePopup: false
-      }),
-      uploadedFiles: ref(null),
-      editorText: ref(''),
-      oldName: ref(''),
-      file: ref({
-        name: '',
-        progress: 0
-      }),
-      itemToDelete: ref(null)
-    }
-  },
-
-  watch: {
-    async connected (newStatus, oldStatus) {
-      if (newStatus) {
-        await this.start()
-      }
-    }
-  },
-
-  methods: {
-    async startRpc () {
-      this.flags.rpcToggling = true
-      await this.flipper.startRPCSession()
-        .catch(error => {
-          console.error(error)
-          this.$emit('log', {
-            level: 'error',
-            message: `${this.componentName}: Error while starting RPC: ${error.toString()}`
-          })
-        })
-      this.flags.rpcActive = true
-      this.$emit('setRpcStatus', true)
-      this.flags.rpcToggling = false
-      this.$emit('log', {
-        level: 'info',
-        message: `${this.componentName}: RPC started`
-      })
-    },
-
-    async stopRpc () {
-      this.flags.rpcToggling = true
-      await this.flipper.setReadingMode('text', 'promptBreak')
-      this.flags.rpcActive = false
-      this.$emit('setRpcStatus', false)
-      this.flags.rpcToggling = false
-      this.$emit('log', {
-        level: 'info',
-        message: `${this.componentName}: RPC stopped`
-      })
-    },
-
-    async list () {
-      const list = await this.flipper.RPC('storageList', { path: this.path })
-        .catch(error => this.rpcErrorHandler(error, 'storageList'))
-        .finally(() => {
-          this.$emit('log', {
-            level: 'debug',
-            message: `${this.componentName}: storageList: ${this.path}`
-          })
-        })
-      if (list.length === 0) {
-        this.dir = []
-        return
-      }
-
-      if (this.path === '/') {
-        this.dir = list.filter(e => e.name !== 'any')
-      } else {
-        this.dir = list
-      }
-    },
-
-    async read (path, preventDownload) {
-      this.flags.blockingOperationPopup = true
-      this.file.name = path.slice(path.lastIndexOf('/') + 1)
-      const file = this.dir.find(e => e.name === this.file.name && !e.type)
-      const total = file.size
-      const unbind = this.flipper.emitter.on('storageReadRequest/progress', chunks => {
-        this.file.progress = Math.min(chunks * 512, total) / total
-      })
-
-      const res = await this.flipper.RPC('storageRead', { path })
-        .catch(error => this.rpcErrorHandler(error, 'storageRead'))
-        .finally(() => {
-          this.$emit('log', {
-            level: 'debug',
-            message: `${this.componentName}: storageRead: ${path}`
-          })
-        })
-      const s = path.split('/')
-      if (!preventDownload) {
-        exportFile(s[s.length - 1], res)
-      }
-      unbind()
-      this.flags.blockingOperationPopup = false
-      if (preventDownload) {
-        return res
-      }
-    },
-
-    async remove (path, isRecursive) {
-      await this.flipper.RPC('storageRemove', { path, recursive: isRecursive })
-        .catch(error => this.rpcErrorHandler(error, 'storageRemove'))
-        .finally(() => {
-          this.$emit('log', {
-            level: 'debug',
-            message: `${this.componentName}: storageRemove: ${path}, recursive: ${isRecursive}`
-          })
-        })
-      this.list()
-    },
-
-    async rename (path, oldName, newName) {
-      await this.flipper.RPC('storageRename', { oldPath: path + '/' + oldName, newPath: path + '/' + newName })
-        .catch(error => this.rpcErrorHandler(error, 'storageRename'))
-        .finally(() => {
-          this.$emit('log', {
-            level: 'debug',
-            message: `${this.componentName}: storageRename: ${path}, old name: ${oldName}, new name: ${newName}`
-          })
-        })
-      this.list()
-    },
-
-    async mkdir (path) {
-      await this.flipper.RPC('storageMkdir', { path })
-        .catch(error => this.rpcErrorHandler(error, 'storageMkdir'))
-        .finally(() => {
-          this.$emit('log', {
-            level: 'debug',
-            message: `${this.componentName}: storageMkdir: ${path}`
-          })
-        })
-      this.list()
-    },
-
-    async upload () {
-      if (!this.uploadedFiles || this.uploadedFiles.length === 0) {
-        return
-      }
-      this.flags.blockingOperationPopup = true
-      for (const file of this.uploadedFiles) {
-        this.file.name = file.name
-        let dir = this.path
-
-        if (file.webkitRelativePath?.length > 0) {
-          const path = file.webkitRelativePath.split('/')
-          path.pop()
-          while (path.length > 0) {
-            dir += '/' + path.shift()
-            const stat = await this.flipper.RPC('storageStat', { path: dir })
-            if (!stat) {
-              await this.flipper.RPC('storageMkdir', { path: dir })
-            }
-          }
-        }
-
-        const unbind = this.flipper.emitter.on('storageWriteRequest/progress', e => {
-          this.file.progress = e.progress / e.total
-        })
-
-        await this.flipper.RPC('storageWrite', { path: dir + '/' + file.name, buffer: await file.arrayBuffer() })
-          .catch(error => this.rpcErrorHandler(error, 'storageWrite'))
-          .finally(() => {
-            this.$emit('log', {
-              level: 'debug',
-              message: `${this.componentName}: storageWrite: ${this.path}/${file.name}`
-            })
-          })
-        unbind()
-      }
-      this.file.name = ''
-      this.list()
-      this.flags.blockingOperationPopup = false
-    },
-
-    itemClicked (item) {
-      if (item.type === 1) {
-        if (!this.path.endsWith('/')) {
-          this.path += '/'
-        }
-        this.path += item.name
-        this.list()
-      } else if (item.name === '..') {
-        this.path = this.path.slice(0, this.path.lastIndexOf('/'))
-        if (this.path.length === 0) {
-          this.path = '/'
-        }
-        this.list()
-      } else {
-        this.read(this.path + '/' + item.name)
-      }
-    },
-
-    async openFileIn (item, path) {
-      const res = await this.read(this.path + '/' + item.name, true)
-      this.$emit('openFileIn', {
-        path,
-        file: {
-          name: item.name,
-          data: res
-        }
-      })
-    },
-
-    itemIconSwitcher (item) {
-      if (this.path === '/' && item.name === 'int') {
-        return 'svguse:common-icons.svg#internal-memory'
-      } else if (this.path === '/' && item.name === 'ext') {
-        return 'svguse:common-icons.svg#sdcard-memory'
-      } else if (item.type === 1) {
-        return 'mdi-folder-outline'
-      } else if (item.name.endsWith('.badusb')) {
-        return 'svguse:file-types.svg#badusb'
-      } else if (item.name.endsWith('.ibtn')) {
-        return 'svguse:file-types.svg#ibutton'
-      } else if (item.name.endsWith('.ir')) {
-        return 'svguse:file-types.svg#infrared'
-      } else if (item.name.endsWith('.nfc')) {
-        return 'svguse:file-types.svg#nfc'
-      } else if (item.name.endsWith('.rfid')) {
-        return 'svguse:file-types.svg#rfid'
-      } else if (item.name.endsWith('.sub')) {
-        return 'svguse:file-types.svg#subghz'
-      } else if (item.name.endsWith('.u2f')) {
-        return 'svguse:file-types.svg#u2f'
-      } else {
-        return 'mdi-file-outline'
-      }
-    },
-
-    rpcErrorHandler (error, command) {
-      error = error.toString()
-      this.$emit('showNotif', {
-        message: `RPC error in command '${command}': ${error}`,
-        color: 'negative'
-      })
-      this.$emit('log', {
+const startRpc = async () => {
+  flags.value.rpcToggling = true
+  await props.flipper.startRPCSession()
+    .catch(error => {
+      console.error(error)
+      emit('log', {
         level: 'error',
-        message: `${this.componentName}: RPC error in command '${command}': ${error}`
+        message: `${componentName}: Error while starting RPC: ${error.toString()}`
       })
-    },
+    })
+  flags.value.rpcActive = true
+  emit('setRpcStatus', true)
+  flags.value.rpcToggling = false
+  emit('log', {
+    level: 'info',
+    message: `${componentName}: RPC started`
+  })
+}
 
-    async start () {
-      this.flags.rpcActive = this.rpcActive
-      if (!this.rpcActive) {
-        await this.startRpc()
+const list = async () => {
+  const list = await props.flipper.RPC('storageList', { path: path.value })
+    .catch(error => rpcErrorHandler(error, 'storageList'))
+    .finally(() => {
+      emit('log', {
+        level: 'debug',
+        message: `${componentName}: storageList: ${path.value}`
+      })
+    })
+  if (list.length === 0) {
+    dir.value = []
+    return
+  }
+
+  if (path.value === '/') {
+    dir.value = list.filter(e => e.name !== 'any')
+  } else {
+    dir.value = list
+  }
+}
+const read = async (path, preventDownload) => {
+  flags.value.blockingOperationPopup = true
+  file.value.name = path.slice(path.lastIndexOf('/') + 1)
+  const localFile = dir.value.find(e => e.name === file.value.name && !e.type)
+  const total = localFile.size
+  const unbind = props.flipper.emitter.on('storageReadRequest/progress', chunks => {
+    file.value.progress = Math.min(chunks * 512, total) / total
+  })
+
+  const res = await props.flipper.RPC('storageRead', { path })
+    .catch(error => rpcErrorHandler(error, 'storageRead'))
+    .finally(() => {
+      emit('log', {
+        level: 'debug',
+        message: `${componentName}: storageRead: ${path}`
+      })
+    })
+  const s = path.split('/')
+  if (!preventDownload) {
+    exportFile(s[s.length - 1], res)
+  }
+  unbind()
+  flags.value.blockingOperationPopup = false
+  if (preventDownload) {
+    return res
+  }
+}
+const remove = async (path, isRecursive) => {
+  await props.flipper.RPC('storageRemove', { path, recursive: isRecursive })
+    .catch(error => rpcErrorHandler(error, 'storageRemove'))
+    .finally(() => {
+      emit('log', {
+        level: 'debug',
+        message: `${componentName}: storageRemove: ${path}, recursive: ${isRecursive}`
+      })
+    })
+  list()
+}
+const rename = async (path, oldName, newName) => {
+  await props.flipper.RPC('storageRename', { oldPath: path + '/' + oldName, newPath: path + '/' + newName })
+    .catch(error => rpcErrorHandler(error, 'storageRename'))
+    .finally(() => {
+      emit('log', {
+        level: 'debug',
+        message: `${componentName}: storageRename: ${path}, old name: ${oldName}, new name: ${newName}`
+      })
+    })
+  list()
+}
+const mkdir = async (path) => {
+  await props.flipper.RPC('storageMkdir', { path })
+    .catch(error => rpcErrorHandler(error, 'storageMkdir'))
+    .finally(() => {
+      emit('log', {
+        level: 'debug',
+        message: `${componentName}: storageMkdir: ${path}`
+      })
+    })
+  list()
+}
+const upload = async () => {
+  if (!uploadedFiles.value || uploadedFiles.value.length === 0) {
+    return
+  }
+  flags.value.blockingOperationPopup = true
+  for (const localFile of uploadedFiles.value) {
+    file.value.name = localFile.name
+    let dir = path.value
+
+    if (localFile.webkitRelativePath?.length > 0) {
+      const path = localFile.webkitRelativePath.split('/')
+      path.pop()
+      while (path.length > 0) {
+        dir += '/' + path.shift()
+        const stat = await props.flipper.RPC('storageStat', { path: dir })
+        if (!stat) {
+          await props.flipper.RPC('storageMkdir', { path: dir })
+        }
       }
-      await this.list()
     }
-  },
 
-  async mounted () {
-    if (this.connected) {
-      await this.start()
+    const unbind = props.flipper.emitter.on('storageWriteRequest/progress', e => {
+      file.value.progress = e.progress / e.total
+    })
+
+    await props.flipper.RPC('storageWrite', { path: dir + '/' + localFile.name, buffer: await localFile.arrayBuffer() })
+      .catch(error => rpcErrorHandler(error, 'storageWrite'))
+      .finally(() => {
+        emit('log', {
+          level: 'debug',
+          message: `${componentName}: storageWrite: ${path.value}/${localFile.name}`
+        })
+      })
+    unbind()
+  }
+  file.value.name = ''
+  list()
+  flags.value.blockingOperationPopup = false
+}
+
+const itemClicked = (item) => {
+  if (item.type === 1) {
+    if (!path.value.endsWith('/')) {
+      path.value += '/'
     }
+    path.value += item.name
+    list()
+  } else if (item.name === '..') {
+    path.value = path.value.slice(0, path.value.lastIndexOf('/'))
+    if (path.value.length === 0) {
+      path.value = '/'
+    }
+    list()
+  } else {
+    read(path.value + '/' + item.name)
+  }
+}
+const openFileIn = async (item, destination) => {
+  const res = await read(path.value + '/' + item.name, true)
+  emit('openFileIn', {
+    destination,
+    file: {
+      name: item.name,
+      data: res
+    }
+  })
+}
+const itemIconSwitcher = (item) => {
+  if (path.value === '/' && item.name === 'int') {
+    return 'svguse:common-icons.svg#internal-memory'
+  } else if (path.value === '/' && item.name === 'ext') {
+    return 'svguse:common-icons.svg#sdcard-memory'
+  } else if (item.type === 1) {
+    return 'mdi-folder-outline'
+  } else if (item.name.endsWith('.badusb')) {
+    return 'svguse:file-types.svg#badusb'
+  } else if (item.name.endsWith('.ibtn')) {
+    return 'svguse:file-types.svg#ibutton'
+  } else if (item.name.endsWith('.ir')) {
+    return 'svguse:file-types.svg#infrared'
+  } else if (item.name.endsWith('.nfc')) {
+    return 'svguse:file-types.svg#nfc'
+  } else if (item.name.endsWith('.rfid')) {
+    return 'svguse:file-types.svg#rfid'
+  } else if (item.name.endsWith('.sub')) {
+    return 'svguse:file-types.svg#subghz'
+  } else if (item.name.endsWith('.u2f')) {
+    return 'svguse:file-types.svg#u2f'
+  } else {
+    return 'mdi-file-outline'
+  }
+}
+
+const rpcErrorHandler = (error, command) => {
+  error = error.toString()
+  emit('showNotif', {
+    message: `RPC error in command '${command}': ${error}`,
+    color: 'negative'
+  })
+  emit('log', {
+    level: 'error',
+    message: `${componentName}: RPC error in command '${command}': ${error}`
+  })
+}
+
+const start = async () => {
+  flags.value.rpcActive = props.rpcActive
+  if (!props.rpcActive) {
+    await startRpc()
+  }
+  await list()
+}
+
+onMounted(() => {
+  if (props.connected) {
+    start()
   }
 })
 </script>
