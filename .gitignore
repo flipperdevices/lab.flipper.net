@@ -1,19 +1,8 @@
 .DS_Store
-.thumbs.db
+
 frontend/node_modules
+frontend/package-lock.json
 
 # Quasar core related directories
 frontend/.quasar
 frontend/dist
-
-# Log files
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Editor directories and files
-.idea
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
