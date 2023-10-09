@@ -84,8 +84,8 @@
   </q-page>
 </template>
 
-<script>
-import { defineComponent, ref } from 'vue'
+<script setup>
+import { ref, defineProps, defineEmits, watch, onMounted, onBeforeUnmount } from 'vue'
 import { Terminal } from 'xterm'
 import 'xterm/css/xterm.css'
 import { FitAddon } from 'xterm-addon-fit'
@@ -93,261 +93,245 @@ import { SerializeAddon } from 'xterm-addon-serialize'
 import { io } from 'socket.io-client'
 import asyncSleep from 'simple-async-sleep'
 
-export default defineComponent({
-  name: 'PageCli',
+const props = defineProps({
+  flipper: Object,
+  connected: Boolean,
+  rpcActive: Boolean,
+  info: Object
+})
 
-  props: {
-    flipper: Object,
-    info: Object,
-    connected: Boolean,
-    rpcActive: Boolean
-  },
+const emit = defineEmits(['setRpcStatus', 'log', 'update', 'showNotif'])
 
-  setup () {
-    return {
-      componentName: 'CLI',
+const componentName = 'CLI'
+const flags = ref({
+  rpcActive: false,
+  rpcToggling: false,
+  serverActive: false,
+  serverToggling: false,
+  sharePopup: false,
+  allowPeerInput: false,
+  sharingEnabled: false,
+  foundDumpOnStartup: false
+})
+const terminal = ref(undefined)
+const unbind = ref(undefined)
+const socket = ref(null)
+const roomName = ref('')
+const clientsCount = ref(0)
+const clientsPollingInterval = ref(null)
+const fontSize = ref(14)
+let serializeAddon = null
+const dump = ref('')
 
-      flags: ref({
-        rpcActive: false,
-        rpcToggling: false,
-        serverActive: false,
-        serverToggling: false,
-        sharePopup: false,
-        allowPeerInput: false,
-        sharingEnabled: false,
-        foundDumpOnStartup: false
-      }),
-      terminal: ref(undefined),
-      readInterval: undefined,
-      input: ref(''),
-      unbind: ref(undefined),
-      socket: ref(null),
-      roomName: ref(''),
-      clientsCount: ref(0),
-      clientsPollingInterval: ref(null),
-      fontSize: ref(14),
-      serializeAddon: null,
-      dump: ref('')
+const init = () => {
+  terminal.value = new Terminal({
+    scrollback: 10_000,
+    fontSize: fontSize.value,
+    allowProposedApi: true
+  })
+  const fitAddon = new FitAddon()
+  terminal.value.loadAddon(fitAddon)
+  serializeAddon = new SerializeAddon()
+  terminal.value.loadAddon(serializeAddon)
+  if (dump.value) {
+    flags.value.foundDumpOnStartup = true
+  }
+  terminal.value.open(document.getElementById('terminal-container'))
+  document.querySelector('.xterm').setAttribute('style', 'height:' + getComputedStyle(document.querySelector('.xterm')).height)
+  terminal.value.focus()
+  fitAddon.fit()
+
+  write('\r\n\x01\r\n')
+
+  let dumpTimeout
+  terminal.value.onData(async data => {
+    if (!dumpTimeout) {
+      clearTimeout(dumpTimeout)
     }
-  },
+    dumpTimeout = setTimeout(() => {
+      dump.value = localStorage.getItem('cli-dump')
+    }, 500)
+    write(data)
+  })
+}
+const write = (data) => {
+  props.flipper.write(data)
+}
 
-  watch: {
-    async fontSize (newSize, oldInfo) {
-      if (this.terminal) {
-        this.terminal.options.fontSize = Number(newSize)
-        localStorage.setItem('cli-fontSize', newSize)
+const downloadDump = () => {
+  const text = serializeAddon.serialize()
+  const dl = document.createElement('a')
+  dl.setAttribute('download', 'cli-dump.txt')
+  dl.setAttribute('href', 'data:text/plain,' + text)
+  dl.style.visibility = 'hidden'
+  document.body.append(dl)
+  dl.click()
+  dl.remove()
+}
+const clearDump = () => {
+  dump.value = ''
+  localStorage.setItem('cli-dump', '')
+}
+
+const stopRpc = async () => {
+  flags.value.rpcToggling = true
+  await props.flipper.setReadingMode('text', 'promptBreak')
+  flags.value.rpcActive = false
+  emit('setRpcStatus', false)
+  flags.value.rpcToggling = false
+  emit('log', {
+    level: 'info',
+    message: `${componentName}: RPC stopped`
+  })
+}
+
+// TODO
+const startServer = () => {
+  flags.value.serverToggling = true
+  roomName.value = props.info.hardware.name
+  if (!socket.value) {
+    socket.value = io('ws://lab.flipper.net:3000')
+  }
+
+  socket.value.on('connect', () => {
+    emit('log', {
+      level: 'info',
+      message: `${componentName}: Connected to cli server. My id: ${socket.value.id}, room name: ${roomName.value}`
+    })
+
+    socket.value.emit('claimRoomName', roomName.value, (res) => {
+      if (res.error) {
+        emit('showNotif', {
+          message: `Failed to claim room ${roomName.value}`,
+          color: 'negative'
+        })
+        emit('log', {
+          level: 'error',
+          message: `${componentName}: Failed to claim room ${roomName.value}: ${res.error.toString()}`
+        })
       }
-    }
-  },
+    })
 
-  methods: {
-    init () {
-      this.terminal = new Terminal({
-        scrollback: 10_000,
-        fontSize: this.fontSize,
-        allowProposedApi: true
-      })
-      const fitAddon = new FitAddon()
-      this.terminal.loadAddon(fitAddon)
-      this.serializeAddon = new SerializeAddon()
-      this.terminal.loadAddon(this.serializeAddon)
-      if (this.dump) {
-        this.flags.foundDumpOnStartup = true
-      }
-      this.terminal.open(document.getElementById('terminal-container'))
-      document.querySelector('.xterm').setAttribute('style', 'height:' + getComputedStyle(document.querySelector('.xterm')).height)
-      this.terminal.focus()
-      fitAddon.fit()
-
-      this.write('\r\n\x01\r\n')
-      // this.read()
-
-      let dumpTimeout
-      this.terminal.onData(async data => {
-        if (!dumpTimeout) {
-          clearTimeout(dumpTimeout)
-        }
-        dumpTimeout = setTimeout(() => {
-          this.dump = localStorage.getItem('cli-dump')
-        }, 500)
-        this.write(data)
-      })
-    },
-
-    write (data) {
-      this.flipper.write(data)
-    },
-
-    downloadDump () {
-      const text = this.serializeAddon.serialize()
-      const dl = document.createElement('a')
-      dl.setAttribute('download', 'cli-dump.txt')
-      dl.setAttribute('href', 'data:text/plain,' + text)
-      dl.style.visibility = 'hidden'
-      document.body.append(dl)
-      dl.click()
-      dl.remove()
-    },
-
-    clearDump () {
-      this.dump = ''
-      localStorage.setItem('cli-dump', '')
-    },
-
-    async stopRpc () {
-      this.flags.rpcToggling = true
-      await this.flipper.setReadingMode('text', 'promptBreak')
-      this.flags.rpcActive = false
-      this.$emit('setRpcStatus', false)
-      this.flags.rpcToggling = false
-      this.$emit('log', {
-        level: 'info',
-        message: `${this.componentName}: RPC stopped`
-      })
-    },
-
-    startServer () {
-      this.flags.serverToggling = true
-      this.roomName = this.info.hardware.name
-      if (!this.socket) {
-        this.socket = io('ws://lab.flipper.net:3000')
-      }
-
-      this.socket.on('connect', () => {
-        this.$emit('log', {
+    socket.value.emit('joinRoom', roomName.value, (res) => {
+      if (res.error) {
+        emit('showNotif', {
+          message: `Failed to join room ${roomName.value}`,
+          color: 'negative'
+        })
+        emit('log', {
+          level: 'error',
+          message: `${componentName}: Failed to join room ${roomName.value}: ${res.error.toString()}`
+        })
+      } else {
+        emit('log', {
           level: 'info',
-          message: `${this.componentName}: Connected to cli server. My id: ${this.socket.id}, room name: ${this.roomName}`
+          message: `${componentName}: Hosting room ${roomName.value}`
         })
 
-        this.socket.emit('claimRoomName', this.roomName, (res) => {
-          if (res.error) {
-            this.$emit('showNotif', {
-              message: `Failed to claim room ${this.roomName}`,
-              color: 'negative'
-            })
-            this.$emit('log', {
-              level: 'error',
-              message: `${this.componentName}: Failed to claim room ${this.roomName}: ${res.error.toString()}`
-            })
-          }
-        })
-
-        this.socket.emit('joinRoom', this.roomName, (res) => {
-          if (res.error) {
-            this.$emit('showNotif', {
-              message: `Failed to join room ${this.roomName}`,
-              color: 'negative'
-            })
-            this.$emit('log', {
-              level: 'error',
-              message: `${this.componentName}: Failed to join room ${this.roomName}: ${res.error.toString()}`
-            })
-          } else {
-            this.$emit('log', {
-              level: 'info',
-              message: `${this.componentName}: Hosting room ${this.roomName}`
-            })
-
-            this.clientsPollingInterval = setInterval(() => {
-              this.socket.emit('pollClients', this.roomName, (res) => {
-                if (res.clientsCount) {
-                  this.clientsCount = res.clientsCount - 1
-                }
-              })
-            }, 3000)
-          }
-        })
-      })
-
-      this.socket.on('dm', (id, text) => {
-        if (typeof (text) === 'string' && this.flags.allowPeerInput) {
-          this.write(text)
-        }
-      })
-
-      this.socket.on('disconnect', () => {
-        this.$emit('showNotif', {
-          message: 'Disconnected from cli server'
-        })
-        this.$emit('log', {
-          level: 'warn',
-          message: `${this.componentName}: Disconnected from CLI server`
-        })
-        if (this.flags.serverActive !== false) {
-          this.stopServer()
-        }
-      })
-
-      this.flags.serverToggling = false
-      this.flags.serverActive = true
-    },
-
-    stopServer () {
-      this.flags.serverToggling = true
-      this.socket.disconnect()
-      clearInterval(this.clientsPollingInterval)
-      this.clientsCount = 0
-      this.roomName = ''
-      this.flags.serverToggling = false
-      this.flags.serverActive = false
-      this.flags.sharePopup = false
-    },
-
-    broadcast (msg) {
-      this.socket.emit('broadcast', this.roomName, msg, (res) => {
-        if (res.error) {
-          this.$emit('log', {
-            level: 'error',
-            message: `${this.componentName}: Failed to broadcast: ${res.error.toString()}`
+        clientsPollingInterval.value = setInterval(() => {
+          socket.value.emit('pollClients', roomName.value, (res) => {
+            if (res.clientsCount) {
+              clientsCount.value = res.clientsCount - 1
+            }
           })
-          console.error(res.message)
-        }
-      })
-    },
-
-    async start () {
-      this.flags.rpcActive = this.rpcActive
-      if (this.rpcActive) {
-        await this.stopRpc()
+        }, 3000)
       }
-      if (window.innerWidth < 381) {
-        this.fontSize = 9
-      } else if (window.innerWidth < 463) {
-        this.fontSize = 11
-      }
+    })
+  })
 
-      setTimeout(this.init, 500)
-      await asyncSleep(1000)
-      await this.flipper.setReadingMode('text')
+  socket.value.on('dm', (id, text) => {
+    if (typeof (text) === 'string' && flags.value.allowPeerInput) {
+      write(text)
+    }
+  })
 
-      this.unbind = this.flipper.emitter.on('cli/output', data => {
-        this.terminal.write(data)
+  socket.value.on('disconnect', () => {
+    emit('showNotif', {
+      message: 'Disconnected from cli server'
+    })
+    emit('log', {
+      level: 'warn',
+      message: `${componentName}: Disconnected from CLI server`
+    })
+    if (flags.value.serverActive !== false) {
+      stopServer()
+    }
+  })
+
+  flags.value.serverToggling = false
+  flags.value.serverActive = true
+}
+const stopServer = () => {
+  flags.value.serverToggling = true
+  socket.value.disconnect()
+  clearInterval(clientsPollingInterval.value)
+  clientsCount.value = 0
+  roomName.value = ''
+  flags.value.serverToggling = false
+  flags.value.serverActive = false
+  flags.value.sharePopup = false
+}
+// eslint-disable-next-line no-unused-vars
+const broadcast = (msg) => {
+  socket.value.emit('broadcast', roomName, msg, (res) => {
+    if (res.error) {
+      emit('log', {
+        level: 'error',
+        message: `${componentName}: Failed to broadcast: ${res.error.toString()}`
       })
+      console.error(res.message)
     }
-  },
+  })
+}
 
-  mounted () {
-    this.dump = localStorage.getItem('cli-dump')
-    if (this.connected) {
-      setTimeout(this.start, 500)
-    }
+const start = async () => {
+  flags.value.rpcActive = props.rpcActive
+  if (props.rpcActive) {
+    await stopRpc()
+  }
+  if (window.innerWidth < 381) {
+    fontSize.value = 9
+  } else if (window.innerWidth < 463) {
+    fontSize.value = 11
+  }
 
-    const savedFontSize = localStorage.getItem('cli-fontSize')
-    if (savedFontSize) {
-      this.fontSize = Number(savedFontSize)
-    }
+  setTimeout(init, 500)
+  await asyncSleep(1000)
+  await props.flipper.setReadingMode('text')
 
-    if (new URLSearchParams(location.search).get('sharing') === 'true') {
-      this.flags.sharingEnabled = true
-    }
-  },
+  unbind.value = props.flipper.emitter.on('cli/output', data => {
+    terminal.value.write(data)
+  })
+}
 
-  async beforeUnmount () {
-    localStorage.setItem('cli-dump', this.serializeAddon.serialize())
-    this.unbind()
-    if (this.flags.serverActive) {
-      this.stopServer()
-    }
+watch(fontSize, (newSize) => {
+  if (terminal.value) {
+    terminal.value.options.fontSize = Number(newSize)
+    localStorage.setItem('cli-fontSize', newSize)
+  }
+})
+
+onMounted(() => {
+  dump.value = localStorage.getItem('cli-dump')
+  if (props.connected) {
+    setTimeout(start, 500)
+  }
+
+  const savedFontSize = localStorage.getItem('cli-fontSize')
+  if (savedFontSize) {
+    fontSize.value = Number(savedFontSize)
+  }
+
+  if (new URLSearchParams(location.search).get('sharing') === 'true') {
+    flags.value.sharingEnabled = true
+  }
+})
+
+onBeforeUnmount(() => {
+  localStorage.setItem('cli-dump', serializeAddon.serialize())
+  unbind.value()
+  if (flags.value.serverActive) {
+    stopServer()
   }
 })
 </script>
