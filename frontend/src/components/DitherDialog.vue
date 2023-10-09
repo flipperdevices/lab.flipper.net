@@ -35,77 +35,65 @@
   </q-card>
 </template>
 
-<script>
-import { defineComponent, ref } from 'vue'
+<script setup>
+import { ref, defineProps, defineEmits, onMounted } from 'vue'
 import { dither, emitter } from '../util/ditherpunk/monochrome'
 
-export default defineComponent({
-  name: 'DitherDialog',
+const props = defineProps({
+  img: Object
+})
 
-  props: {
-    img: Object
-  },
+const emit = defineEmits(['cancel', 'select'])
 
-  setup () {
-    return {
-      flags: ref({
-      }),
-      sourceImageData: ref(null),
-      ditherProcesses: ref([])
-    }
-  },
+const sourceImageData = ref(null)
+const ditherProcesses = ref(null)
+const sourceCanvasRef = ref(null)
+const unbindDitherStart = ref(null)
+const unbindDitherResult = ref(null)
 
-  methods: {
-    drawSourceImg () {
-      const sourceCtx = this.$refs.sourceCanvasRef.getContext('2d')
-      sourceCtx.fillStyle = 'white'
-      sourceCtx.fillRect(0, 0, 128, 64)
-      sourceCtx.drawImage(this.img, 0, 0, 128, 64)
-      this.sourceImageData = sourceCtx.getImageData(0, 0, 128, 64)
+const drawSourceImg = () => {
+  const sourceCtx = sourceCanvasRef.value.getContext('2d')
+  sourceCtx.fillStyle = 'white'
+  sourceCtx.fillRect(0, 0, 128, 64)
+  sourceCtx.drawImage(props.img, 0, 0, 128, 64)
+  sourceImageData.value = sourceCtx.getImageData(0, 0, 128, 64)
 
-      this.dither()
-    },
-
-    dither () {
-      this.unbindDitherStart = emitter.on('dither/start', this.onDitherStart)
-      this.unbindDitherResult = emitter.on('dither/result', this.onDitherResult)
-      dither(this.sourceImageData)
-    },
-
-    onDitherStart ({ id, title }) {
-      if (this.ditherProcesses.find(e => e.id === id)) {
-        return
-      }
-      this.ditherProcesses.push({ id, title })
-    },
-
-    onDitherResult ({ id, imageData }) {
-      const p = this.ditherProcesses.find(e => e.id === id)
-      if (!p) {
-        return
-      }
-      p.imageData = imageData
-      setTimeout(() => {
-        const ditherCanvas = document.querySelector(`canvas.${p.id}`)
-        if (ditherCanvas) {
-          ditherCanvas.getContext('2d').putImageData(imageData, 0, 0)
-        }
-      }, 150)
-    },
-
-    cancel () {
-      this.ditherProcesses = []
-      this.$emit('cancel')
-    },
-
-    select (imageData) {
-      this.$emit('select', imageData)
-    }
-  },
-
-  mounted () {
-    this.drawSourceImg()
+  startDither()
+}
+const startDither = () => {
+  unbindDitherStart.value = emitter.on('dither/start', onDitherStart)
+  unbindDitherResult.value = emitter.on('dither/result', onDitherResult)
+  dither(sourceImageData.value)
+}
+const onDitherStart = ({ id, title }) => {
+  if (ditherProcesses.value.find(e => e.id === id)) {
+    return
   }
+  ditherProcesses.value.push({ id, title })
+}
+const onDitherResult = ({ id, imageData }) => {
+  const p = ditherProcesses.value.find(e => e.id === id)
+  if (!p) {
+    return
+  }
+  p.imageData = imageData
+  setTimeout(() => {
+    const ditherCanvas = document.querySelector(`canvas.${p.id}`)
+    if (ditherCanvas) {
+      ditherCanvas.getContext('2d').putImageData(imageData, 0, 0)
+    }
+  }, 150)
+}
+const cancel = () => {
+  ditherProcesses.value = []
+  emit('cancel')
+}
+const select = (imageData) => {
+  emit('select', imageData)
+}
+
+onMounted(() => {
+  drawSourceImg()
 })
 </script>
 
