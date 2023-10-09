@@ -100,7 +100,7 @@ const props = defineProps({
   info: Object
 })
 
-const emit = defineEmits(['setRpcStatus', 'log', 'update', 'showNotif'])
+const emit = defineEmits(['setRpcStatus', 'log', 'showNotif'])
 
 const componentName = 'CLI'
 const flags = ref({
