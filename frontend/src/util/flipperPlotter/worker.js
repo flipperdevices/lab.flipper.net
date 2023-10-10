@@ -24,7 +24,7 @@ self.onmessage = (e) => {
     case 'setConfigContext':
       width = e.data.width
       height = e.data.height
-      dpi = 1
+      dpi = e.data.dpi
       break
     case 'setData':
       data = JSON.parse(e.data.data)
@@ -66,9 +66,9 @@ self.onmessage = (e) => {
 
 const context2d = (canvas, width, height, dpi) => {
   const context = canvas.getContext('2d', { desynchronized: true })
-  context.scale(dpi, dpi)
   canvas.width = Math.floor(width * dpi)
   canvas.height = Math.floor(height * dpi)
+  context.scale(dpi, dpi)
   return context
 }
 
