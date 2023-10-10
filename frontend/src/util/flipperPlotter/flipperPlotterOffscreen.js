@@ -58,30 +58,7 @@ class FlipperPlotterOffscreen {
   }
 
   setTheme (options) {
-    const defaults = {
-      spaceFill: '#fafafa',
-      hiFill: '#eafbea',
-      hiStroke: '#3c3',
-      hiLine: 4,
-      loStroke: '#c33',
-      loLine: 4,
-      edgeStroke: '#ccc',
-      edgeLine: 1,
-      hintLine: 1,
-      hintStroke: '#aaf',
-      hintDash: [3, 2],
-      hintAltLine: 3,
-      hintAltStroke: '#c55',
-      hintAltDash: [3, 2],
-      yHintLo: 115,
-      yHintHi: 35,
-      fontSize: 10,
-      fontColor: 'black',
-      fontAlign: 'center',
-      fontBaseline: 'middle'
-    }
-
-    this.theme = { ...defaults, ...options }
+    this.theme = { ...defaults.theme, ...options }
 
     this.worker.postMessage({ message: 'setTheme', theme: this.theme })
   }
