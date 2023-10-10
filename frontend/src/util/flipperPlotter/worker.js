@@ -317,7 +317,7 @@ const zoomed = (transform) => {
           },
           {
             lineWidth: theme.edgeLine / size,
-            strokeStyle: theme.edgeStroke
+            strokeStyle: theme.hiStroke
           }
         )
 
@@ -329,7 +329,7 @@ const zoomed = (transform) => {
           },
           {
             lineWidth: theme.edgeLine / size,
-            strokeStyle: theme.edgeStroke
+            strokeStyle: theme.loStroke
           }
         )
 
