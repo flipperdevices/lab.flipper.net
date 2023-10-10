@@ -472,7 +472,7 @@ class FlipperPlotter {
             },
             {
               lineWidth: this.theme.edgeLine / this.size,
-              strokeStyle: this.theme.edgeStroke
+              strokeStyle: this.theme.hiStroke
             }
           )
 
@@ -487,7 +487,7 @@ class FlipperPlotter {
             },
             {
               lineWidth: this.theme.edgeLine / this.size,
-              strokeStyle: this.theme.edgeStroke
+              strokeStyle: this.theme.loStroke
             }
           )
 
