@@ -17,7 +17,7 @@ const defaults = {
     loStroke: '#c33',
     loLine: 4,
     edgeStroke: '#ccc',
-    edgeLine: 2,
+    edgeLine: 1,
     hintLine: 1,
     hintStroke: '#aaf',
     hintDash: [3, 2],

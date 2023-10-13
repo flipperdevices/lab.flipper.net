@@ -267,9 +267,6 @@ class FlipperPlotterOffscreen {
       barHeight: this.barHeight
     })
 
-    this.maxWidth = this.data.pulses.reduce((acc, cur) => acc + cur, 0)
-    this.worker.postMessage({ message: 'setMaxWidth', maxWidth: this.maxWidth })
-
     const minZoom = 1
     const maxZoom = this.data.width / this.width
     this.worker.postMessage({ message: 'setMaxZoom', maxZoom })

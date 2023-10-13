@@ -1,6 +1,5 @@
 import { defaults } from './costants.js'
 import {
-  getSize,
   getBoundaries,
   combiningPulses,
   filterPulses,
@@ -21,13 +20,11 @@ let context,
   labelContext,
   hintsContext = null
 
-let size = 1
 let pulses = []
 let altHints = []
 let barHeight = null
 const breakpointZoom = defaults.breakpointZoom
 let maxZoom = null
-let maxWidth = null
 
 self.onmessage = (e) => {
   switch (e.data.message) {
@@ -44,9 +41,6 @@ self.onmessage = (e) => {
       break
     case 'setMaxZoom':
       maxZoom = e.data.maxZoom
-      break
-    case 'setMaxWidth':
-      maxWidth = e.data.maxWidth
       break
     case 'setBarHeight':
       barHeight = e.data.barHeight
@@ -187,8 +181,6 @@ const zoomed = (transform) => {
 
   context.save()
   context.clearRect(0, 0, width, height)
-  context.translate(transform.x, 1)
-  context.scale(transform.k, 1)
 
   drawFill(
     context,
@@ -199,7 +191,6 @@ const zoomed = (transform) => {
     theme.spaceFill
   )
 
-  const zoom = transform.k
   let prevX = 0
   let skipPulse = 0
   let sum = 0
@@ -210,9 +201,7 @@ const zoomed = (transform) => {
     transform
   )
 
-  if (zoom < breakpointZoom) {
-    size = getSize(maxWidth, width)
-
+  if (transform.k < breakpointZoom) {
     pulses = combiningPulses(data, pulseInOneX)
     ;({ pulses, sum, prevX, skipPulse } = filterPulses(
       pulses,
@@ -223,7 +212,6 @@ const zoomed = (transform) => {
       rightPulse
     ))
   } else {
-    size = getSize(data.width, width)
     ;({ pulses, sum, prevX, skipPulse } = filterPulses(
       data.pulses,
       sum,
@@ -241,46 +229,22 @@ const zoomed = (transform) => {
       if ((i + skipPulse) % 2 === 0) {
         drawFill(
           context,
-          prevX / size,
+          prevX * (transform.k / maxZoom) + transform.x,
           margin.top,
-          x / size,
+          x * (transform.k / maxZoom),
           barHeight,
-          zoom < breakpointZoom ? theme.combiningFill : theme.hiFill
-        )
-
-        drawLine(
-          context,
-          {
-            start: [prevX / size, height - margin.top],
-            end: [prevX / size, height - barHeight - margin.top]
-          },
-          {
-            lineWidth: theme.edgeLine / size,
-            strokeStyle: theme.hiStroke
-          }
-        )
-
-        drawLine(
-          context,
-          {
-            start: [(prevX + x) / size, height - barHeight - margin.top],
-            end: [(prevX + x) / size, height - margin.top]
-          },
-          {
-            lineWidth: theme.edgeLine / size,
-            strokeStyle: theme.loStroke
-          }
+          transform.k < breakpointZoom ? theme.combiningFill : theme.hiFill
         )
 
         drawLine(
           context,
           {
             start: [
-              prevX / size,
+              prevX * (transform.k / maxZoom) + transform.x,
               height - barHeight - margin.top + theme.hiLine / 2
             ],
             end: [
-              (prevX + x) / size,
+              (prevX + x) * (transform.k / maxZoom) + transform.x,
               height - barHeight - margin.top + theme.hiLine / 2
             ]
           },
@@ -293,8 +257,14 @@ const zoomed = (transform) => {
         drawLine(
           context,
           {
-            start: [prevX / size, height - margin.top - theme.loLine / 2],
-            end: [(prevX + x) / size, height - margin.top - theme.loLine / 2]
+            start: [
+              prevX * (transform.k / maxZoom) + transform.x,
+              height - margin.top - theme.loLine / 2
+            ],
+            end: [
+              (prevX + x) * (transform.k / maxZoom) + transform.x,
+              height - margin.top - theme.loLine / 2
+            ]
           },
           {
             lineWidth: theme.loLine,
@@ -315,6 +285,44 @@ const zoomed = (transform) => {
             font: `${theme.fontSize}px sans-serif`,
             align: theme.fontAlign,
             baseline: theme.fontBaseline
+          }
+        )
+      }
+
+      if (w > 5 && (i + skipPulse) % 2 === 0) {
+        drawLine(
+          context,
+          {
+            start: [
+              prevX * (transform.k / maxZoom) + transform.x,
+              height - margin.top
+            ],
+            end: [
+              prevX * (transform.k / maxZoom) + transform.x,
+              height - barHeight - margin.top
+            ]
+          },
+          {
+            lineWidth: theme.edgeLine,
+            strokeStyle: theme.hiStroke
+          }
+        )
+
+        drawLine(
+          context,
+          {
+            start: [
+              (prevX + x) * (transform.k / maxZoom) + transform.x,
+              height - barHeight - margin.top
+            ],
+            end: [
+              (prevX + x) * (transform.k / maxZoom) + transform.x,
+              height - margin.top
+            ]
+          },
+          {
+            lineWidth: theme.edgeLine,
+            strokeStyle: theme.loStroke
           }
         )
       }

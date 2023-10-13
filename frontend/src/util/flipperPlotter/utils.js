@@ -10,10 +10,6 @@ const selector = (elementOrSelector) => {
   return elementOrSelector
 }
 
-const getSize = (maxWidth, width) => {
-  return maxWidth / width
-}
-
 const getBoundaries = (data, width, transform) => {
   // const minLeftSide = 0
   const maxRightSide = width * transform.k
@@ -107,7 +103,6 @@ const drawHint = (context, x, height, options) => {
 
 export {
   selector,
-  getSize,
   getBoundaries,
   combiningPulses,
   filterPulses,

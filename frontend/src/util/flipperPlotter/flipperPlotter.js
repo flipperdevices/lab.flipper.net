@@ -3,7 +3,6 @@ import { autorange, autorange_time } from './autorange.js'
 import { sliceGuess } from './slicer.js'
 import {
   selector,
-  getSize,
   getBoundaries,
   combiningPulses,
   filterPulses,
@@ -343,8 +342,6 @@ class FlipperPlotter {
 
     this.context.save()
     this.context.clearRect(0, 0, this.width, this.height)
-    this.context.translate(transform.x, 1)
-    this.context.scale(transform.k, 1)
 
     drawFill(
       this.context,
@@ -355,7 +352,6 @@ class FlipperPlotter {
       this.theme.spaceFill
     )
 
-    const zoom = transform.k
     let prevX = 0
     let skipPulse = 0
     let sum = 0
@@ -366,9 +362,7 @@ class FlipperPlotter {
       transform
     )
 
-    if (zoom < this.breakpointZoom) {
-      this.size = getSize(this.maxWidth, this.width)
-
+    if (transform.k < this.breakpointZoom) {
       this.pulses = combiningPulses(this.data, pulseInOneX)
       ;({
         pulses: this.pulses,
@@ -384,7 +378,6 @@ class FlipperPlotter {
         rightPulse
       ))
     } else {
-      this.size = getSize(this.data.width, this.width)
       ;({
         pulses: this.pulses,
         sum,
@@ -407,11 +400,11 @@ class FlipperPlotter {
         if ((i + skipPulse) % 2 === 0) {
           drawFill(
             this.context,
-            prevX / this.size,
+            prevX * (transform.k / this.maxZoom) + transform.x,
             this.margin.top,
-            x / this.size,
+            x * (transform.k / this.maxZoom),
             this.barHeight,
-            zoom < this.breakpointZoom
+            transform.k < this.breakpointZoom
               ? this.theme.combiningFill
               : this.theme.hiFill
           )
@@ -419,45 +412,15 @@ class FlipperPlotter {
           drawLine(
             this.context,
             {
-              start: [prevX / this.size, this.height - this.margin.top],
-              end: [
-                prevX / this.size,
-                this.height - this.barHeight - this.margin.top
-              ]
-            },
-            {
-              lineWidth: this.theme.edgeLine / this.size,
-              strokeStyle: this.theme.hiStroke
-            }
-          )
-
-          drawLine(
-            this.context,
-            {
               start: [
-                (prevX + x) / this.size,
-                this.height - this.barHeight - this.margin.top
-              ],
-              end: [(prevX + x) / this.size, this.height - this.margin.top]
-            },
-            {
-              lineWidth: this.theme.edgeLine / this.size,
-              strokeStyle: this.theme.loStroke
-            }
-          )
-
-          drawLine(
-            this.context,
-            {
-              start: [
-                prevX / this.size,
+                prevX * (transform.k / this.maxZoom) + transform.x,
                 this.height -
                   this.barHeight -
                   this.margin.top +
                   this.theme.hiLine / 2
               ],
               end: [
-                (prevX + x) / this.size,
+                (prevX + x) * (transform.k / this.maxZoom) + transform.x,
                 this.height -
                   this.barHeight -
                   this.margin.top +
@@ -474,11 +437,11 @@ class FlipperPlotter {
             this.context,
             {
               start: [
-                prevX / this.size,
+                prevX * (transform.k / this.maxZoom) + transform.x,
                 this.height - this.margin.top - this.theme.loLine / 2
               ],
               end: [
-                (prevX + x) / this.size,
+                (prevX + x) * (transform.k / this.maxZoom) + transform.x,
                 this.height - this.margin.top - this.theme.loLine / 2
               ]
             },
@@ -501,6 +464,44 @@ class FlipperPlotter {
               font: `${this.theme.fontSize}px sans-serif`,
               align: this.theme.fontAlign,
               baseline: this.theme.fontBaseline
+            }
+          )
+        }
+
+        if (w > 5 && (i + skipPulse) % 2 === 0) {
+          drawLine(
+            this.context,
+            {
+              start: [
+                prevX * (transform.k / this.maxZoom) + transform.x,
+                this.height - this.margin.top
+              ],
+              end: [
+                prevX * (transform.k / this.maxZoom) + transform.x,
+                this.height - this.barHeight - this.margin.top
+              ]
+            },
+            {
+              lineWidth: this.theme.edgeLine,
+              strokeStyle: this.theme.hiStroke
+            }
+          )
+
+          drawLine(
+            this.context,
+            {
+              start: [
+                (prevX + x) * (transform.k / this.maxZoom) + transform.x,
+                this.height - this.barHeight - this.margin.top
+              ],
+              end: [
+                (prevX + x) * (transform.k / this.maxZoom) + transform.x,
+                this.height - this.margin.top
+              ]
+            },
+            {
+              lineWidth: this.theme.edgeLine,
+              strokeStyle: this.theme.loStroke
             }
           )
         }
@@ -529,11 +530,8 @@ class FlipperPlotter {
     this.margin = defaults.margin
     this.barHeight = this.height - this.margin.top - this.margin.bottom
 
-    this.size = 1
     this.pulses = []
     this.breakpointZoom = defaults.breakpointZoom
-
-    this.maxWidth = this.data.pulses.reduce((acc, cur) => acc + cur, 0)
 
     const minZoom = 1
     this.maxZoom = this.data.width / this.width
