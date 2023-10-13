@@ -229,10 +229,6 @@ class FlipperPlotterOffscreen {
     })
   }
 
-  getShrinkRate (data, width) {
-    return Math.ceil(data.pulses.length / width)
-  }
-
   zoomed (transform) {
     if (transform.x > 0) transform.x = 0
     if (transform.x + this.width * transform.k < this.width) {
@@ -271,10 +267,7 @@ class FlipperPlotterOffscreen {
       barHeight: this.barHeight
     })
 
-    const shrinkRate = this.getShrinkRate(this.data, this.width)
-    this.maxWidth = this.data.pulses
-      .filter((d, i) => i % shrinkRate === 0 && d)
-      .reduce((acc, cur) => acc + cur, 0)
+    this.maxWidth = this.data.pulses.reduce((acc, cur) => acc + cur, 0)
     this.worker.postMessage({ message: 'setMaxWidth', maxWidth: this.maxWidth })
 
     const minZoom = 1

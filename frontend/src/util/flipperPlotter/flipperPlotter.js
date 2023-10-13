@@ -99,7 +99,7 @@ class FlipperPlotter {
     const leftPulse = leftSide * pulseInOneX
     const rightPulse = rightSide * pulseInOneX
 
-    return { leftPulse, rightPulse }
+    return { leftPulse, rightPulse, pulseInOneX }
   }
 
   getAltHints (hints) {
@@ -225,18 +225,44 @@ class FlipperPlotter {
     return context
   }
 
-  getShrinkRate (data, width) {
-    return Math.ceil(data.pulses.length / width)
-  }
-
-  shrinkagePulses (data, width) {
+  combiningPulses (data, pulseInOneX) {
     const pulses = []
-    const shrinkRate = this.getShrinkRate(data, width)
-    for (let i = 0; i < width; i++) {
-      pulses.push(data.pulses[i * shrinkRate])
+    let prevX = 0
+
+    for (let i = 0; i < data.pulses.length; i++) {
+      if (i % 2 !== 0) {
+        if (data.pulses[i] >= pulseInOneX * 40) {
+          pulses.push(prevX)
+          pulses.push(data.pulses[i])
+          prevX = 0
+          continue
+        }
+      }
+
+      prevX += data.pulses[i]
+    }
+
+    if (prevX !== 0) {
+      pulses.push(prevX)
     }
 
     return pulses
+  }
+
+  filterPulses (data, sum, prevX, skipPulse, leftPulse, rightPulse) {
+    const pulses = data.filter((d) => {
+      const minX = sum
+      sum += d
+      const maxX = sum
+      if (maxX >= leftPulse && minX <= rightPulse) return true
+      if (minX < leftPulse) {
+        prevX += d
+        skipPulse += 1
+      }
+      return false
+    })
+
+    return { pulses, sum, prevX, skipPulse }
   }
 
   getSize (maxWidth, width) {
@@ -422,29 +448,42 @@ class FlipperPlotter {
     const zoom = transform.k
     let prevX = 0
     let skipPulse = 0
+    let sum = 0
 
-    const { leftPulse, rightPulse } = this.getBoundaries(transform)
+    const { leftPulse, rightPulse, pulseInOneX } = this.getBoundaries(transform)
 
     if (zoom < this.breakpointZoom) {
       this.size = this.getSize(this.maxWidth, this.width)
 
-      this.pulses = this.shrinkagePulses(this.data, this.width)
+      this.pulses = this.combiningPulses(this.data, pulseInOneX)
+      ;({
+        pulses: this.pulses,
+        sum,
+        prevX,
+        skipPulse
+      } = this.filterPulses(
+        this.pulses,
+        sum,
+        prevX,
+        skipPulse,
+        leftPulse,
+        rightPulse
+      ))
     } else {
       this.size = this.getSize(this.data.width, this.width)
-
-      let sum = 0
-
-      this.pulses = this.data.pulses.filter((d) => {
-        const minX = sum
-        sum += d
-        const maxX = sum
-        if (maxX >= leftPulse && minX <= rightPulse) return true
-        if (minX < leftPulse) {
-          prevX += d
-          skipPulse += 1
-        }
-        return false
-      })
+      ;({
+        pulses: this.pulses,
+        sum,
+        prevX,
+        skipPulse
+      } = this.filterPulses(
+        this.data.pulses,
+        sum,
+        prevX,
+        skipPulse,
+        leftPulse,
+        rightPulse
+      ))
     }
 
     for (let i = 0; i < this.pulses.length; i++) {
@@ -458,7 +497,9 @@ class FlipperPlotter {
             this.margin.top,
             x / this.size,
             this.barHeight,
-            this.theme.hiFill
+            zoom < this.breakpointZoom
+              ? this.theme.combiningFill
+              : this.theme.hiFill
           )
 
           this.drawLine(
@@ -572,10 +613,7 @@ class FlipperPlotter {
     this.pulses = []
     this.breakpointZoom = defaults.breakpointZoom
 
-    const shrinkRate = this.getShrinkRate(this.data, this.width)
-    this.maxWidth = this.data.pulses
-      .filter((d, i) => i % shrinkRate === 0 && d)
-      .reduce((acc, cur) => acc + cur, 0)
+    this.maxWidth = this.data.pulses.reduce((acc, cur) => acc + cur, 0)
 
     const minZoom = 1
     this.maxZoom = this.data.width / this.width

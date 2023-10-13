@@ -10,6 +10,7 @@ const defaults = {
   breakpointZoom: 10,
   theme: {
     spaceFill: '#fafafa',
+    combiningFill: '#c8eec9',
     hiFill: '#eafbea',
     hiStroke: '#3c3',
     hiLine: 4,

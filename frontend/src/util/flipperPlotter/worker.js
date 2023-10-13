@@ -86,21 +86,47 @@ const getBoundaries = (transform) => {
   const leftPulse = leftSide * pulseInOneX
   const rightPulse = rightSide * pulseInOneX
 
-  return { leftPulse, rightPulse }
+  return { leftPulse, rightPulse, pulseInOneX }
 }
 
-const getShrinkRate = (data, width) => {
-  return Math.ceil(data.pulses.length / width)
-}
-
-const shrinkagePulses = (data, width) => {
+const combiningPulses = (data, pulseInOneX) => {
   const pulses = []
-  const shrinkRate = getShrinkRate(data, width)
-  for (let i = 0; i < width; i++) {
-    pulses.push(data.pulses[i * shrinkRate])
+  let prevX = 0
+
+  for (let i = 0; i < data.pulses.length; i++) {
+    if (i % 2 !== 0) {
+      if (data.pulses[i] >= pulseInOneX * 40) {
+        pulses.push(prevX)
+        pulses.push(data.pulses[i])
+        prevX = 0
+        continue
+      }
+    }
+
+    prevX += data.pulses[i]
+  }
+
+  if (prevX !== 0) {
+    pulses.push(prevX)
   }
 
   return pulses
+}
+
+const filterPulses = (data, sum, prevX, skipPulse, leftPulse, rightPulse) => {
+  const pulses = data.filter((d) => {
+    const minX = sum
+    sum += d
+    const maxX = sum
+    if (maxX >= leftPulse && minX <= rightPulse) return true
+    if (minX < leftPulse) {
+      prevX += d
+      skipPulse += 1
+    }
+    return false
+  })
+
+  return { pulses, sum, prevX, skipPulse }
 }
 
 const drawFill = (context, x, y, width, height, color) => {
@@ -270,29 +296,32 @@ const zoomed = (transform) => {
   const zoom = transform.k
   let prevX = 0
   let skipPulse = 0
+  let sum = 0
 
-  const { leftPulse, rightPulse } = getBoundaries(transform)
+  const { leftPulse, rightPulse, pulseInOneX } = getBoundaries(transform)
 
   if (zoom < breakpointZoom) {
     size = getSize(maxWidth, width)
 
-    pulses = shrinkagePulses(data, width)
+    pulses = combiningPulses(data, pulseInOneX)
+    ;({ pulses, sum, prevX, skipPulse } = filterPulses(
+      pulses,
+      sum,
+      prevX,
+      skipPulse,
+      leftPulse,
+      rightPulse
+    ))
   } else {
     size = getSize(data.width, width)
-
-    let sum = 0
-
-    pulses = data.pulses.filter((d) => {
-      const minX = sum
-      sum += d
-      const maxX = sum
-      if (maxX >= leftPulse && minX <= rightPulse) return true
-      if (minX < leftPulse) {
-        prevX += d
-        skipPulse += 1
-      }
-      return false
-    })
+    ;({ pulses, sum, prevX, skipPulse } = filterPulses(
+      data.pulses,
+      sum,
+      prevX,
+      skipPulse,
+      leftPulse,
+      rightPulse
+    ))
   }
 
   for (let i = 0; i < pulses.length; i++) {
@@ -306,7 +335,7 @@ const zoomed = (transform) => {
           margin.top,
           x / size,
           barHeight,
-          theme.hiFill
+          zoom < breakpointZoom ? theme.combiningFill : theme.hiFill
         )
 
         drawLine(
