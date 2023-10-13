@@ -1,4 +1,14 @@
 import { defaults } from './costants.js'
+import {
+  getSize,
+  getBoundaries,
+  combiningPulses,
+  filterPulses,
+  drawFill,
+  drawLine,
+  drawText,
+  drawHint
+} from './utils.js'
 const margin = defaults.margin
 
 let width,
@@ -72,112 +82,8 @@ const context2d = (canvas, width, height, dpi) => {
   return context
 }
 
-const getSize = (maxWidth, width) => {
-  return maxWidth / width
-}
-
-const getBoundaries = (transform) => {
-  // const minLeftSide = 0
-  const maxRightSide = width * transform.k
-  const pulseInOneX = data.width / maxRightSide
-  const leftSide = ~~(transform.x * -1)
-  const rightSide = ~~(transform.x * -1 + width)
-  // const pulseRate = data.width / transform.k
-  const leftPulse = leftSide * pulseInOneX
-  const rightPulse = rightSide * pulseInOneX
-
-  return { leftPulse, rightPulse, pulseInOneX }
-}
-
-const combiningPulses = (data, pulseInOneX) => {
-  const pulses = []
-  let prevX = 0
-
-  for (let i = 0; i < data.pulses.length; i++) {
-    if (i % 2 !== 0) {
-      if (data.pulses[i] >= pulseInOneX * 40) {
-        pulses.push(prevX)
-        pulses.push(data.pulses[i])
-        prevX = 0
-        continue
-      }
-    }
-
-    prevX += data.pulses[i]
-  }
-
-  if (prevX !== 0) {
-    pulses.push(prevX)
-  }
-
-  return pulses
-}
-
-const filterPulses = (data, sum, prevX, skipPulse, leftPulse, rightPulse) => {
-  const pulses = data.filter((d) => {
-    const minX = sum
-    sum += d
-    const maxX = sum
-    if (maxX >= leftPulse && minX <= rightPulse) return true
-    if (minX < leftPulse) {
-      prevX += d
-      skipPulse += 1
-    }
-    return false
-  })
-
-  return { pulses, sum, prevX, skipPulse }
-}
-
-const drawFill = (context, x, y, width, height, color) => {
-  context.beginPath()
-  context.fillStyle = color
-  context.fillRect(x, y, width, height)
-  context.closePath()
-}
-
-const drawLine = (context, coordinates, options) => {
-  context.beginPath()
-  context.lineWidth = options.lineWidth
-  context.strokeStyle = options.strokeStyle
-  context.moveTo(...coordinates.start)
-  context.lineTo(...coordinates.end)
-  context.stroke()
-  context.closePath()
-}
-
-const drawText = (context, text, x, y, options = {}) => {
-  let defaults = {
-    color: theme.fontColor,
-    font: `${theme.fontSize}px sans-serif`,
-    align: theme.fontAlign,
-    baseline: theme.fontBaseline
-  }
-
-  defaults = { ...defaults, ...options }
-
-  context.beginPath()
-  context.fillStyle = defaults.color
-  context.font = defaults.font
-  context.textAlign = defaults.align
-  context.textBaseline = defaults.baseline
-  context.fillText(text, x, y)
-  context.closePath()
-}
-
-const drawHint = (context, x, height, options) => {
-  context.lineWidth = options.hintLine
-  context.strokeStyle = options.hintStroke
-  context.setLineDash(options.hintDash)
-  context.beginPath()
-  context.moveTo(x, 0)
-  context.lineTo(x, height)
-  context.stroke()
-  context.setLineDash([])
-}
-
 const drawAllHints = (transform) => {
-  const { leftPulse, rightPulse } = getBoundaries(transform)
+  const { leftPulse, rightPulse } = getBoundaries(data, width, transform)
 
   const hints = data.hints.filter((d) => {
     const x0 = d[0]
@@ -298,7 +204,11 @@ const zoomed = (transform) => {
   let skipPulse = 0
   let sum = 0
 
-  const { leftPulse, rightPulse, pulseInOneX } = getBoundaries(transform)
+  const { leftPulse, rightPulse, pulseInOneX } = getBoundaries(
+    data,
+    width,
+    transform
+  )
 
   if (zoom < breakpointZoom) {
     size = getSize(maxWidth, width)
@@ -399,7 +309,13 @@ const zoomed = (transform) => {
           labelContext,
           x,
           (prevX + x / 2) * (transform.k / maxZoom) + transform.x,
-          height / 2
+          height / 2,
+          {
+            color: theme.fontColor,
+            font: `${theme.fontSize}px sans-serif`,
+            align: theme.fontAlign,
+            baseline: theme.fontBaseline
+          }
         )
       }
 

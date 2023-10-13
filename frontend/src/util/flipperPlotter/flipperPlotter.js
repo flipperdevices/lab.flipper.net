@@ -1,7 +1,17 @@
 /* eslint-disable-next-line camelcase */
 import { autorange, autorange_time } from './autorange.js'
 import { sliceGuess } from './slicer.js'
-import { selector } from './utils.js'
+import {
+  selector,
+  getSize,
+  getBoundaries,
+  combiningPulses,
+  filterPulses,
+  drawFill,
+  drawLine,
+  drawText,
+  drawHint
+} from './utils.js'
 import { Analyzer } from './histogram.js'
 import { defaults, styles, slicerOptions } from './costants.js'
 import * as d3 from 'd3'
@@ -87,19 +97,6 @@ class FlipperPlotter {
         messages.innerHTML += `<div>Bits: <strong>${slice.bits.toHexString()}</strong></div>`
       }
     }
-  }
-
-  getBoundaries (transform) {
-    // const minLeftSide = 0
-    const maxRightSide = this.width * transform.k
-    const pulseInOneX = this.data.width / maxRightSide
-    const leftSide = ~~(transform.x * -1)
-    const rightSide = ~~(transform.x * -1 + this.width)
-    // const pulseRate = data.width / transform.k
-    const leftPulse = leftSide * pulseInOneX
-    const rightPulse = rightSide * pulseInOneX
-
-    return { leftPulse, rightPulse, pulseInOneX }
   }
 
   getAltHints (hints) {
@@ -225,99 +222,12 @@ class FlipperPlotter {
     return context
   }
 
-  combiningPulses (data, pulseInOneX) {
-    const pulses = []
-    let prevX = 0
-
-    for (let i = 0; i < data.pulses.length; i++) {
-      if (i % 2 !== 0) {
-        if (data.pulses[i] >= pulseInOneX * 40) {
-          pulses.push(prevX)
-          pulses.push(data.pulses[i])
-          prevX = 0
-          continue
-        }
-      }
-
-      prevX += data.pulses[i]
-    }
-
-    if (prevX !== 0) {
-      pulses.push(prevX)
-    }
-
-    return pulses
-  }
-
-  filterPulses (data, sum, prevX, skipPulse, leftPulse, rightPulse) {
-    const pulses = data.filter((d) => {
-      const minX = sum
-      sum += d
-      const maxX = sum
-      if (maxX >= leftPulse && minX <= rightPulse) return true
-      if (minX < leftPulse) {
-        prevX += d
-        skipPulse += 1
-      }
-      return false
-    })
-
-    return { pulses, sum, prevX, skipPulse }
-  }
-
-  getSize (maxWidth, width) {
-    return maxWidth / width
-  }
-
-  drawFill (context, x, y, width, height, color) {
-    context.beginPath()
-    context.fillStyle = color
-    context.fillRect(x, y, width, height)
-    context.closePath()
-  }
-
-  drawLine (context, coordinates, options) {
-    context.beginPath()
-    context.lineWidth = options.lineWidth
-    context.strokeStyle = options.strokeStyle
-    context.moveTo(...coordinates.start)
-    context.lineTo(...coordinates.end)
-    context.stroke()
-    context.closePath()
-  }
-
-  drawText (context, text, x, y, options = {}) {
-    let defaults = {
-      color: this.theme.fontColor,
-      font: `${this.theme.fontSize}px sans-serif`,
-      align: this.theme.fontAlign,
-      baseline: this.theme.fontBaseline
-    }
-
-    defaults = { ...defaults, ...options }
-
-    context.beginPath()
-    context.fillStyle = defaults.color
-    context.font = defaults.font
-    context.textAlign = defaults.align
-    context.textBaseline = defaults.baseline
-    context.fillText(text, x, y)
-    context.closePath()
-  }
-
-  drawHint (context, x, height, options) {
-    context.lineWidth = options.hintLine
-    context.strokeStyle = options.hintStroke
-    context.setLineDash(options.hintDash)
-    context.beginPath()
-    context.moveTo(x, 0)
-    context.lineTo(x, height)
-    context.stroke()
-    context.setLineDash([])
-  }
-
   drawAllHints (transform) {
-    const { leftPulse, rightPulse } = this.getBoundaries(transform)
+    const { leftPulse, rightPulse } = getBoundaries(
+      this.data,
+      this.width,
+      transform
+    )
 
     const hints = this.data.hints.filter((d) => {
       const x0 = d[0]
@@ -334,7 +244,7 @@ class FlipperPlotter {
       const x1 = hint[1]
 
       if (prevHint !== x0 && x0 >= 0 && x0 < this.data.width) {
-        this.drawHint(
+        drawHint(
           this.hintsContext,
           x0 * (transform.k / this.maxZoom) + transform.x,
           this.height,
@@ -346,7 +256,7 @@ class FlipperPlotter {
         )
       }
       if (x1 >= 0 && x1 < this.data.width) {
-        this.drawHint(
+        drawHint(
           this.hintsContext,
           x1 * (transform.k / this.maxZoom) + transform.x,
           this.height,
@@ -375,7 +285,7 @@ class FlipperPlotter {
       const x1 = hint[1]
 
       if (prevHint !== x0 && x0 >= 0 && x0 < this.data.width) {
-        this.drawHint(
+        drawHint(
           this.hintsContext,
           x0 * (transform.k / this.maxZoom) + transform.x,
           this.height,
@@ -387,7 +297,7 @@ class FlipperPlotter {
         )
       }
       if (x1 >= 0 && x1 < this.data.width) {
-        this.drawHint(
+        drawHint(
           this.hintsContext,
           x1 * (transform.k / this.maxZoom) + transform.x,
           this.height,
@@ -436,7 +346,7 @@ class FlipperPlotter {
     this.context.translate(transform.x, 1)
     this.context.scale(transform.k, 1)
 
-    this.drawFill(
+    drawFill(
       this.context,
       0,
       -1,
@@ -450,18 +360,22 @@ class FlipperPlotter {
     let skipPulse = 0
     let sum = 0
 
-    const { leftPulse, rightPulse, pulseInOneX } = this.getBoundaries(transform)
+    const { leftPulse, rightPulse, pulseInOneX } = getBoundaries(
+      this.data,
+      this.width,
+      transform
+    )
 
     if (zoom < this.breakpointZoom) {
-      this.size = this.getSize(this.maxWidth, this.width)
+      this.size = getSize(this.maxWidth, this.width)
 
-      this.pulses = this.combiningPulses(this.data, pulseInOneX)
+      this.pulses = combiningPulses(this.data, pulseInOneX)
       ;({
         pulses: this.pulses,
         sum,
         prevX,
         skipPulse
-      } = this.filterPulses(
+      } = filterPulses(
         this.pulses,
         sum,
         prevX,
@@ -470,13 +384,13 @@ class FlipperPlotter {
         rightPulse
       ))
     } else {
-      this.size = this.getSize(this.data.width, this.width)
+      this.size = getSize(this.data.width, this.width)
       ;({
         pulses: this.pulses,
         sum,
         prevX,
         skipPulse
-      } = this.filterPulses(
+      } = filterPulses(
         this.data.pulses,
         sum,
         prevX,
@@ -491,7 +405,7 @@ class FlipperPlotter {
 
       if (x) {
         if ((i + skipPulse) % 2 === 0) {
-          this.drawFill(
+          drawFill(
             this.context,
             prevX / this.size,
             this.margin.top,
@@ -502,7 +416,7 @@ class FlipperPlotter {
               : this.theme.hiFill
           )
 
-          this.drawLine(
+          drawLine(
             this.context,
             {
               start: [prevX / this.size, this.height - this.margin.top],
@@ -517,7 +431,7 @@ class FlipperPlotter {
             }
           )
 
-          this.drawLine(
+          drawLine(
             this.context,
             {
               start: [
@@ -532,7 +446,7 @@ class FlipperPlotter {
             }
           )
 
-          this.drawLine(
+          drawLine(
             this.context,
             {
               start: [
@@ -556,7 +470,7 @@ class FlipperPlotter {
             }
           )
         } else {
-          this.drawLine(
+          drawLine(
             this.context,
             {
               start: [
@@ -577,11 +491,17 @@ class FlipperPlotter {
 
         const w = x * ((this.width * transform.k) / this.data.width)
         if (w > this.theme.fontSize * 3) {
-          this.drawText(
+          drawText(
             this.labelContext,
             x,
             (prevX + x / 2) * (transform.k / this.maxZoom) + transform.x,
-            this.height / 2
+            this.height / 2,
+            {
+              color: this.theme.fontColor,
+              font: `${this.theme.fontSize}px sans-serif`,
+              align: this.theme.fontAlign,
+              baseline: this.theme.fontBaseline
+            }
           )
         }
 
