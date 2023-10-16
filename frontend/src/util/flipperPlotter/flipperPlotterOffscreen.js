@@ -38,17 +38,26 @@ class FlipperPlotterOffscreen {
       return
     }
 
-    this.worker = new Worker(new URL('./worker.js', import.meta.url))
+    this.initialPlotter(options)
 
+    window.onresize = () => {
+      this.destroy()
+
+      this.initialPlotter(options)
+    }
+  }
+
+  initialPlotter (options) {
+    this.createWorker()
     this.setTheme(options.theme)
-
     this.createNode()
-
     this.initialCanvas()
-
     this.processData(this.data)
+    this.drawCanvas()
+  }
 
-    this.drawCanvas(this.data)
+  createWorker () {
+    this.worker = new Worker(new URL('./worker.js', import.meta.url))
   }
 
   setTheme (options) {
@@ -211,9 +220,11 @@ class FlipperPlotterOffscreen {
     this.data.hints = []
     this.altHints = []
 
-    this.analyzer = new Analyzer(data.pulses)
-    this.guess = this.analyzer.guess()
-    this.slicer = this.guess
+    if (!this.slicer) {
+      this.analyzer = new Analyzer(data.pulses)
+      this.guess = this.analyzer.guess()
+      this.slicer = this.guess
+    }
 
     this.setSlicerData(data.pulses, this.slicer)
 

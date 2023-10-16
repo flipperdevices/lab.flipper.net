@@ -48,14 +48,21 @@ class FlipperPlotter {
     }
 
     this.setTheme(options.theme)
-
-    this.createNode()
-
-    this.initialCanvas()
-
     this.processData(this.data)
 
-    this.drawCanvas(this.data)
+    this.initialPlotter(options)
+
+    window.onresize = () => {
+      this.destroy()
+
+      this.initialPlotter()
+    }
+  }
+
+  initialPlotter () {
+    this.createNode()
+    this.initialCanvas()
+    this.drawCanvas()
   }
 
   setTheme (options) {
