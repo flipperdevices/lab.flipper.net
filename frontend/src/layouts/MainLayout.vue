@@ -558,6 +558,7 @@ export default defineComponent({
           this.flags.connected = false
           this.info = null
           this.textInfo = ''
+          this.fileToPass = null
         })
         .catch(error => {
           this.log({
