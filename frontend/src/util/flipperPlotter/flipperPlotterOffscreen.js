@@ -11,12 +11,6 @@ class FlipperPlotterOffscreen {
     return slicerOptions
   }
 
-  get getWorkerContext () {
-    return {
-      theme: this.theme
-    }
-  }
-
   constructor (options = {}) {
     if (!options.data) {
       console.error(new Error('Required data missing for flipperPlotter'))
@@ -44,44 +38,30 @@ class FlipperPlotterOffscreen {
       return
     }
 
-    this.worker = new Worker(new URL('./worker.js', import.meta.url))
+    this.initialPlotter(options)
 
+    window.onresize = () => {
+      this.destroy()
+
+      this.initialPlotter(options)
+    }
+  }
+
+  initialPlotter (options) {
+    this.createWorker()
     this.setTheme(options.theme)
-
     this.createNode()
-
     this.initialCanvas()
-
     this.processData(this.data)
+    this.drawCanvas()
+  }
 
-    this.drawCanvas(this.data)
+  createWorker () {
+    this.worker = new Worker(new URL('./worker.js', import.meta.url))
   }
 
   setTheme (options) {
-    const defaults = {
-      spaceFill: '#fafafa',
-      hiFill: '#eafbea',
-      hiStroke: '#3c3',
-      hiLine: 4,
-      loStroke: '#c33',
-      loLine: 4,
-      edgeStroke: '#ccc',
-      edgeLine: 1,
-      hintLine: 1,
-      hintStroke: '#aaf',
-      hintDash: [3, 2],
-      hintAltLine: 3,
-      hintAltStroke: '#c55',
-      hintAltDash: [3, 2],
-      yHintLo: 115,
-      yHintHi: 35,
-      fontSize: 10,
-      fontColor: 'black',
-      fontAlign: 'center',
-      fontBaseline: 'middle'
-    }
-
-    this.theme = { ...defaults, ...options }
+    this.theme = { ...defaults.theme, ...options }
 
     this.worker.postMessage({ message: 'setTheme', theme: this.theme })
   }
@@ -240,9 +220,11 @@ class FlipperPlotterOffscreen {
     this.data.hints = []
     this.altHints = []
 
-    this.analyzer = new Analyzer(data.pulses)
-    this.guess = this.analyzer.guess()
-    this.slicer = this.guess
+    if (!this.slicer) {
+      this.analyzer = new Analyzer(data.pulses)
+      this.guess = this.analyzer.guess()
+      this.slicer = this.guess
+    }
 
     this.setSlicerData(data.pulses, this.slicer)
 
@@ -250,10 +232,6 @@ class FlipperPlotterOffscreen {
       message: 'setData',
       data: JSON.stringify(this.data)
     })
-  }
-
-  getShrinkRate (data, width) {
-    return Math.ceil(data.pulses.length / width)
   }
 
   zoomed (transform) {
@@ -293,12 +271,6 @@ class FlipperPlotterOffscreen {
       message: 'setBarHeight',
       barHeight: this.barHeight
     })
-
-    const shrinkRate = this.getShrinkRate(this.data, this.width)
-    this.maxWidth = this.data.pulses
-      .filter((d, i) => i % shrinkRate === 0 && d)
-      .reduce((acc, cur) => acc + cur, 0)
-    this.worker.postMessage({ message: 'setMaxWidth', maxWidth: this.maxWidth })
 
     const minZoom = 1
     const maxZoom = this.data.width / this.width

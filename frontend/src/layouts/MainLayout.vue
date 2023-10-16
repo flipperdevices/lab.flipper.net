@@ -420,7 +420,7 @@ export default defineComponent({
           link: '/paint'
         },
         {
-          title: 'Radio tools',
+          title: 'Pulse plotter',
           icon: 'svguse:common-icons.svg#subtools',
           link: '/pulse-plotter'
         }
@@ -558,6 +558,7 @@ export default defineComponent({
           this.flags.connected = false
           this.info = null
           this.textInfo = ''
+          this.fileToPass = null
         })
         .catch(error => {
           this.log({
