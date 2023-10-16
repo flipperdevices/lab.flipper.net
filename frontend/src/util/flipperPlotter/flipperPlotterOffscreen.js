@@ -11,12 +11,6 @@ class FlipperPlotterOffscreen {
     return slicerOptions
   }
 
-  get getWorkerContext () {
-    return {
-      theme: this.theme
-    }
-  }
-
   constructor (options = {}) {
     if (!options.data) {
       console.error(new Error('Required data missing for flipperPlotter'))

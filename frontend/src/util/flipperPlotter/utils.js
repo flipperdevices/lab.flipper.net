@@ -29,7 +29,7 @@ const combiningPulses = (data, pulseInOneX) => {
 
   for (let i = 0; i < data.pulses.length; i++) {
     if (i % 2 !== 0) {
-      if (data.pulses[i] >= pulseInOneX * 40) {
+      if (data.pulses[i] >= pulseInOneX * 10) {
         pulses.push(prevX)
         pulses.push(data.pulses[i])
         prevX = 0

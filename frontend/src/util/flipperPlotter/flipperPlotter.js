@@ -453,7 +453,7 @@ class FlipperPlotter {
         }
 
         const w = x * ((this.width * transform.k) / this.data.width)
-        if (w > this.theme.fontSize * 3) {
+        if (w > this.theme.fontSize * 4) {
           drawText(
             this.labelContext,
             x,

@@ -274,7 +274,7 @@ const zoomed = (transform) => {
       }
 
       const w = x * ((width * transform.k) / data.width)
-      if (w > theme.fontSize * 3) {
+      if (w > theme.fontSize * 4) {
         drawText(
           labelContext,
           x,
