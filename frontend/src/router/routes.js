@@ -8,14 +8,6 @@ const routes = [
     ]
   },
   {
-    path: '/apps-old',
-    component: () => import('layouts/MainLayout.vue'),
-    children: [
-      { name: 'Apps-old', path: '', component: () => import('pages/Apps.vue') },
-      { name: 'AppsPath-old', path: ':path', component: () => import('pages/Apps.vue') }
-    ]
-  },
-  {
     path: '/apps',
     component: () => import('layouts/MainLayout.vue'),
     children: [
