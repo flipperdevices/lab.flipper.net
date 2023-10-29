@@ -8,11 +8,27 @@ const routes = [
     ]
   },
   {
+    path: '/apps-old',
+    component: () => import('layouts/MainLayout.vue'),
+    children: [
+      { name: 'Apps-old', path: '', component: () => import('pages/Apps.vue') },
+      { name: 'AppsPath-old', path: ':path', component: () => import('pages/Apps.vue') }
+    ]
+  },
+  {
     path: '/apps',
     component: () => import('layouts/MainLayout.vue'),
     children: [
-      { name: 'Apps', path: '', component: () => import('pages/Apps.vue') },
-      { name: 'AppsPath', path: ':path', component: () => import('pages/Apps.vue') }
+      {
+        name: 'AppsLayout',
+        path: '',
+        component: () => import('layouts/AppsLayout.vue'),
+        children: [
+          { name: 'Apps', path: '', component: () => import('pages/Apps.vue') },
+          { name: 'InstalledApps', path: 'installed', component: () => import('pages/InstalledApps.vue') },
+          { name: 'AppsPath', path: ':path', component: () => import('pages/App.vue') }
+        ]
+      }
     ]
   },
   {
