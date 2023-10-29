@@ -83,209 +83,189 @@
   </div>
 </template>
 
-<script>
-import { defineComponent, ref } from 'vue'
+<script setup>
+import { ref, defineEmits, defineExpose, computed, watch, onMounted } from 'vue'
 import PixelEditor from '../util/pixeleditor/pixeleditor'
 import DitherDialog from 'src/components/DitherDialog.vue'
 import { exportFile } from 'quasar'
 
-export default defineComponent({
-  name: 'PixelEditor',
+const emit = defineEmits(['showNotif'])
 
-  components: {
-    DitherDialog
-  },
+const flags = ref({
+  checkerboard: false,
+  imageFileLoading: false,
+  ditherDialog: false
+})
+const zoomModel = ref(4)
+const toolModel = ref('pencil')
+const pe = ref(null)
+defineExpose({ pe })
+const uploadedImage = ref(null)
 
-  setup () {
-    return {
-      flags: ref({
-        checkerboard: false,
-        imageFileLoading: false,
-        ditherDialog: false
-      }),
-      zoomModel: ref(4),
-      toolModel: ref('pencil'),
-      pe: ref(null),
-      uploadedImage: ref(null)
-    }
-  },
-
-  watch: {
-    zoomModel (newValue, oldValue) {
-      if (!/^[0-9]*$/.test(newValue)) {
-        return
-      }
-      this.pe.resize({ zoom: newValue })
-    },
-    toolModel (newValue, oldValue) {
-      switch (newValue) {
-        case 'pencil':
-          this.pe.currentColor = 1
-          this.pe.mode = 'draw'
-          break
-        case 'eraser':
-          this.pe.currentColor = 0
-          this.pe.mode = 'draw'
-          break
-        case 'line':
-          this.pe.currentColor = 1
-          this.pe.mode = 'line'
-          break
-        case 'rectangle':
-          this.pe.currentColor = 1
-          this.pe.mode = 'rect'
-          break
-        case 'fill':
-          this.pe.currentColor = 1
-          this.pe.mode = 'fill'
-          break
-      }
-    }
-  },
-
-  computed: {
-    zoomLimit () {
-      /* const containerWidth = document.querySelector('.paint').clientWidth
+const zoomLimit = computed(() => {
+  /* const containerWidth = document.querySelector('.paint').clientWidth
       const containerHeight = document.querySelector('.paint').clientHeight
       let max = 10
       if (containerWidth) {
         max = Math.round(Math.min(containerWidth / 128, containerHeight / 64))
       } */
-      return {
-        min: 1,
-        max: 8
-      }
-    }
-  },
-
-  methods: {
-    zoom ({ mul, val, offset }) {
-      let result
-      if (mul) {
-        result = this.zoomModel * mul
-      } else if (val) {
-        result = val
-      } else if (offset) {
-        result = this.zoomModel + offset
-      }
-      if (result < this.zoomLimit.min) {
-        this.zoomModel = this.zoomLimit.min
-      } else if (result > this.zoomLimit.max) {
-        this.zoomModel = this.zoomLimit.max
-      } else {
-        this.zoomModel = result
-      }
-    },
-
-    undo () {
-      this.pe.undo()
-    },
-    redo () {
-      this.pe.redo()
-    },
-    clear () {
-      this.pe.clear()
-      this.updateMirror()
-    },
-
-    mouseUp () {
-      if (!this.pe) {
-        return
-      }
-      if (this.pe.drawing) {
-        if (this.pe.mode === 'line') {
-          this.pe.save()
-          this.pe.plotLine(this.pe.p0, this.pe.p1)
-          this.pe.draw()
-          this.pe.updated()
-        } else if (this.pe.mode === 'rect') {
-          this.pe.save()
-          this.pe.plotRect(this.pe.p0, this.pe.p1)
-          this.pe.draw()
-          this.pe.updated()
-        }
-        this.pe.drawing = false
-      }
-    },
-
-    triggerUpload () {
-      document.querySelector('.file-upload').click()
-    },
-    upload (event) {
-      this.flags.imageFileLoading = true
-      try {
-        const file = event.target.files[0]
-        if (file) {
-          const reader = new FileReader()
-          reader.readAsDataURL(file)
-
-          const img = new Image()
-          reader.onload = event => {
-            if (event.target.readyState !== FileReader.DONE) {
-              return
-            }
-            img.onload = () => {
-              document.querySelector('.file-upload').value = null
-              this.flags.imageFileLoading = false
-              this.uploadedImage = img
-              this.flags.ditherDialog = true
-            }
-            img.src = event.target.result
-          }
-        }
-      } catch (error) {
-        this.flags.imageFileLoading = false
-        console.error(error)
-      }
-    },
-
-    drawImage (imageData) {
-      // console.log(imageData)
-      this.flags.ditherDialog = false
-      const pixelData = []
-      for (let i = 0; i < imageData.data.length; i += 4) {
-        if (imageData.data[i] + imageData.data[i + 1] + imageData.data[i + 2] === 0) {
-          pixelData.push(1)
-        } else {
-          pixelData.push(0)
-        }
-      }
-      this.pe.setData(pixelData)
-      this.updateMirror()
-      // console.log(this.pe)
-    },
-
-    async download () {
-      const blob = await this.pe.toBlob()
-      const status = exportFile(`Paint_${new Date().toISOString()}.png`, blob)
-      if (!status) {
-        console.error('Failed to download image: permission denied')
-        this.$emit('showNotif', {
-          message: 'Failed to download image: permission denied',
-          color: 'negative'
-        })
-      }
-    },
-
-    updateMirror () {
-      const mirror = document.querySelector('.mirror')
-      const imageData = this.pe.toImageData()
-      mirror.getContext('2d').putImageData(imageData, 0, 0)
-    },
-
-    createEditor () {
-      this.pe = new PixelEditor({
-        width: 128,
-        height: 64,
-        container: document.querySelector('.pe-container'),
-        onUpdate: this.updateMirror
-      })
-    }
-  },
-
-  mounted () {
-    this.createEditor()
+  return {
+    min: 1,
+    max: 8
   }
+})
+
+watch(zoomModel, (newValue) => {
+  if (!/^[0-9]*$/.test(newValue)) {
+    return
+  }
+  pe.value.resize({ zoom: newValue })
+})
+watch(toolModel, (newValue) => {
+  switch (newValue) {
+    case 'pencil':
+      pe.value.currentColor = 1
+      pe.value.mode = 'draw'
+      break
+    case 'eraser':
+      pe.value.currentColor = 0
+      pe.value.mode = 'draw'
+      break
+    case 'line':
+      pe.value.currentColor = 1
+      pe.value.mode = 'line'
+      break
+    case 'rectangle':
+      pe.value.currentColor = 1
+      pe.value.mode = 'rect'
+      break
+    case 'fill':
+      pe.value.currentColor = 1
+      pe.value.mode = 'fill'
+      break
+  }
+})
+
+const zoom = ({ mul, val, offset }) => {
+  let result
+  if (mul) {
+    result = zoomModel.value * mul
+  } else if (val) {
+    result = val
+  } else if (offset) {
+    result = zoomModel.value + offset
+  }
+  if (result < zoomLimit.value.min) {
+    zoomModel.value = zoomLimit.value.min
+  } else if (result > zoomLimit.value.max) {
+    zoomModel.value = zoomLimit.value.max
+  } else {
+    zoomModel.value = result
+  }
+}
+const undo = () => {
+  pe.value.undo()
+}
+const redo = () => {
+  pe.value.redo()
+}
+const clear = () => {
+  pe.value.clear()
+  updateMirror()
+}
+const drawImage = (imageData) => {
+  flags.value.ditherDialog = false
+  const pixelData = []
+  for (let i = 0; i < imageData.data.length; i += 4) {
+    if (imageData.data[i] + imageData.data[i + 1] + imageData.data[i + 2] === 0) {
+      pixelData.push(1)
+    } else {
+      pixelData.push(0)
+    }
+  }
+  pe.value.setData(pixelData)
+  updateMirror()
+}
+
+const mouseUp = () => {
+  if (!pe.value) {
+    return
+  }
+  if (pe.value.drawing) {
+    if (pe.value.mode === 'line') {
+      pe.value.save()
+      pe.value.plotLine(pe.value.p0, pe.value.p1)
+      pe.value.draw()
+      pe.value.updated()
+    } else if (pe.value.mode === 'rect') {
+      pe.value.save()
+      pe.value.plotRect(pe.value.p0, pe.value.p1)
+      pe.value.draw()
+      pe.value.updated()
+    }
+    pe.value.drawing = false
+  }
+}
+
+const triggerUpload = () => {
+  document.querySelector('.file-upload').click()
+}
+const upload = (event) => {
+  flags.value.imageFileLoading = true
+  try {
+    const file = event.target.files[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.readAsDataURL(file)
+
+      const img = new Image()
+      reader.onload = event => {
+        if (event.target.readyState !== FileReader.DONE) {
+          return
+        }
+        img.onload = () => {
+          document.querySelector('.file-upload').value = null
+          flags.value.imageFileLoading = false
+          uploadedImage.value = img
+          flags.value.ditherDialog = true
+        }
+        img.src = event.target.result
+      }
+    }
+  } catch (error) {
+    flags.value.imageFileLoading = false
+    console.error(error)
+  }
+}
+const download = async () => {
+  const blob = await pe.value.toBlob()
+  const status = exportFile(`Paint_${new Date().toISOString()}.png`, blob)
+  if (!status) {
+    console.error('Failed to download image: permission denied')
+    emit('showNotif', {
+      message: 'Failed to download image: permission denied',
+      color: 'negative'
+    })
+  }
+}
+
+const updateMirror = () => {
+  const mirror = document.querySelector('.mirror')
+  const imageData = pe.value.toImageData()
+  mirror.getContext('2d').putImageData(imageData, 0, 0)
+}
+
+const createEditor = () => {
+  pe.value = new PixelEditor({
+    width: 128,
+    height: 64,
+    container: document.querySelector('.pe-container'),
+    onUpdate: updateMirror
+  })
+}
+
+onMounted(() => {
+  createEditor()
 })
 </script>
 
