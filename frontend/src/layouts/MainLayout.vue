@@ -102,7 +102,7 @@
               </q-item-section>
             </q-item>
             <q-item
-              v-else-if="this.info"
+              v-else-if="info"
               clickable
               class="q-px-md q-py-sm"
               @click="disconnect"
@@ -346,611 +346,585 @@
   </q-layout>
 </template>
 
-<script>
-import { defineComponent, ref } from 'vue'
+<script setup>
+import { ref, defineEmits, computed, watch, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
+import { useRoute, useRouter } from 'vue-router'
 import ExternalLink from 'components/ExternalLink.vue'
 import RouterLink from 'components/RouterLink.vue'
 import Flipper from 'src/flipper-js/flipper'
-import log from 'loglevel'
+import * as loglevel from 'loglevel'
 
+const emit = defineEmits(['log'])
+
+const $q = useQuasar()
+const notify = $q.notify
+
+const router = useRouter()
+const route = useRoute()
+
+const componentName = 'Main'
+
+const routes = [
+  {
+    title: 'My Flipper',
+    icon: 'svguse:common-icons.svg#device',
+    link: '/'
+  },
+  {
+    title: 'Apps',
+    icon: 'svguse:common-icons.svg#apps',
+    link: '/apps'
+  },
+  {
+    title: 'Files',
+    icon: 'svguse:common-icons.svg#files',
+    link: '/archive'
+  },
+  {
+    title: 'CLI',
+    icon: 'svguse:common-icons.svg#cli',
+    link: '/cli'
+  },
+  {
+    title: 'NFC tools',
+    icon: 'svguse:common-icons.svg#nfctools',
+    link: '/nfc-tools'
+  },
+  {
+    title: 'Paint',
+    icon: 'svguse:common-icons.svg#paint',
+    link: '/paint'
+  },
+  {
+    title: 'Radio tools',
+    icon: 'svguse:common-icons.svg#subtools',
+    link: '/pulse-plotter'
+  }
+]
+const extLinks = [
+  {
+    title: 'Home',
+    icon: 'mdi-home-outline',
+    link: 'https://flipperzero.one/'
+  },
+  {
+    title: 'Shop',
+    icon: 'mdi-cart-outline',
+    link: 'https://shop.flipperzero.one/'
+  },
+  {
+    title: 'Docs',
+    icon: 'mdi-book-open-variant',
+    link: 'https://docs.flipperzero.one/'
+  },
+  {
+    title: 'Blog',
+    icon: 'mdi-newspaper-variant-outline',
+    link: 'https://blog.flipperzero.one/'
+  },
+  {
+    title: 'Forum',
+    icon: 'mdi-forum-outline',
+    link: 'https://forum.flipperzero.one/'
+  }
+]
+const canLoadWithoutFlipper = [
+  'remote-cli',
+  'pulse-plotter',
+  'apps'
+]
 let dismissNotif
 
-export default defineComponent({
-  name: 'MainLayout',
+const flipper = new Flipper()
+const info = ref(null)
 
-  components: {
-    ExternalLink,
-    RouterLink
-  },
+const flags = ref({
+  serialSupported: true,
+  connectionRequired: true,
+  portSelectRequired: false,
+  connected: false,
+  rpcActive: false,
+  connectOnStart: true,
+  autoReconnect: false,
+  updateInProgress: false,
+  installFromFile: false,
+  logsPopup: false,
+  settingsView: false,
+  flipperOccupiedDialog: false,
 
-  setup () {
-    const $q = useQuasar()
-    return {
-      componentName: 'Main',
+  catalogCanBeEnabled: false,
+  catalogCanSwitchChannel: false,
+  catalogEnabled: true,
+  catalogChannelProduction: true
+})
+const leftDrawer = ref(true)
+const linksMenu = ref(false)
+const reconnectLoop = ref(null)
+const connectionStatus = ref('Ready to connect')
+const logger = loglevel
+const history = ref([])
+const fileToPass = ref(null)
 
-      flags: ref({
-        serialSupported: true,
-        connectionRequired: true,
-        portSelectRequired: false,
-        connected: false,
-        rpcActive: false,
-        connectOnStart: true,
-        autoReconnect: false,
-        updateInProgress: false,
-        installFromFile: false,
-        logsPopup: false,
-        settingsView: false,
-        flipperOccupiedDialog: false,
+const batteryIcon = computed(() => {
+  const roundedCharge = Math.round(Number(info.value?.power.charge.level) / 10) * 10
+  if (roundedCharge === 0) {
+    return 'mdi-battery-outline'
+  } else if (roundedCharge === 100) {
+    return 'mdi-battery'
+  }
+  return 'mdi-battery-' + roundedCharge
+})
+const batteryColor = computed(() => {
+  const charge = Number(info.value?.power.charge.level)
+  if (charge >= 75) {
+    return 'positive'
+  } else if (charge >= 30) {
+    return 'warning'
+  }
+  return 'negative'
+})
+const sdCardUsed = computed(() => {
+  if (info.value?.storage.sdcard.freeSpace) {
+    return 100 - Math.floor(info.value?.storage.sdcard.freeSpace / (info.value?.storage.sdcard.totalSpace / 100))
+  } else {
+    return 1
+  }
+})
+const internalUsed = computed(() => {
+  if (info.value?.storage.internal.freeSpace) {
+    return 100 - Math.floor(info.value?.storage.internal.freeSpace / (info.value?.storage.internal.totalSpace / 100))
+  } else {
+    return 1
+  }
+})
 
-        catalogCanBeEnabled: false,
-        catalogCanSwitchChannel: false,
-        catalogEnabled: true,
-        catalogChannelProduction: true
-      }),
-      routes: [
-        {
-          title: 'My Flipper',
-          icon: 'svguse:common-icons.svg#device',
-          link: '/'
-        },
-        {
-          title: 'Apps',
-          icon: 'svguse:common-icons.svg#apps',
-          link: '/apps'
-        },
-        {
-          title: 'Files',
-          icon: 'svguse:common-icons.svg#files',
-          link: '/archive'
-        },
-        {
-          title: 'CLI',
-          icon: 'svguse:common-icons.svg#cli',
-          link: '/cli'
-        },
-        {
-          title: 'NFC tools',
-          icon: 'svguse:common-icons.svg#nfctools',
-          link: '/nfc-tools'
-        },
-        {
-          title: 'Paint',
-          icon: 'svguse:common-icons.svg#paint',
-          link: '/paint'
-        },
-        {
-          title: 'Pulse plotter',
-          icon: 'svguse:common-icons.svg#subtools',
-          link: '/pulse-plotter'
-        }
-      ],
-      extLinks: [
-        {
-          title: 'Home',
-          icon: 'mdi-home-outline',
-          link: 'https://flipperzero.one/'
-        },
-        {
-          title: 'Shop',
-          icon: 'mdi-cart-outline',
-          link: 'https://shop.flipperzero.one/'
-        },
-        {
-          title: 'Docs',
-          icon: 'mdi-book-open-variant',
-          link: 'https://docs.flipperzero.one/'
-        },
-        {
-          title: 'Blog',
-          icon: 'mdi-newspaper-variant-outline',
-          link: 'https://blog.flipperzero.one/'
-        },
-        {
-          title: 'Forum',
-          icon: 'mdi-forum-outline',
-          link: 'https://forum.flipperzero.one/'
-        }
-      ],
-      canLoadWithoutFlipper: [
-        'remote-cli',
-        'pulse-plotter',
-        'apps'
-      ],
-      leftDrawer: ref(true),
-      linksMenu: ref(false),
-      flipper: new Flipper(),
-      info: ref(null),
-      reconnectLoop: ref(null),
-      connectionStatus: ref('Ready to connect'),
-      logger: log,
-      history: ref([]),
-      notify: $q.notify,
-      fileToPass: ref(null)
-    }
-  },
+watch(route, (to) => {
+  checkConnectionRequirement(to.path)
+})
 
-  computed: {
-    batteryIcon () {
-      const roundedCharge = Math.round(Number(this.info.power.charge.level) / 10) * 10
-      if (roundedCharge === 0) {
-        return 'mdi-battery-outline'
-      } else if (roundedCharge === 100) {
-        return 'mdi-battery'
+const connect = () => {
+  flipper.connect()
+    .then(() => {
+      flags.value.portSelectRequired = false
+      connectionStatus.value = 'Flipper connected'
+      flags.value.connected = true
+      flags.value.flipperOccupiedDialog = false
+      log({
+        level: 'info',
+        message: `${componentName}: Flipper connected`
+      })
+      if (dismissNotif) {
+        dismissNotif()
       }
-      return 'mdi-battery-' + roundedCharge
-    },
-    batteryColor () {
-      const charge = Number(this.info.power.charge.level)
-      if (charge >= 75) {
-        return 'positive'
-      } else if (charge >= 30) {
-        return 'warning'
-      }
-      return 'negative'
-    },
-    sdCardUsed () {
-      if (this.info.storage.sdcard.freeSpace) {
-        return 100 - Math.floor(this.info.storage.sdcard.freeSpace / (this.info.storage.sdcard.totalSpace / 100))
+    })
+    .catch(error => {
+      if (error.toString() === 'Error: No known ports') {
+        flags.value.portSelectRequired = true
+      } else if (error.toString().includes('Failed to open serial port')) {
+        flags.value.portSelectRequired = true
+        flags.value.flipperOccupiedDialog = true
       } else {
-        return 1
+        log({
+          level: 'error',
+          message: `${componentName}: Failed to connect: ${error}`
+        })
+        connectionStatus.value = error.toString()
       }
-    },
-    internalUsed () {
-      if (this.info.storage.internal.freeSpace) {
-        return 100 - Math.floor(this.info.storage.internal.freeSpace / (this.info.storage.internal.totalSpace / 100))
-      } else {
-        return 1
-      }
-    }
-  },
-
-  watch: {
-    $route (to, from) {
-      this.checkConnectionRequirement(to.path)
-    }
-  },
-
-  methods: {
-    async connect () {
-      await this.flipper.connect()
-        .then(() => {
-          this.flags.portSelectRequired = false
-          this.connectionStatus = 'Flipper connected'
-          this.flags.connected = true
-          this.flags.flipperOccupiedDialog = false
-          this.log({
-            level: 'info',
-            message: `${this.componentName}: Flipper connected`
-          })
-          if (dismissNotif) {
-            dismissNotif()
-          }
-        })
-        .catch((error) => {
-          if (error.toString() === 'Error: No known ports') {
-            this.flags.portSelectRequired = true
-          } else if (error.toString().includes('Failed to open serial port')) {
-            this.flags.portSelectRequired = true
-            this.flags.flipperOccupiedDialog = true
-          } else {
-            this.log({
-              level: 'error',
-              message: `${this.componentName}: Failed to connect: ${error}`
-            })
-            this.connectionStatus = error.toString()
-          }
-        })
-    },
-
-    async selectPort () {
-      const filters = [
-        { usbVendorId: 0x0483, usbProductId: 0x5740 }
-      ]
-      await navigator.serial.requestPort({ filters })
-      return this.start(true)
-    },
-
-    async disconnect () {
-      await this.flipper.disconnect()
-        .then(() => {
-          this.connectionStatus = 'Disconnected'
-          this.flags.connected = false
-          this.info = null
-          this.textInfo = ''
-          this.fileToPass = null
-        })
-        .catch(error => {
-          this.log({
-            level: 'error',
-            message: `${this.componentName}: Error while disconnecting ${error}`
-          })
-          this.connectionStatus = error.toString()
-        })
-      this.log({
+    })
+}
+const selectPort = async () => {
+  const filters = [
+    { usbVendorId: 0x0483, usbProductId: 0x5740 }
+  ]
+  await navigator.serial.requestPort({ filters })
+  return start(true)
+}
+const disconnect = () => {
+  flipper.disconnect()
+    .then(() => {
+      connectionStatus.value = 'Disconnected'
+      flags.value.connected = false
+      info.value = null
+      log({
         level: 'info',
-        message: `${this.componentName}: Flipper disconnected`
+        message: `${componentName}: Flipper disconnected`
       })
-    },
-
-    async startRpc () {
-      if (!this.flags.connected) {
-        return
-      }
-      this.flags.rpcToggling = true
-      await this.flipper.startRPCSession()
-        .catch(error => {
-          console.error(error)
-          this.log({
-            level: 'error',
-            message: `${this.componentName}: Error while starting RPC: ${error.toString()}`
-          })
-        })
-      this.flags.rpcActive = true
-      this.flags.rpcToggling = false
-      this.log({
-        level: 'info',
-        message: `${this.componentName}: RPC started`
-      })
-    },
-
-    async stopRpc () {
-      this.flags.rpcToggling = true
-      await this.flipper.setReadingMode('text', 'promptBreak')
-      this.flags.rpcActive = false
-      this.flags.rpcToggling = false
-      this.log({
-        level: 'info',
-        message: `${this.componentName}: RPC stopped`
-      })
-    },
-
-    async readInfo () {
-      if (!this.flags.connected) {
-        return
-      }
-      this.info = {
-        doneReading: false,
-        storage: {
-          sdcard: {},
-          databases: {},
-          internal: {}
-        }
-      }
-      const devInfo = await this.flipper.RPC('propertyGet', { key: 'devinfo' })
-        .catch(error => this.rpcErrorHandler(error, 'propertyGet'))
-        .finally(() => {
-          this.$emit('log', {
-            level: 'debug',
-            message: `${this.componentName}: propertyGet: OK`
-          })
-        })
-      this.info = { ...this.info, ...devInfo }
-
-      const powerInfo = await this.flipper.RPC('propertyGet', { key: 'pwrinfo' })
-        .catch(error => this.rpcErrorHandler(error, 'propertyGet'))
-        .finally(() => {
-          this.$emit('log', {
-            level: 'debug',
-            message: `${this.componentName}: propertyGet: OK`
-          })
-        })
-      this.info.power = powerInfo
-
-      const ext = await this.flipper.RPC('storageList', { path: '/ext' })
-        .catch(error => this.rpcErrorHandler(error, 'storageList'))
-        .finally(() => {
-          this.$emit('log', {
-            level: 'debug',
-            message: `${this.componentName}: storageList: /ext`
-          })
-        })
-
-      if (ext && ext.length) {
-        const manifest = ext.find(e => e.name === 'Manifest')
-        if (manifest) {
-          this.info.storage.databases.status = 'installed'
-        } else {
-          this.info.storage.databases.status = 'missing'
-        }
-
-        const extInfo = await this.flipper.RPC('storageInfo', { path: '/ext' })
-          .catch(error => this.rpcErrorHandler(error, 'storageInfo'))
-          .finally(() => {
-            this.$emit('log', {
-              level: 'debug',
-              message: `${this.componentName}: storageInfo: /ext`
-            })
-          })
-        this.info.storage.sdcard.status = 'installed'
-        this.info.storage.sdcard.totalSpace = extInfo.totalSpace
-        this.info.storage.sdcard.freeSpace = extInfo.freeSpace
-      } else {
-        this.info.storage.sdcard.status = 'missing'
-        this.info.storage.databases.status = 'missing'
-      }
-
-      const intInfo = await this.flipper.RPC('storageInfo', { path: '/int' })
-        .catch(error => this.rpcErrorHandler(error, 'storageInfo'))
-        .finally(() => {
-          this.$emit('log', {
-            level: 'debug',
-            message: `${this.componentName}: storageInfo: /int`
-          })
-        })
-      this.info.storage.internal.totalSpace = intInfo.totalSpace
-      this.info.storage.internal.freeSpace = intInfo.freeSpace
-      this.log({
-        level: 'info',
-        message: `${this.componentName}: Fetched device info`
-      })
-
-      this.info.doneReading = true
-    },
-
-    async setTime () {
-      if (!this.flags.connected) {
-        return
-      }
-      await this.flipper.RPC('systemSetDatetime', { date: new Date() })
-        .catch(error => this.rpcErrorHandler(error, 'systemSetDatetime'))
-        .finally(() => {
-          this.$emit('log', {
-            level: 'debug',
-            message: `${this.componentName}: systemSetDatetime: OK`
-          })
-        })
-    },
-
-    findKnownDevices () {
-      const filters = [
-        { usbVendorId: 0x0483, usbProductId: 0x5740 }
-      ]
-      return navigator.serial.getPorts({ filters })
-    },
-
-    autoReconnect () {
-      if (this.reconnectLoop) {
-        clearInterval(this.reconnectLoop)
-        this.reconnectLoop = null
-      }
-      if (this.flags.autoReconnect) {
-        this.reconnectLoop = setInterval(async () => {
-          if (this.flags.autoReconnect) {
-            const ports = await this.findKnownDevices()
-            if (ports && ports.length > 0) {
-              clearInterval(this.reconnectLoop)
-              this.reconnectLoop = null
-              return await this.start()
-            }
-          } else {
-            clearInterval(this.reconnectLoop)
-            this.reconnectLoop = null
-          }
-        }, 3000)
-      }
-    },
-
-    toggleConnectOnStart () {
-      localStorage.setItem('connectOnStart', this.flags.connectOnStart)
-    },
-    toggleAutoReconnect () {
-      localStorage.setItem('autoReconnect', this.flags.autoReconnect)
-    },
-    toggleInstallFromFile () {
-      localStorage.setItem('installFromFile', this.flags.installFromFile)
-    },
-    toggleCatalogEnabled () {
-      localStorage.setItem('catalogEnabled', this.flags.catalogEnabled)
-      location.reload()
-    },
-    toggleCatalogChannel () {
-      localStorage.setItem('catalogChannel', this.flags.catalogChannelProduction ? 'production' : 'dev')
-      location.reload()
-    },
-    setRpcStatus (s) {
-      this.flags.rpcActive = s
-    },
-    setInfo (info) {
-      this.info = info
-    },
-    onUpdateStage (stage) {
-      if (stage === 'start') {
-        this.flags.updateInProgress = true
-      } else if (stage === 'end') {
-        this.flags.updateInProgress = false
-      }
-    },
-    openFileIn ({ path, file }) {
-      this.log({
-        level: 'info',
-        message: `${this.componentName}: Passing file ${file.name} to ${path}`
-      })
-      this.fileToPass = file
-      this.$router.push(path)
-    },
-
-    checkConnectionRequirement (path) {
-      this.flags.connectionRequired = true
-      for (const link of this.canLoadWithoutFlipper) {
-        if ((path && path.includes(link)) || location.pathname.includes(link)) {
-          this.flags.connectionRequired = false
-          break
-        }
-      }
-
-      if (this.flags.catalogEnabled !== true) {
-        this.routes = this.routes.filter(e => e.link !== '/apps')
-        if (location.pathname === '/apps') {
-          this.$router.push('/')
-        }
-      }
-    },
-
-    showNotif ({ message, color, reloadBtn }) {
-      const actions = []
-
-      if (reloadBtn) {
-        actions.push({ label: 'Reload', color: 'white', handler: () => { location.reload() } })
-      }
-      if (actions.length === 0) {
-        actions.push({ icon: 'close', color: 'white', class: 'q-px-sm' })
-      } else {
-        actions.push({ label: 'Dismiss', color: 'white' })
-      }
-
-      dismissNotif = this.notify({
-        message: message,
-        color: color,
-        textColor: 'white',
-        position: 'bottom-right',
-        timeout: 0,
-        group: true,
-        actions: actions
-      })
-    },
-
-    log ({ level, message }) {
-      const timestamp = Date.now()
-      const t = new Date(timestamp)
-      this.history.push({
-        level,
-        timestamp,
-        time: `${t.getHours()}:${t.getMinutes()}:${t.getSeconds()}`,
-        message
-      })
-      switch (level) {
-        case 'error':
-          this.logger.error(message)
-          break
-        case 'warn':
-          this.logger.warn(message)
-          break
-        case 'info':
-          this.logger.info(message)
-          break
-        case 'debug':
-          this.logger.debug(message)
-          break
-      }
-    },
-
-    rpcErrorHandler (error, command) {
-      error = error.toString()
-      this.showNotif({
-        message: `RPC error in command '${command}': ${error}`,
-        color: 'negative'
-      })
-      this.log({
+    })
+    .catch(error => {
+      log({
         level: 'error',
-        message: `${this.componentName}: RPC error in command '${command}': ${error}`
+        message: `${componentName}: Error while disconnecting ${error}`
       })
-    },
-
-    downloadLogs () {
-      let text = ''
-      for (const line of this.history) {
-        text += `${line.time} [${line.level}] ${line.message}\n`
-      }
-      const dl = document.createElement('a')
-      dl.setAttribute('download', 'logs.txt')
-      dl.setAttribute('href', 'data:text/plain,' + text)
-      dl.style.visibility = 'hidden'
-      document.body.append(dl)
-      dl.click()
-      dl.remove()
-    },
-
-    async start (manual) {
-      const ports = await this.findKnownDevices()
-      if (ports && ports.length > 0) {
-        await this.connect()
-        setTimeout(async () => {
-          await this.startRpc()
-          await this.readInfo()
-          await this.setTime()
-        }, 500)
-      } else {
-        this.flags.portSelectRequired = true
-        if (manual) {
-          return this.selectPort()
-        }
-      }
-    }
-  },
-
-  async mounted () {
-    if (this.$q.screen.width < 900) {
-      this.leftDrawer = false
-    }
-    if ('serial' in navigator) {
-      if (localStorage.getItem('connectOnStart') !== 'false') {
-        this.flags.connectOnStart = true
-        if (this.flags.connectionRequired) {
-          await this.start()
-        }
-      } else {
-        this.flags.connectOnStart = false
-      }
-      if (localStorage.getItem('autoReconnect') !== 'false') {
-        this.flags.autoReconnect = true
-      }
-      if (localStorage.getItem('installFromFile') === 'true') {
-        this.flags.installFromFile = true
-      }
-
-      const isProd = process.env.PRODUCTION
-      const savedChannel = localStorage.getItem('catalogChannel')
-      if (savedChannel) {
-        if (savedChannel !== 'production') {
-          this.flags.catalogChannelProduction = false
-        } else {
-          this.flags.catalogCanSwitchChannel = true
-        }
-      } else {
-        if (isProd) {
-          localStorage.setItem('catalogChannel', 'production')
-        } else {
-          localStorage.setItem('catalogChannel', 'dev')
-          this.flags.catalogChannelProduction = false
-          this.flags.catalogCanSwitchChannel = true
-        }
-      }
-
-      navigator.serial.addEventListener('disconnect', e => {
-        this.autoReconnect()
+      connectionStatus.value = error.toString()
+    })
+}
+const startRpc = async () => {
+  if (!flags.value.connected) {
+    return
+  }
+  flags.value.rpcToggling = true
+  await flipper.startRPCSession()
+    .catch(error => {
+      console.error(error)
+      emit('log', {
+        level: 'error',
+        message: `${componentName}: Error while starting RPC: ${error.toString()}`
       })
-    } else {
-      this.flags.serialSupported = false
-    }
-    this.checkConnectionRequirement()
+    })
+  flags.value.rpcActive = true
+  flags.value.rpcToggling = false
+  log({
+    level: 'info',
+    message: `${componentName}: RPC started`
+  })
+}
 
-    navigator.serial.addEventListener('disconnect', (e) => {
-      if (!this.flags.updateInProgress) {
-        this.showNotif({
-          message: 'Flipper has been disconnected'
-        })
-        this.flags.connected = false
-        this.flags.portSelectRequired = true
-      }
-      this.log({
-        level: 'info',
-        message: `${this.componentName}: Flipper has been disconnected`
+const readInfo = async () => {
+  if (!flags.value.connected) {
+    return
+  }
+  info.value = {
+    doneReading: false,
+    storage: {
+      sdcard: {},
+      databases: {},
+      internal: {}
+    }
+  }
+  const devInfo = await flipper.RPC('propertyGet', { key: 'devinfo' })
+    .catch(error => rpcErrorHandler(error, 'propertyGet'))
+    .finally(() => {
+      log({
+        level: 'debug',
+        message: `${componentName}: propertyGet: OK`
+      })
+    })
+  info.value = { ...info.value, ...devInfo }
+
+  const powerInfo = await flipper.RPC('propertyGet', { key: 'pwrinfo' })
+    .catch(error => rpcErrorHandler(error, 'propertyGet'))
+    .finally(() => {
+      log({
+        level: 'debug',
+        message: `${componentName}: propertyGet: OK`
+      })
+    })
+  info.value.power = powerInfo
+
+  const ext = await flipper.RPC('storageList', { path: '/ext' })
+    .catch(error => rpcErrorHandler(error, 'storageList'))
+    .finally(() => {
+      log({
+        level: 'debug',
+        message: `${componentName}: storageList: /ext`
       })
     })
 
-    this.logger.setLevel('info', true)
-    const originalFactory = this.logger.methodFactory
-    this.logger.methodFactory = function (methodName, logLevel, loggerName) {
-      const rawMethod = originalFactory(methodName, logLevel, loggerName)
+  if (ext && ext.length) {
+    const manifest = ext.find(e => e.name === 'Manifest')
+    if (manifest) {
+      info.value.storage.databases.status = 'installed'
+    } else {
+      info.value.storage.databases.status = 'missing'
+    }
 
-      return function (message) {
-        if (methodName !== 'debug') {
-          rawMethod(message)
+    const extInfo = await flipper.RPC('storageInfo', { path: '/ext' })
+      .catch(error => rpcErrorHandler(error, 'storageInfo'))
+      .finally(() => {
+        log({
+          level: 'debug',
+          message: `${componentName}: storageInfo: /ext`
+        })
+      })
+    info.value.storage.sdcard.status = 'installed'
+    info.value.storage.sdcard.totalSpace = extInfo.totalSpace
+    info.value.storage.sdcard.freeSpace = extInfo.freeSpace
+  } else {
+    info.value.storage.sdcard.status = 'missing'
+    info.value.storage.databases.status = 'missing'
+  }
+
+  const intInfo = await flipper.RPC('storageInfo', { path: '/int' })
+    .catch(error => rpcErrorHandler(error, 'storageInfo'))
+    .finally(() => {
+      log({
+        level: 'debug',
+        message: `${componentName}: storageInfo: /int`
+      })
+    })
+  info.value.storage.internal.totalSpace = intInfo.totalSpace
+  info.value.storage.internal.freeSpace = intInfo.freeSpace
+  log({
+    level: 'info',
+    message: `${componentName}: Fetched device info`
+  })
+
+  info.value.doneReading = true
+}
+
+const setTime = async () => {
+  if (!flags.value.connected) {
+    return
+  }
+  await flipper.RPC('systemSetDatetime', { date: new Date() })
+    .catch(error => rpcErrorHandler(error, 'systemSetDatetime'))
+    .finally(() => {
+      log({
+        level: 'debug',
+        message: `${componentName}: systemSetDatetime: OK`
+      })
+    })
+}
+
+const findKnownDevices = () => {
+  const filters = [
+    { usbVendorId: 0x0483, usbProductId: 0x5740 }
+  ]
+  return navigator.serial.getPorts({ filters })
+}
+
+const autoReconnect = () => {
+  if (reconnectLoop.value) {
+    clearInterval(reconnectLoop.value)
+    reconnectLoop.value = null
+  }
+  if (flags.value.autoReconnect) {
+    reconnectLoop.value = setInterval(async () => {
+      if (flags.value.autoReconnect) {
+        const ports = await findKnownDevices()
+        if (ports && ports.length > 0) {
+          clearInterval(reconnectLoop.value)
+          reconnectLoop.value = null
+          return await start()
         }
+      } else {
+        clearInterval(reconnectLoop.value)
+        reconnectLoop.value = null
+      }
+    }, 3000)
+  }
+}
+
+const toggleConnectOnStart = () => {
+  localStorage.setItem('connectOnStart', flags.value.connectOnStart)
+}
+const toggleAutoReconnect = () => {
+  localStorage.setItem('autoReconnect', flags.value.autoReconnect)
+}
+const toggleInstallFromFile = () => {
+  localStorage.setItem('installFromFile', flags.value.installFromFile)
+}
+const toggleCatalogEnabled = () => {
+  localStorage.setItem('catalogEnabled', flags.value.catalogEnabled)
+  location.reload()
+}
+const toggleCatalogChannel = () => {
+  localStorage.setItem('catalogChannel', flags.value.catalogChannelProduction ? 'production' : 'dev')
+  location.reload()
+}
+
+const setRpcStatus = (s) => {
+  flags.value.rpcActive = s
+}
+const setInfo = (newInfo) => {
+  info.value = newInfo
+}
+const onUpdateStage = (stage) => {
+  if (stage === 'start') {
+    flags.value.updateInProgress = true
+  } else if (stage === 'end') {
+    flags.value.updateInProgress = false
+  }
+}
+const openFileIn = ({ path, file }) => {
+  log({
+    level: 'info',
+    message: `${componentName}: Passing file ${file.name} to ${path}`
+  })
+  fileToPass.value = file
+  router.push(path)
+}
+
+const checkConnectionRequirement = (path) => {
+  flags.value.connectionRequired = true
+  for (const link of canLoadWithoutFlipper) {
+    if ((path && path.includes(link)) || location.pathname.includes(link)) {
+      flags.value.connectionRequired = false
+      break
+    }
+  }
+
+  if (flags.value.catalogEnabled !== true) {
+    routes.value = routes.filter(e => e.link !== '/apps')
+    if (location.pathname === '/apps') {
+      router.push({ name: 'Device' })
+    }
+  }
+}
+
+const showNotif = ({ message, color, reloadBtn }) => {
+  const actions = []
+
+  if (reloadBtn) {
+    actions.push({ label: 'Reload', color: 'white', handler: () => { location.reload() } })
+  }
+  if (actions.length === 0) {
+    actions.push({ icon: 'close', color: 'white', class: 'q-px-sm' })
+  } else {
+    actions.push({ label: 'Dismiss', color: 'white' })
+  }
+
+  dismissNotif = notify({
+    message: message,
+    color: color,
+    textColor: 'white',
+    position: 'bottom-right',
+    timeout: 0,
+    group: true,
+    actions: actions
+  })
+}
+
+const log = ({ level, message }) => {
+  const timestamp = Date.now()
+  const t = new Date(timestamp)
+  history.value.push({
+    level,
+    timestamp,
+    time: `${t.getHours()}:${t.getMinutes()}:${t.getSeconds()}`,
+    message
+  })
+  switch (level) {
+    case 'error':
+      logger.error(message)
+      break
+    case 'warn':
+      logger.warn(message)
+      break
+    case 'info':
+      logger.info(message)
+      break
+    case 'debug':
+      logger.debug(message)
+      break
+  }
+}
+
+const rpcErrorHandler = (error, command) => {
+  error = error.toString()
+  showNotif({
+    message: `RPC error in command '${command}': ${error}`,
+    color: 'negative'
+  })
+  log({
+    level: 'error',
+    message: `${componentName}: RPC error in command '${command}': ${error}`
+  })
+}
+
+const downloadLogs = () => {
+  let text = ''
+  for (const line of history.value) {
+    text += `${line.time} [${line.level}] ${line.message}\n`
+  }
+  const dl = document.createElement('a')
+  dl.setAttribute('download', 'logs.txt')
+  dl.setAttribute('href', 'data:text/plain,' + text)
+  dl.style.visibility = 'hidden'
+  document.body.append(dl)
+  dl.click()
+  dl.remove()
+}
+
+const start = async (manual) => {
+  const ports = await findKnownDevices()
+  if (ports && ports.length > 0) {
+    await connect()
+    setTimeout(async () => {
+      await startRpc()
+      await readInfo()
+      await setTime()
+    }, 500)
+  } else {
+    flags.value.portSelectRequired = true
+    if (manual) {
+      return selectPort()
+    }
+  }
+}
+
+onMounted(async () => {
+  if ($q.screen.width < 900) {
+    leftDrawer.value = false
+  }
+  if ('serial' in navigator) {
+    if (localStorage.getItem('connectOnStart') !== 'false') {
+      flags.value.connectOnStart = true
+      if (flags.value.connectionRequired) {
+        await start()
+      }
+    } else {
+      flags.value.connectOnStart = false
+    }
+    if (localStorage.getItem('autoReconnect') !== 'false') {
+      flags.value.autoReconnect = true
+    }
+    if (localStorage.getItem('installFromFile') === 'true') {
+      flags.value.installFromFile = true
+    }
+
+    const isProd = process.env.PRODUCTION
+    const savedChannel = localStorage.getItem('catalogChannel')
+    if (savedChannel) {
+      if (savedChannel !== 'production') {
+        flags.value.catalogChannelProduction = false
+      } else {
+        flags.value.catalogCanSwitchChannel = true
+      }
+    } else {
+      if (isProd) {
+        localStorage.setItem('catalogChannel', 'production')
+      } else {
+        localStorage.setItem('catalogChannel', 'dev')
+        flags.value.catalogChannelProduction = false
+        flags.value.catalogCanSwitchChannel = true
       }
     }
-    this.logger.setLevel(log.getLevel())
+
+    navigator.serial.addEventListener('disconnect', e => {
+      autoReconnect()
+    })
+  } else {
+    flags.value.serialSupported = false
   }
+  checkConnectionRequirement()
+
+  navigator.serial.addEventListener('disconnect', (e) => {
+    if (!flags.value.updateInProgress) {
+      showNotif({
+        message: 'Flipper has been disconnected'
+      })
+      flags.value.connected = false
+      flags.value.portSelectRequired = true
+    }
+    log({
+      level: 'info',
+      message: `${componentName}: Flipper has been disconnected`
+    })
+  })
+
+  logger.setLevel('info', true)
+  const originalFactory = logger.methodFactory
+  logger.methodFactory = function (methodName, logLevel, loggerName) {
+    const rawMethod = originalFactory(methodName, logLevel, loggerName)
+
+    return function (message) {
+      if (methodName !== 'debug') {
+        rawMethod(message)
+      }
+    }
+  }
+  logger.setLevel(logger.getLevel())
 })
 </script>
