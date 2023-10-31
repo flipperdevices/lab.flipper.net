@@ -336,6 +336,15 @@ watch(() => props.connected, (newStatus) => {
 const startRpc = async () => {
   flags.value.rpcToggling = true
   await props.flipper.startRPCSession()
+    .then(() => {
+      flags.value.rpcActive = true
+      emit('setRpcStatus', true)
+      flags.value.rpcToggling = false
+      emit('log', {
+        level: 'info',
+        message: `${componentName}: RPC started`
+      })
+    })
     .catch(error => {
       console.error(error)
       emit('log', {
@@ -343,13 +352,6 @@ const startRpc = async () => {
         message: `${componentName}: Error while starting RPC: ${error.toString()}`
       })
     })
-  flags.value.rpcActive = true
-  emit('setRpcStatus', true)
-  flags.value.rpcToggling = false
-  emit('log', {
-    level: 'info',
-    message: `${componentName}: RPC started`
-  })
 }
 
 const list = async () => {
