@@ -354,13 +354,13 @@ const startRpc = async () => {
 
 const list = async () => {
   const list = await props.flipper.RPC('storageList', { path: path.value })
-    .catch(error => rpcErrorHandler(error, 'storageList'))
-    .finally(() => {
+    .then(() => {
       emit('log', {
         level: 'debug',
         message: `${componentName}: storageList: ${path.value}`
       })
     })
+    .catch(error => rpcErrorHandler(error, 'storageList'))
   if (list.length === 0) {
     dir.value = []
     return
@@ -382,13 +382,13 @@ const read = async (path, preventDownload) => {
   })
 
   const res = await props.flipper.RPC('storageRead', { path })
-    .catch(error => rpcErrorHandler(error, 'storageRead'))
-    .finally(() => {
+    .then(() => {
       emit('log', {
         level: 'debug',
         message: `${componentName}: storageRead: ${path}`
       })
     })
+    .catch(error => rpcErrorHandler(error, 'storageRead'))
   const s = path.split('/')
   if (!preventDownload) {
     exportFile(s[s.length - 1], res)
@@ -401,35 +401,35 @@ const read = async (path, preventDownload) => {
 }
 const remove = async (path, isRecursive) => {
   await props.flipper.RPC('storageRemove', { path, recursive: isRecursive })
-    .catch(error => rpcErrorHandler(error, 'storageRemove'))
-    .finally(() => {
+    .then(() => {
       emit('log', {
         level: 'debug',
         message: `${componentName}: storageRemove: ${path}, recursive: ${isRecursive}`
       })
     })
+    .catch(error => rpcErrorHandler(error, 'storageRemove'))
   list()
 }
 const rename = async (path, oldName, newName) => {
   await props.flipper.RPC('storageRename', { oldPath: path + '/' + oldName, newPath: path + '/' + newName })
-    .catch(error => rpcErrorHandler(error, 'storageRename'))
-    .finally(() => {
+    .then(() => {
       emit('log', {
         level: 'debug',
         message: `${componentName}: storageRename: ${path}, old name: ${oldName}, new name: ${newName}`
       })
     })
+    .catch(error => rpcErrorHandler(error, 'storageRename'))
   list()
 }
 const mkdir = async (path) => {
   await props.flipper.RPC('storageMkdir', { path })
-    .catch(error => rpcErrorHandler(error, 'storageMkdir'))
-    .finally(() => {
+    .then(() => {
       emit('log', {
         level: 'debug',
         message: `${componentName}: storageMkdir: ${path}`
       })
     })
+    .catch(error => rpcErrorHandler(error, 'storageMkdir'))
   list()
 }
 const upload = async () => {
@@ -458,13 +458,13 @@ const upload = async () => {
     })
 
     await props.flipper.RPC('storageWrite', { path: dir + '/' + localFile.name, buffer: await localFile.arrayBuffer() })
-      .catch(error => rpcErrorHandler(error, 'storageWrite'))
-      .finally(() => {
+      .then(() => {
         emit('log', {
           level: 'debug',
           message: `${componentName}: storageWrite: ${path.value}/${localFile.name}`
         })
       })
+      .catch(error => rpcErrorHandler(error, 'storageWrite'))
     unbind()
   }
   file.value.name = ''
