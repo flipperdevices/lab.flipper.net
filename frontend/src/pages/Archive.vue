@@ -91,7 +91,7 @@
                       Download
                     </q-item-section>
                   </q-item>
-                  <q-item v-if="item.name.endsWith('.sub') || item.name.endsWith('.ir')" clickable @click="openFileIn(item, 'pulse-plotter')">
+                  <q-item v-if="item.name.endsWith('.sub') || item.name.endsWith('.ir')" clickable @click="openFileIn(item, { name: 'PulsePlotter' })">
                     <q-item-section avatar>
                       <q-icon name="mdi-share-outline"/>
                     </q-item-section>
