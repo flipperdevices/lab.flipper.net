@@ -358,6 +358,7 @@ import * as loglevel from 'loglevel'
 const emit = defineEmits(['log'])
 
 const $q = useQuasar()
+$q.screen.setSizes({ md: 900 })
 const notify = $q.notify
 
 const router = useRouter()
@@ -397,7 +398,7 @@ const routes = [
     link: '/paint'
   },
   {
-    title: 'Radio tools',
+    title: 'Pulse Plotter',
     icon: 'svguse:common-icons.svg#subtools',
     link: '/pulse-plotter'
   }
@@ -592,32 +593,33 @@ const readInfo = async () => {
       internal: {}
     }
   }
-  const devInfo = await flipper.RPC('propertyGet', { key: 'devinfo' })
-    .then(() => {
+  await flipper.RPC('propertyGet', { key: 'devinfo' })
+    .then(devInfo => {
       log({
         level: 'debug',
         message: `${componentName}: propertyGet: OK`
       })
+      info.value = { ...info.value, ...devInfo }
     })
     .catch(error => rpcErrorHandler(error, 'propertyGet'))
-  info.value = { ...info.value, ...devInfo }
 
-  const powerInfo = await flipper.RPC('propertyGet', { key: 'pwrinfo' })
-    .then(() => {
+  await flipper.RPC('propertyGet', { key: 'pwrinfo' })
+    .then(powerInfo => {
       log({
         level: 'debug',
         message: `${componentName}: propertyGet: OK`
       })
+      info.value.power = powerInfo
     })
     .catch(error => rpcErrorHandler(error, 'propertyGet'))
-  info.value.power = powerInfo
 
   const ext = await flipper.RPC('storageList', { path: '/ext' })
-    .then(() => {
+    .then(list => {
       log({
         level: 'debug',
         message: `${componentName}: storageList: /ext`
       })
+      return list
     })
     .catch(error => rpcErrorHandler(error, 'storageList'))
 
@@ -629,37 +631,36 @@ const readInfo = async () => {
       info.value.storage.databases.status = 'missing'
     }
 
-    const extInfo = await flipper.RPC('storageInfo', { path: '/ext' })
-      .then(() => {
+    await flipper.RPC('storageInfo', { path: '/ext' })
+      .then(extInfo => {
         log({
           level: 'debug',
           message: `${componentName}: storageInfo: /ext`
         })
+        info.value.storage.sdcard.status = 'installed'
+        info.value.storage.sdcard.totalSpace = extInfo.totalSpace
+        info.value.storage.sdcard.freeSpace = extInfo.freeSpace
       })
       .catch(error => rpcErrorHandler(error, 'storageInfo'))
-    info.value.storage.sdcard.status = 'installed'
-    info.value.storage.sdcard.totalSpace = extInfo.totalSpace
-    info.value.storage.sdcard.freeSpace = extInfo.freeSpace
   } else {
     info.value.storage.sdcard.status = 'missing'
     info.value.storage.databases.status = 'missing'
   }
 
-  const intInfo = await flipper.RPC('storageInfo', { path: '/int' })
-    .then(() => {
+  await flipper.RPC('storageInfo', { path: '/int' })
+    .then(intInfo => {
       log({
         level: 'debug',
         message: `${componentName}: storageInfo: /int`
       })
+      info.value.storage.internal.totalSpace = intInfo.totalSpace
+      info.value.storage.internal.freeSpace = intInfo.freeSpace
+      log({
+        level: 'info',
+        message: `${componentName}: Fetched device info`
+      })
     })
     .catch(error => rpcErrorHandler(error, 'storageInfo'))
-  info.value.storage.internal.totalSpace = intInfo.totalSpace
-  info.value.storage.internal.freeSpace = intInfo.freeSpace
-  log({
-    level: 'info',
-    message: `${componentName}: Fetched device info`
-  })
-
   info.value.doneReading = true
 }
 
@@ -855,7 +856,7 @@ const start = async (manual) => {
 }
 
 onMounted(async () => {
-  if ($q.screen.width < 900) {
+  if ($q.screen.lt.md) {
     leftDrawer.value = false
   }
   if ('serial' in navigator) {
