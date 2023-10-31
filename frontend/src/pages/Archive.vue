@@ -327,7 +327,7 @@ const file = ref({
 })
 const itemToDelete = ref(null)
 
-watch(ref(props.connected), (newStatus) => {
+watch(() => props.connected, (newStatus) => {
   if (newStatus) {
     start()
   }
