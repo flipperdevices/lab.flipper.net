@@ -492,7 +492,7 @@ const itemClicked = (item) => {
 const openFileIn = async (item, destination) => {
   const res = await read(path.value + '/' + item.name, true)
   emit('openFileIn', {
-    destination,
+    path: destination,
     file: {
       name: item.name,
       data: res
