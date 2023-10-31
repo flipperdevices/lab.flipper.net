@@ -46,7 +46,7 @@ const props = defineProps({
 const emit = defineEmits(['cancel', 'select'])
 
 const sourceImageData = ref(null)
-const ditherProcesses = ref(null)
+const ditherProcesses = ref([])
 const sourceCanvasRef = ref(null)
 const unbindDitherStart = ref(null)
 const unbindDitherResult = ref(null)
