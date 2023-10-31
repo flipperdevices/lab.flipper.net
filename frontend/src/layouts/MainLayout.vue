@@ -156,11 +156,13 @@
                 </div>
                 <q-linear-progress style="height: 8px; border-radius: 8px;" :value="internalUsed / 100" class="q-mb-sm"/>
 
-                <div class="flex full-width justify-between items-center q-mt-xs">
-                  <div>SD card used:</div>
-                  <div class="text-bold">{{ sdCardUsed }}%</div>
-                </div>
-                <q-linear-progress style="height: 8px; border-radius: 8px;" :value="Math.ceil(sdCardUsed/2)*2 / 100" class="q-mb-sm"/>
+                <template v-if="info.storage.sdcard.status !== 'missing'">
+                  <div class="flex full-width justify-between items-center q-mt-xs">
+                    <div>SD card used:</div>
+                    <div class="text-bold">{{ sdCardUsed }}%</div>
+                  </div>
+                  <q-linear-progress style="height: 8px; border-radius: 8px;" :value="Math.ceil(sdCardUsed/2)*2 / 100" class="q-mb-sm"/>
+                </template>
               </div>
 
               <div class="q-my-md q-px-md">

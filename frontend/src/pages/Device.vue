@@ -167,7 +167,11 @@ const radioStackType = computed(() => {
   }
 })
 const sdCardUsage = computed(() => {
-  return `${bytesToSize(props.info.storage.sdcard.totalSpace - props.info.storage.sdcard.freeSpace)} / ${bytesToSize(props.info.storage.sdcard.totalSpace)}`
+  const sdCard = props.info.storage.sdcard
+  if (sdCard.status === 'missing') {
+    return sdCard.status
+  }
+  return `${bytesToSize(sdCard.totalSpace - sdCard.freeSpace)} / ${bytesToSize(sdCard.totalSpace)}`
 })
 
 const startRpc = async () => {
