@@ -303,7 +303,7 @@ const props = defineProps({
   connected: Boolean,
   rpcActive: Boolean
 })
-const emit = defineEmits(['setRpcStatus', 'log', 'showNotif'])
+const emit = defineEmits(['setRpcStatus', 'log', 'showNotif', 'openFileIn'])
 
 const componentName = 'Archive'
 const path = ref('/')
@@ -356,11 +356,12 @@ const startRpc = async () => {
 
 const list = async () => {
   const list = await props.flipper.RPC('storageList', { path: path.value })
-    .then(() => {
+    .then(list => {
       emit('log', {
         level: 'debug',
         message: `${componentName}: storageList: ${path.value}`
       })
+      return list
     })
     .catch(error => rpcErrorHandler(error, 'storageList'))
   if (list.length === 0) {
@@ -384,11 +385,12 @@ const read = async (path, preventDownload) => {
   })
 
   const res = await props.flipper.RPC('storageRead', { path })
-    .then(() => {
+    .then(data => {
       emit('log', {
         level: 'debug',
         message: `${componentName}: storageRead: ${path}`
       })
+      return data
     })
     .catch(error => rpcErrorHandler(error, 'storageRead'))
   const s = path.split('/')
