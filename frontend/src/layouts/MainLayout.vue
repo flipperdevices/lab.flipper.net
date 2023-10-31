@@ -593,33 +593,33 @@ const readInfo = async () => {
     }
   }
   const devInfo = await flipper.RPC('propertyGet', { key: 'devinfo' })
-    .catch(error => rpcErrorHandler(error, 'propertyGet'))
-    .finally(() => {
+    .then(() => {
       log({
         level: 'debug',
         message: `${componentName}: propertyGet: OK`
       })
     })
+    .catch(error => rpcErrorHandler(error, 'propertyGet'))
   info.value = { ...info.value, ...devInfo }
 
   const powerInfo = await flipper.RPC('propertyGet', { key: 'pwrinfo' })
-    .catch(error => rpcErrorHandler(error, 'propertyGet'))
-    .finally(() => {
+    .then(() => {
       log({
         level: 'debug',
         message: `${componentName}: propertyGet: OK`
       })
     })
+    .catch(error => rpcErrorHandler(error, 'propertyGet'))
   info.value.power = powerInfo
 
   const ext = await flipper.RPC('storageList', { path: '/ext' })
-    .catch(error => rpcErrorHandler(error, 'storageList'))
-    .finally(() => {
+    .then(() => {
       log({
         level: 'debug',
         message: `${componentName}: storageList: /ext`
       })
     })
+    .catch(error => rpcErrorHandler(error, 'storageList'))
 
   if (ext && ext.length) {
     const manifest = ext.find(e => e.name === 'Manifest')
@@ -630,13 +630,13 @@ const readInfo = async () => {
     }
 
     const extInfo = await flipper.RPC('storageInfo', { path: '/ext' })
-      .catch(error => rpcErrorHandler(error, 'storageInfo'))
-      .finally(() => {
+      .then(() => {
         log({
           level: 'debug',
           message: `${componentName}: storageInfo: /ext`
         })
       })
+      .catch(error => rpcErrorHandler(error, 'storageInfo'))
     info.value.storage.sdcard.status = 'installed'
     info.value.storage.sdcard.totalSpace = extInfo.totalSpace
     info.value.storage.sdcard.freeSpace = extInfo.freeSpace
@@ -646,13 +646,13 @@ const readInfo = async () => {
   }
 
   const intInfo = await flipper.RPC('storageInfo', { path: '/int' })
-    .catch(error => rpcErrorHandler(error, 'storageInfo'))
-    .finally(() => {
+    .then(() => {
       log({
         level: 'debug',
         message: `${componentName}: storageInfo: /int`
       })
     })
+    .catch(error => rpcErrorHandler(error, 'storageInfo'))
   info.value.storage.internal.totalSpace = intInfo.totalSpace
   info.value.storage.internal.freeSpace = intInfo.freeSpace
   log({
@@ -668,13 +668,13 @@ const setTime = async () => {
     return
   }
   await flipper.RPC('systemSetDatetime', { date: new Date() })
-    .catch(error => rpcErrorHandler(error, 'systemSetDatetime'))
-    .finally(() => {
+    .then(() => {
       log({
         level: 'debug',
         message: `${componentName}: systemSetDatetime: OK`
       })
     })
+    .catch(error => rpcErrorHandler(error, 'systemSetDatetime'))
 }
 
 const findKnownDevices = () => {
