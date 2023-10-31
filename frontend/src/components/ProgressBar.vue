@@ -18,24 +18,21 @@
   </q-linear-progress>
 </template>
 
-<script>
-import { defineComponent } from 'vue'
+<script setup>
+import { defineProps } from 'vue'
 
-export default defineComponent({
-  name: 'ProgressBar',
-  props: {
-    title: {
-      type: String,
-      default: ''
-    },
-    progress: {
-      type: Number,
-      required: true
-    },
-    interpolated: {
-      type: Boolean,
-      default: false
-    }
+defineProps({
+  title: {
+    type: String,
+    default: ''
+  },
+  progress: {
+    type: Number,
+    required: true
+  },
+  interpolated: {
+    type: Boolean,
+    default: false
   }
 })
 </script>

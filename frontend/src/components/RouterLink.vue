@@ -19,34 +19,31 @@
   </q-item>
 </template>
 
-<script>
-import { defineComponent } from 'vue'
+<script setup>
+import { defineProps, computed } from 'vue'
+import { useRoute } from 'vue-router'
 
-export default defineComponent({
-  name: 'RouterLink',
-
-  props: {
-    title: {
-      type: String,
-      required: true
-    },
-    link: {
-      type: String,
-      default: '#'
-    },
-    icon: {
-      type: String,
-      default: ''
-    }
+const props = defineProps({
+  title: {
+    type: String,
+    required: true
   },
-
-  computed: {
-    isActive () {
-      if (this.link.startsWith('/apps') && this.$route.path.startsWith('/apps')) {
-        return true
-      }
-      return this.link === this.$route.path
-    }
+  link: {
+    type: String,
+    default: '#'
+  },
+  icon: {
+    type: String,
+    default: ''
   }
+})
+
+const route = useRoute()
+
+const isActive = computed(() => {
+  if (props.link.startsWith('/apps') && route.path.startsWith('/apps')) {
+    return true
+  }
+  return props.link === route.path
 })
 </script>

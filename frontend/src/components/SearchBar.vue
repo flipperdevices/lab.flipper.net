@@ -45,69 +45,61 @@
   </div>
 </template>
 
-<script>
-import { defineComponent, ref } from 'vue'
+<script setup>
+import { ref, defineProps, defineEmits, watch } from 'vue'
 import { fetchAppsShort } from '../util/util'
 
-export default defineComponent({
-  name: 'SearchBar',
-  props: {
-    sdk: Object
-  },
+const props = defineProps({
+  sdk: Object
+})
 
-  setup () {
-    return {
-      flags: ref({
-        loading: false
-      }),
-      text: ref(''),
-      found: ref([])
+const emit = defineEmits(['openApp'])
+
+const flags = ref({
+  loading: false
+})
+const text = ref('')
+const found = ref([])
+
+watch(text, async (newValue) => {
+  if (newValue.length < 3) {
+    return
+  }
+  const params = {
+    limit: 8,
+    offset: 0,
+    sort_by: 'updated_at',
+    sort_order: -1,
+    is_latest_release_version: true,
+    query: newValue
+  }
+
+  if (props.sdk.target || props.sdk.api) {
+    delete params.is_latest_release_version
+    if (props.sdk.target) {
+      params.target = props.sdk.target
     }
-  },
-
-  watch: {
-    async text (newValue) {
-      if (newValue.length >= 2) {
-        const params = {
-          limit: 8,
-          offset: 0,
-          sort_by: 'updated_at',
-          sort_order: -1,
-          is_latest_release_version: true,
-          query: newValue
-        }
-
-        if (this.sdk.target || this.sdk.api) {
-          delete params.is_latest_release_version
-          if (this.sdk.target) {
-            params.target = this.sdk.target
-          }
-          if (this.sdk.api) {
-            params.api = this.sdk.api
-          }
-        }
-
-        this.flags.loading = true
-        await fetchAppsShort(params)
-          .then(apps => {
-            this.found = apps
-          })
-          .catch(error => {
-            console.error(error)
-            this.found = []
-          })
-        this.flags.loading = false
-      }
-    }
-  },
-
-  methods: {
-    itemClicked (app) {
-      this.$emit('openApp', app)
-      this.text = ''
+    if (props.sdk.api) {
+      params.api = props.sdk.api
     }
   }
+
+  flags.value.loading = true
+  await fetchAppsShort(params)
+    .then(apps => {
+      found.value = apps
+    })
+    .catch(error => {
+      console.error(error)
+      found.value = []
+    })
+  flags.value.loading = false
 })
+
+const itemClicked = (app) => {
+  emit('openApp', app)
+  text.value = ''
+}
 </script>
 
 <style lang="sass" scoped>

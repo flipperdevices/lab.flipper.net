@@ -17,24 +17,21 @@
   </q-item>
 </template>
 
-<script>
-import { defineComponent } from 'vue'
+<script setup>
+import { defineProps } from 'vue'
 
-export default defineComponent({
-  name: 'ExternalLink',
-  props: {
-    title: {
-      type: String,
-      required: true
-    },
-    link: {
-      type: String,
-      default: '#'
-    },
-    icon: {
-      type: String,
-      default: ''
-    }
+defineProps({
+  title: {
+    type: String,
+    required: true
+  },
+  link: {
+    type: String,
+    default: '#'
+  },
+  icon: {
+    type: String,
+    default: ''
   }
 })
 </script>
