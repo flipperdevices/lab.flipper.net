@@ -190,12 +190,31 @@ async function fetchAppFap (params) {
 }
 
 async function fetchAppsVersions (uids) {
-  let query = ''
-  for (const uid of uids) {
-    query += 'uid=' + uid + '&'
+  const size = 100
+  const subUids = []
+
+  for (let i = 0; i < Math.ceil(uids.length / size); i++) {
+    subUids[i] = uids.slice((i * size), (i * size) + size)
   }
-  const res = await fetch(`${API_ENDPOINT}/application/versions?${query}`).then(res => res.json())
-  const versions = res.map(version => camelCaseDeep(version))
+
+  const allVersions = []
+  for (const sliceUids of subUids) {
+    const res = await fetch(`${API_ENDPOINT}/1/application/versions`, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        application_versions: sliceUids,
+        limit: size
+      })
+    }).then(res => res.json())
+
+    allVersions.push(...res)
+  }
+
+  const versions = allVersions.map(version => camelCaseDeep(version))
   return versions
 }
 

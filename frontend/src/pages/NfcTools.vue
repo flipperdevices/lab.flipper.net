@@ -47,242 +47,208 @@
   </q-page>
 </template>
 
-<script>
-import { defineComponent, ref } from 'vue'
-import { startMfkey, forceStopMfkey } from '../util/mfkey32v2/mfkey'
+<script setup>
+import { ref, defineProps, defineEmits, watch, onMounted } from 'vue'
+import { startMfkey } from '../util/mfkey32v2/mfkey'
 
-export default defineComponent({
-  name: 'NfcTools',
+const props = defineProps({
+  flipper: Object,
+  connected: Boolean,
+  rpcActive: Boolean
+})
 
-  props: {
-    flipper: Object,
-    connected: Boolean,
-    rpcActive: Boolean
-  },
+const emit = defineEmits(['setRpcStatus', 'log', 'showNotif'])
 
-  setup () {
-    return {
-      componentName: 'NfcTools',
+const componentName = 'NfcTools'
+const flags = ref({
+  rpcActive: false,
+  rpcToggling: false,
+  mfkeyFlipperInProgress: false,
+  mfkeyManualInProgress: false
+})
+const mfkeyStatus = ref('')
+const args = ref({
+  cuid: '2a234f80',
+  nt0: '55721809',
+  nr0: 'ce9985f6',
+  ar0: '772f55be',
+  nt1: 'a27173f2',
+  nr1: 'e386b505',
+  ar1: '5fa65203'
+})
+const result = ref('')
 
-      flags: ref({
-        rpcActive: false,
-        rpcToggling: false,
-        mfkeyFlipperInProgress: false,
-        mfkeyManualInProgress: false
-      }),
-      mfkeyStatus: ref(''),
-      args: ref({
-        cuid: '2a234f80',
-        nt0: '55721809',
-        nr0: 'ce9985f6',
-        ar0: '772f55be',
-        nt1: 'a27173f2',
-        nr1: 'e386b505',
-        ar1: '5fa65203'
-      }),
-      result: ref('')
-    }
-  },
+watch(ref(props.connected), (newStatus) => {
+  if (newStatus) {
+    start()
+  }
+})
 
-  watch: {
-    async connected (newStatus, oldStatus) {
-      if (newStatus) {
-        await this.start()
-      }
-    }
-  },
-
-  methods: {
-    async startRpc () {
-      this.flags.rpcToggling = true
-      await this.flipper.startRPCSession()
-        .catch(error => {
-          console.error(error)
-          this.$emit('log', {
-            level: 'error',
-            message: `${this.componentName}: Error while starting RPC: ${error.toString()}`
-          })
-        })
-      this.flags.rpcActive = true
-      this.$emit('setRpcStatus', true)
-      this.flags.rpcToggling = false
-      this.$emit('log', {
-        level: 'info',
-        message: `${this.componentName}: RPC started`
-      })
-    },
-
-    async stopRpc () {
-      this.flags.rpcToggling = true
-      await this.flipper.setReadingMode('text', 'promptBreak')
-      this.flags.rpcActive = false
-      this.$emit('setRpcStatus', false)
-      this.flags.rpcToggling = false
-      this.$emit('log', {
-        level: 'info',
-        message: `${this.componentName}: RPC stopped`
-      })
-    },
-
-    rpcErrorHandler (error, command) {
-      error = error.toString()
-      this.$emit('showNotif', {
-        message: `RPC error in command '${command}': ${error}`,
-        color: 'negative'
-      })
-      this.$emit('log', {
+const startRpc = async () => {
+  flags.value.rpcToggling = true
+  await props.flipper.startRPCSession()
+    .catch(error => {
+      console.error(error)
+      emit('log', {
         level: 'error',
-        message: `${this.componentName}: RPC error in command '${command}': ${error}`
+        message: `${componentName}: Error while starting RPC: ${error.toString()}`
       })
-    },
+    })
+  flags.value.rpcActive = true
+  emit('setRpcStatus', true)
+  flags.value.rpcToggling = false
+  emit('log', {
+    level: 'info',
+    message: `${componentName}: RPC started`
+  })
+}
+const rpcErrorHandler = (error, command) => {
+  error = error.toString()
+  emit('showNotif', {
+    message: `RPC error in command '${command}': ${error}`,
+    color: 'negative'
+  })
+  emit('log', {
+    level: 'error',
+    message: `${componentName}: RPC error in command '${command}': ${error}`
+  })
+}
+const mfkeyFlipperStart = async () => {
+  flags.value.mfkeyFlipperInProgress = true
+  mfkeyStatus.value = 'Loading log'
 
-    async mfkeyFlipperStart () {
-      this.flags.mfkeyFlipperInProgress = true
-      this.mfkeyStatus = 'Loading log'
+  let res = await props.flipper.RPC('storageRead', { path: '/ext/nfc/.mfkey32.log' })
+    .catch(error => {
+      rpcErrorHandler(error, 'storageRead')
+      mfkeyStatus.value = 'No new logs available'
+      flags.value.mfkeyFlipperInProgress = false
+    })
+    .finally(() => {
+      emit('log', {
+        level: 'debug',
+        message: `${componentName}: storageRead: /ext/nfc/.mfkey32.log`
+      })
+    })
 
-      let res = await this.flipper.RPC('storageRead', { path: '/ext/nfc/.mfkey32.log' })
-        .catch(error => {
-          this.rpcErrorHandler(error, 'storageRead')
-          this.mfkeyStatus = 'No new logs available'
-          this.flags.mfkeyFlipperInProgress = false
-        })
-        .finally(() => {
-          this.$emit('log', {
-            level: 'debug',
-            message: `${this.componentName}: storageRead: /ext/nfc/.mfkey32.log`
-          })
-        })
+  if (!res) {
+    return
+  }
 
-      if (!res) {
-        return
+  mfkeyStatus.value = 'Processing log'
+  const nonces = new TextDecoder().decode(res).split('\n')
+  if (nonces[nonces.length - 1].length === 0) {
+    nonces.pop()
+  }
+
+  const keys = new Set()
+  const errors = []
+  for (let i = 0; i < nonces.length; i++) {
+    const args = nonces[i].slice(nonces[i].indexOf('cuid')).split(' ').filter((e, i) => i % 2 === 1)
+    mfkeyStatus.value = `Attacking nonce ${i + 1} of ${nonces.length}`
+    try {
+      const key = await mfkey(args)
+      if (!key.startsWith('Error')) {
+        keys.add(key)
       }
-
-      this.mfkeyStatus = 'Processing log'
-      const nonces = new TextDecoder().decode(res).split('\n')
-      if (nonces[nonces.length - 1].length === 0) {
-        nonces.pop()
-      }
-
-      const keys = new Set()
-      const errors = []
-      for (let i = 0; i < nonces.length; i++) {
-        const args = nonces[i].slice(nonces[i].indexOf('cuid')).split(' ').filter((e, i) => i % 2 === 1)
-        this.mfkeyStatus = `Attacking nonce ${i + 1} of ${nonces.length}`
-        try {
-          const key = await this.mfkey(args)
-          if (!key.startsWith('Error')) {
-            keys.add(key)
-          }
-          this.$emit('log', {
-            level: 'debug',
-            message: `${this.componentName}: cracked nonce: ${args}, key: ${key}`
-          })
-        } catch (error) {
-          errors.push(error.toString())
-          this.$emit('log', {
-            level: 'error',
-            message: `${this.componentName}: error in mfkey32v2: ${error}`
-          })
-        }
-      }
-
-      this.mfkeyStatus = 'Loading user dictionary'
-      res = await this.flipper.RPC('storageRead', { path: '/ext/nfc/assets/mf_classic_dict_user.nfc' })
-        .catch(error => {
-          this.rpcErrorHandler(error, 'storageRead')
-        })
-        .finally(() => {
-          this.$emit('log', {
-            level: 'debug',
-            message: `${this.componentName}: storageRead: /ext/nfc/assets/mf_classic_dict_user.nfc`
-          })
-        })
-
-      let dictionary = []
-      if (res) {
-        this.mfkeyStatus = 'Processing user dictionary'
-        dictionary = new TextDecoder().decode(res).split('\n')
-        if (dictionary[dictionary.length - 1].length === 0) {
-          dictionary.pop()
-        }
-      }
-
-      dictionary = dictionary.filter(e => e !== 'Error: mfkey run killed on timeout')
-      dictionary = new Set(dictionary)
-      const dictLength = Array.from(dictionary).length
-      for (const key of keys) {
-        dictionary.add(key)
-      }
-
-      this.mfkeyStatus = 'Uploading user dictionary'
-      const file = new TextEncoder().encode(Array.from(keys).join('\n'))
-      await this.flipper.RPC('storageWrite', { path: '/ext/nfc/assets/mf_classic_dict_user.nfc', buffer: file.buffer })
-        .catch(error => this.rpcErrorHandler(error, 'storageWrite'))
-        .finally(() => {
-          this.$emit('log', {
-            level: 'debug',
-            message: `${this.componentName}: storage.write: ${this.path}/${file.name}`
-          })
-        })
-
-      this.mfkeyStatus = `Nonces: ${nonces.length} | Unique keys: ${Array.from(keys).length} | New keys: ${Array.from(dictionary).length - dictLength} | Errors: ${errors.length}`
-
-      this.flags.mfkeyFlipperInProgress = false
-    },
-
-    mfkeyManualStart (e) {
-      e.preventDefault()
-      this.flags.mfkeyManualInProgress = true
-      return this.mfkey()
-    },
-
-    async mfkey (args) {
-      this.result = ''
-      if (!args) {
-        args = Object.values(this.args)
-      }
-      let result
-      try {
-        result = await startMfkey(args)
-        this.$emit('log', {
-          level: 'debug',
-          message: `${this.componentName}: cracked nonce: ${args}, key: ${result}`
-        })
-      } catch (error) {
-        this.$emit('log', {
-          level: 'error',
-          message: `${this.componentName}: error in mfkey32v2: ${error}`
-        })
-        result = `Error: ${error}`
-      }
-      if (this.flags.mfkeyManualInProgress) {
-        this.result = result
-      }
-      this.flags.mfkeyManualInProgress = false
-      return result
-    },
-
-    forceStopMfkey () {
-      forceStopMfkey()
-    },
-
-    async start () {
-      this.flags.rpcActive = this.rpcActive
-      if (!this.rpcActive) {
-        setTimeout(() => {
-          if (!this.rpcActive) {
-            return this.restartRpc(true)
-          }
-        }, 1000)
-        await this.startRpc()
-      }
+      emit('log', {
+        level: 'debug',
+        message: `${componentName}: cracked nonce: ${args}, key: ${key}`
+      })
+    } catch (error) {
+      errors.push(error.toString())
+      emit('log', {
+        level: 'error',
+        message: `${componentName}: error in mfkey32v2: ${error}`
+      })
     }
-  },
+  }
 
-  async mounted () {
-    if (this.connected) {
-      await this.start()
+  mfkeyStatus.value = 'Loading user dictionary'
+  res = await props.flipper.RPC('storageRead', { path: '/ext/nfc/assets/mf_classic_dict_user.nfc' })
+    .catch(error => {
+      rpcErrorHandler(error, 'storageRead')
+    })
+    .finally(() => {
+      emit('log', {
+        level: 'debug',
+        message: `${componentName}: storageRead: /ext/nfc/assets/mf_classic_dict_user.nfc`
+      })
+    })
+
+  let dictionary = []
+  if (res) {
+    mfkeyStatus.value = 'Processing user dictionary'
+    dictionary = new TextDecoder().decode(res).split('\n')
+    if (dictionary[dictionary.length - 1].length === 0) {
+      dictionary.pop()
     }
+  }
+
+  dictionary = dictionary.filter(e => e !== 'Error: mfkey run killed on timeout')
+  dictionary = new Set(dictionary)
+  const dictLength = Array.from(dictionary).length
+  for (const key of keys) {
+    dictionary.add(key)
+  }
+
+  mfkeyStatus.value = 'Uploading user dictionary'
+  const file = new TextEncoder().encode(Array.from(keys).join('\n'))
+  const path = '/ext/nfc/assets/mf_classic_dict_user.nfc'
+  await props.flipper.RPC('storageWrite', { path, buffer: file.buffer })
+    .catch(error => rpcErrorHandler(error, 'storageWrite'))
+    .finally(() => {
+      emit('log', {
+        level: 'debug',
+        message: `${componentName}: storage.write: ${path}`
+      })
+    })
+
+  mfkeyStatus.value = `Nonces: ${nonces.length} | Unique keys: ${Array.from(keys).length} | New keys: ${Array.from(dictionary).length - dictLength} | Errors: ${errors.length}`
+
+  flags.value.mfkeyFlipperInProgress = false
+}
+const mfkeyManualStart = async (e) => {
+  e.preventDefault()
+  flags.value.mfkeyManualInProgress = true
+  return mfkey()
+}
+const mfkey = async (localArgs) => {
+  result.value = ''
+  if (!localArgs) {
+    localArgs = Object.values(args.value)
+  }
+  let localResult
+  try {
+    console.log(localArgs)
+    localResult = await startMfkey(localArgs)
+    emit('log', {
+      level: 'debug',
+      message: `${componentName}: cracked nonce: ${localArgs}, key: ${localResult}`
+    })
+  } catch (error) {
+    emit('log', {
+      level: 'error',
+      message: `${componentName}: error in mfkey32v2: ${error}`
+    })
+    localResult = `Error: ${error}`
+  }
+  if (flags.value.mfkeyManualInProgress) {
+    result.value = localResult
+  }
+  flags.value.mfkeyManualInProgress = false
+  return result.value
+}
+
+const start = async () => {
+  flags.value.rpcActive = props.rpcActive
+  if (!props.rpcActive) {
+    await startRpc()
+  }
+}
+
+onMounted(() => {
+  if (props.connected) {
+    start()
   }
 })
 </script>
