@@ -221,7 +221,7 @@ const props = defineProps({
   fileToPass: Object
 })
 
-const emit = defineEmits(['setRpcStatus', 'setInfo', 'update', 'openFileIn', 'showNotif', 'log', 'connect'])
+const emit = defineEmits(['setRpcStatus', 'setInfo', 'update', 'openFileIn', 'showNotif', 'log', 'connect', 'toggleMicroSDcardMissingDialog'])
 
 const router = useRouter()
 const route = useRoute()
@@ -289,6 +289,14 @@ const handleAction = (app, actionType) => {
   if (!props.connected) {
     action.value.type = actionType
     flags.value.connectFlipperDialog = true
+    setTimeout(() => {
+      action.value.type = ''
+    }, 300)
+    return
+  }
+  if (!props.info.storage.sdcard.status.isInstalled) {
+    action.value.type = actionType
+    emit('toggleMicroSDcardMissingDialog', true)
     setTimeout(() => {
       action.value.type = ''
     }, 300)

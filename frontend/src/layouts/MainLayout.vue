@@ -156,7 +156,7 @@
                 </div>
                 <q-linear-progress style="height: 8px; border-radius: 8px;" :value="internalUsed / 100" class="q-mb-sm"/>
 
-                <template v-if="info.storage.sdcard.status !== 'missing'">
+                <template v-if="info.storage.sdcard.status.isInstalled">
                   <div class="flex full-width justify-between items-center q-mt-xs">
                     <div>SD card used:</div>
                     <div class="text-bold">{{ sdCardUsed }}%</div>
@@ -258,6 +258,7 @@
         @showNotif="showNotif"
         @log="log"
         @connect="start"
+        @toggleMicroSDcardMissingDialog="toggleMicroSDcardMissingDialog"
       />
       <q-page v-else class="flex-center column">
         <div
@@ -341,6 +342,28 @@
               label="Try again"
               @click="start"
             ></q-btn>
+          </q-card-section>
+        </q-card>
+      </q-dialog>
+
+      <q-dialog v-model="flags.microSDcardMissingDialog">
+        <q-card class="dialog">
+          <q-btn icon="close" flat round dense v-close-popup class="dialog-close-btn"/>
+
+          <q-card-section class="q-pa-none q-ma-md" align="center">
+            <q-icon name="mdi-alert-circle" color="primary" size="64px" />
+            <div class="text-h6 q-my-sm">MicroSD card not detected</div>
+            <p>It seems that the MicroSD card is not mounted or damaged. Insert the microSD card into the slot and try again.</p>
+          </q-card-section>
+
+          <q-card-section class="q-pt-none" align="center">
+            <q-btn
+              outline
+              color="primary"
+              label="Instruction manual"
+              href="https://docs.flipper.net/basics/sd-card#Hjdbt"
+              target="_blank"
+            />
           </q-card-section>
         </q-card>
       </q-dialog>
@@ -455,6 +478,7 @@ const flags = ref({
   logsPopup: false,
   settingsView: false,
   flipperOccupiedDialog: false,
+  microSDcardMissingDialog: false,
 
   catalogCanBeEnabled: false,
   catalogCanSwitchChannel: false,
@@ -506,8 +530,8 @@ watch(route, (to) => {
   checkConnectionRequirement(to.path)
 })
 
-const connect = () => {
-  flipper.connect()
+const connect = async () => {
+  await flipper.connect()
     .then(() => {
       flags.value.portSelectRequired = false
       connectionStatus.value = 'Flipper connected'
@@ -590,7 +614,9 @@ const readInfo = async () => {
   info.value = {
     doneReading: false,
     storage: {
-      sdcard: {},
+      sdcard: {
+        status: {}
+      },
       databases: {},
       internal: {}
     }
@@ -639,13 +665,17 @@ const readInfo = async () => {
           level: 'debug',
           message: `${componentName}: storageInfo: /ext`
         })
-        info.value.storage.sdcard.status = 'installed'
+        info.value.storage.sdcard.status.label = 'installed'
+        info.value.storage.sdcard.status.isInstalled = true
+
         info.value.storage.sdcard.totalSpace = extInfo.totalSpace
         info.value.storage.sdcard.freeSpace = extInfo.freeSpace
       })
       .catch(error => rpcErrorHandler(error, 'storageInfo'))
   } else {
-    info.value.storage.sdcard.status = 'missing'
+    info.value.storage.sdcard.status.label = 'missing'
+    info.value.storage.sdcard.status.isInstalled = false
+
     info.value.storage.databases.status = 'missing'
   }
 
@@ -855,6 +885,10 @@ const start = async (manual) => {
       return selectPort()
     }
   }
+}
+
+const toggleMicroSDcardMissingDialog = (state) => {
+  flags.value.microSDcardMissingDialog = state
 }
 
 onMounted(async () => {

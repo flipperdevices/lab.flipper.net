@@ -63,6 +63,7 @@
           @update="onUpdateStage"
           @showNotif="passNotif"
           @log="passLog"
+          @toggleMicroSDcardMissingDialog="toggleMicroSDcardMissingDialog"
         />
       </div>
       <div
@@ -94,7 +95,7 @@ const props = defineProps({
   installFromFile: Boolean
 })
 
-const emit = defineEmits(['setRpcStatus', 'log', 'update', 'showNotif'])
+const emit = defineEmits(['setRpcStatus', 'log', 'update', 'showNotif', 'toggleMicroSDcardMissingDialog'])
 
 const componentName = 'Device'
 const flags = ref({
@@ -168,8 +169,8 @@ const radioStackType = computed(() => {
 })
 const sdCardUsage = computed(() => {
   const sdCard = props.info.storage.sdcard
-  if (sdCard.status === 'missing') {
-    return sdCard.status
+  if (!sdCard.status.isInstalled) {
+    return sdCard.status.label
   }
   return `${bytesToSize(sdCard.totalSpace - sdCard.freeSpace)} / ${bytesToSize(sdCard.totalSpace)}`
 })
@@ -292,6 +293,10 @@ const start = async () => {
   if (!flags.value.screenStream) {
     await startScreenStream()
   }
+}
+
+const toggleMicroSDcardMissingDialog = (state) => {
+  emit('toggleMicroSDcardMissingDialog', state)
 }
 
 watch(props.info, (newInfo) => {
