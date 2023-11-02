@@ -475,7 +475,11 @@ class FlipperPlotter {
           )
         }
 
-        if (w > 5 && (i + skipPulse) % 2 === 0) {
+        if (
+          pulseInOneX <= this.breakpointPulseInOneX &&
+          transform.k >= this.breakpointZoom &&
+          (i + skipPulse) % 2 === 0
+        ) {
           drawLine(
             this.context,
             {
@@ -538,7 +542,8 @@ class FlipperPlotter {
     this.barHeight = this.height - this.margin.top - this.margin.bottom
 
     this.pulses = []
-    this.breakpointZoom = defaults.breakpointZoom
+    this.breakpointZoom = defaults.breakpoints.zoom
+    this.breakpointPulseInOneX = defaults.breakpoints.pulseInOneX
 
     const minZoom = 1
     this.maxZoom = this.data.width / this.width

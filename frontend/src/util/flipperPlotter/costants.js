@@ -7,7 +7,10 @@ const defaults = {
     bottom: 50,
     left: 0
   },
-  breakpointZoom: 10,
+  breakpoints: {
+    zoom: 10,
+    pulseInOneX: 75
+  },
   theme: {
     spaceFill: '#fafafa',
     combiningFill: '#e6ecee',

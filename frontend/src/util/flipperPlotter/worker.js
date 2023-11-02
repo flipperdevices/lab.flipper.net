@@ -23,7 +23,8 @@ let context,
 let pulses = []
 let altHints = []
 let barHeight = null
-const breakpointZoom = defaults.breakpointZoom
+const breakpointZoom = defaults.breakpoints.zoom
+const breakpointPulseInOneX = defaults.breakpoints.pulseInOneX
 let maxZoom = null
 
 self.onmessage = (e) => {
@@ -289,7 +290,11 @@ const zoomed = (transform) => {
         )
       }
 
-      if (w > 5 && (i + skipPulse) % 2 === 0) {
+      if (
+        pulseInOneX <= breakpointPulseInOneX &&
+        transform.k >= breakpointZoom &&
+        (i + skipPulse) % 2 === 0
+      ) {
         drawLine(
           context,
           {
