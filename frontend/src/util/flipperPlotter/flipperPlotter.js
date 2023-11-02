@@ -475,15 +475,11 @@ class FlipperPlotter {
           )
         }
 
-<<<<<<< HEAD
         if (
           pulseInOneX <= this.breakpointPulseInOneX &&
           transform.k >= this.breakpointZoom &&
           (i + skipPulse) % 2 === 0
         ) {
-=======
-        if (w > 5 && (i + skipPulse) % 2 === 0) {
->>>>>>> dev
           drawLine(
             this.context,
             {
