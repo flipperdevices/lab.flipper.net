@@ -1,6 +1,6 @@
 <template>
   <q-page class="column full-width">
-    <template v-if="!props.installedApps.length">
+    <template v-if="loading">
       <div class="column items-center">
         <q-spinner
           color="primary"
@@ -8,6 +8,27 @@
           class="q-mb-md"
         ></q-spinner>
         <p>Loading installed app...</p>
+      </div>
+    </template>
+    <template v-else-if="!props.info?.storage.sdcard.status.isInstalled">
+      <div class="column items-center">
+        <q-card flat>
+          <q-card-section class="q-pa-none q-ma-md" align="center">
+            <q-icon name="mdi-alert-circle" color="primary" size="64px" />
+            <div class="text-h6 q-my-sm">MicroSD card not detected</div>
+            <p>It seems that the MicroSD card is not mounted or damaged. Insert the microSD card into the slot and try again.</p>
+          </q-card-section>
+
+          <q-card-section class="q-pt-none" align="center">
+            <q-btn
+              outline
+              color="primary"
+              label="Instruction manual"
+              href="https://docs.flipper.net/basics/sd-card#Hjdbt"
+              target="_blank"
+            />
+          </q-card-section>
+        </q-card>
       </div>
     </template>
     <template v-else>
@@ -254,7 +275,7 @@
 </template>
 
 <script setup>
-import { defineProps, defineEmits, ref, computed } from 'vue'
+import { defineProps, defineEmits, ref, computed, watch } from 'vue'
 // import semver from 'semver'
 
 const props = defineProps({
@@ -263,7 +284,8 @@ const props = defineProps({
   installedApps: Array,
   sdk: Object,
   action: Object,
-  batch: Object
+  batch: Object,
+  info: Object
 })
 
 const emit = defineEmits(['openApp', 'action', 'batchUpdate'])
@@ -273,6 +295,11 @@ const flags = ref({
 })
 const appToDelete = ref(null)
 const actionType = ref('')
+
+const loading = ref(true)
+watch(() => props.info?.storage.sdcard.status.isInstalled, () => {
+  loading.value = false
+})
 
 const updatableApps = computed(() => {
   return props.apps.filter(app => {
