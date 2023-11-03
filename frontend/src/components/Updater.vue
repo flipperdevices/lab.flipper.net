@@ -172,6 +172,10 @@ export default defineComponent({
 
   methods: {
     async update (fromFile) {
+      if (!this.info.storage.sdcard.isInstalled) {
+        this.$emit('toggleMicroSDcardMissingDialog', true)
+        return
+      }
       this.flags.updateInProgress = true
       this.$emit('update', 'start')
       this.$emit('log', {

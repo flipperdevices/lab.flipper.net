@@ -14,14 +14,18 @@ function stat ({ path }) {
 
 function list ({ path }) {
   function format (chunks) {
-    const list = chunks.flatMap(e => e.file)
-    list.sort((a, b) => a.type < b.type ? 1 : -1)
-    const index = list.findIndex(e => e.type === 0)
-    const dirs = list.slice(0, index)
-    dirs.sort((a, b) => a.name[0].toUpperCase() > b.name[0].toUpperCase() ? 1 : -1)
-    const files = list.slice(index)
-    files.sort((a, b) => a.name[0].toUpperCase() > b.name[0].toUpperCase() ? 1 : -1)
-    return dirs.concat(files)
+    if (Object.keys(chunks[0]).length) {
+      const list = chunks.flatMap(e => e.file)
+      list.sort((a, b) => a.type < b.type ? 1 : -1)
+      const index = list.findIndex(e => e.type === 0)
+      const dirs = list.slice(0, index)
+      dirs.sort((a, b) => a.name[0].toUpperCase() > b.name[0].toUpperCase() ? 1 : -1)
+      const files = list.slice(index)
+      files.sort((a, b) => a.name[0].toUpperCase() > b.name[0].toUpperCase() ? 1 : -1)
+      return dirs.concat(files)
+    }
+
+    return []
   }
   return createRPCPromise.bind(this)('storageListRequest', { path }, format)
 }

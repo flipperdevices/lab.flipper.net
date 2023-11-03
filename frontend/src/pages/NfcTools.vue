@@ -57,7 +57,7 @@ const props = defineProps({
   rpcActive: Boolean
 })
 
-const emit = defineEmits(['setRpcStatus', 'log', 'showNotif'])
+const emit = defineEmits(['setRpcStatus', 'log', 'showNotif', 'toggleMicroSDcardMissingDialog'])
 
 const componentName = 'NfcTools'
 const flags = ref({
@@ -114,6 +114,10 @@ const rpcErrorHandler = (error, command) => {
   })
 }
 const mfkeyFlipperStart = async () => {
+  if (!props.info?.storage.sdcard.status.isInstalled) {
+    emit('toggleMicroSDcardMissingDialog', true)
+    return
+  }
   flags.value.mfkeyFlipperInProgress = true
   mfkeyStatus.value = 'Loading log'
 
@@ -219,7 +223,6 @@ const mfkey = async (localArgs) => {
   }
   let localResult
   try {
-    console.log(localArgs)
     localResult = await startMfkey(localArgs)
     emit('log', {
       level: 'debug',
