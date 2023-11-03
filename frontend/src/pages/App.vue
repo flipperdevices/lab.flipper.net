@@ -133,6 +133,15 @@
           no-link
           no-linkify
           no-typographer
+          :src="props.app.currentVersion.shortDescription"
+        ></q-markdown>
+        <q-markdown
+          no-heading-anchor-links
+          no-html
+          no-image
+          no-link
+          no-linkify
+          no-typographer
           :src="props.app.currentVersion.description"
         ></q-markdown>
         <div class="text-h5 q-my-sm">Changelog</div>
