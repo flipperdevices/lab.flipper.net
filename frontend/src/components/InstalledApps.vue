@@ -155,7 +155,7 @@
             <q-img :src="`data:image/png;base64,${app.icon}`" style="image-rendering: pixelated; width: 38px"/>
           </div>
           <div class="col-10">
-            <div class="flex flex-center">
+            <div class="flex justify-start items-center">
               <div class="text-h6 q-mr-sm" style="line-height: 1.5em; margin-bottom: 0.25rem;">{{ app.name }}</div>
               <q-chip color="deep-orange-2" icon="mdi-alert-circle-outline" label="Outdated app" size="12px" dense class="q-px-sm"/>
             </div>
