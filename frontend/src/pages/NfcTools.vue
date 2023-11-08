@@ -54,6 +54,7 @@ import { startMfkey } from '../util/mfkey32v2/mfkey'
 const props = defineProps({
   flipper: Object,
   connected: Boolean,
+  info: Object,
   rpcActive: Boolean
 })
 
@@ -124,7 +125,7 @@ const mfkeyFlipperStart = async () => {
   let res = await props.flipper.RPC('storageRead', { path: '/ext/nfc/.mfkey32.log' })
     .catch(error => {
       rpcErrorHandler(error, 'storageRead')
-      mfkeyStatus.value = 'No new logs available'
+      mfkeyStatus.value = 'Mfkey log file not found'
       flags.value.mfkeyFlipperInProgress = false
     })
     .finally(() => {
