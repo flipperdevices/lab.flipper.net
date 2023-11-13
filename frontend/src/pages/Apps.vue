@@ -119,27 +119,24 @@
 </template>
 
 <script setup>
-import { onMounted, defineProps, defineEmits, ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+const router = useRouter()
 
-const props = defineProps({
-  categories: Array,
-  apps: Array,
-  initialCategory: Object,
-  flipper: Object,
-  connected: Boolean,
-  rpcActive: Boolean,
-  action: Object
-})
+import { useAppsStore } from 'stores/apps'
+const appsStore = useAppsStore()
 
-const emit = defineEmits(['showNotif', 'openApp', 'action', 'batchUpdate'])
+const action = computed(() => appsStore.action)
+const apps = computed(() => appsStore.apps)
+const categories = computed(() => appsStore.categories)
 
 onMounted(() => {
-  currentCategory.value = props.initialCategory
+  currentCategory.value = appsStore.initialCategory
 })
 
-const initialCategoryRef = computed(() => props.initialCategory)
+const initialCategory = computed(() => appsStore.initialCategory)
 
-watch(initialCategoryRef, (newCategory) => {
+watch(initialCategory, (newCategory) => {
   currentCategory.value = newCategory
 })
 
@@ -149,15 +146,15 @@ const catalogCategories = computed(() => {
     // priority:0
     name: 'All apps',
     color: 'EBEBEB'
-  }, ...props.categories]
+  }, ...categories.value]
 })
 
 const filteredSortedApps = computed(() => {
   let filtered
   if (currentCategory.value) {
-    filtered = props.apps.filter(app => app.categoryId === currentCategory.value.id)
+    filtered = apps.value.filter(app => app.categoryId === currentCategory.value.id)
   } else {
-    filtered = props.apps
+    filtered = apps.value
   }
 
   let sortBy = '', direction = -1
@@ -187,7 +184,7 @@ const filteredSortedApps = computed(() => {
 })
 
 const actionColors = computed(() => {
-  switch (props.action.type) {
+  switch (action.value.type) {
     case 'delete':
       return {
         bar: 'negative',
@@ -217,10 +214,10 @@ const sortModel = ref('New Updates')
 const actionType = ref(null)
 
 const appClicked = (app) => {
-  if (props.action.type) {
+  if (action.value.type) {
     return
   }
-  emit('openApp', app)
+  appsStore.openApp(app)
 }
 
 const handleAction = (app, value) => {
@@ -229,17 +226,20 @@ const handleAction = (app, value) => {
   } else {
     actionType.value = value.toLowerCase()
   }
-  emit('action', app, actionType.value)
+  appsStore.handleAction(app, actionType.value)
 }
 
-// const router = useRouter()
 const onSortApps = (category) => {
   if (category.name === 'All apps') {
     currentCategory.value = null
+    appsStore.setInitalCategory(null)
+    router.push({ name: 'Apps' })
 
     return
   }
 
+  router.push({ name: 'AppsCategory', params: { path: category.name.toLowerCase() } })
+  appsStore.setInitalCategory(category)
   currentCategory.value = category
 }
 </script>

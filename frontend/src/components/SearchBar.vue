@@ -46,14 +46,13 @@
 </template>
 
 <script setup>
-import { ref, defineProps, defineEmits, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { fetchAppsShort } from '../util/util'
 
-const props = defineProps({
-  sdk: Object
-})
+import { useAppsStore } from 'src/stores/apps'
+const appsStore = useAppsStore()
 
-const emit = defineEmits(['openApp'])
+const sdk = computed(() => appsStore.sdk)
 
 const flags = ref({
   loading: false
@@ -74,13 +73,13 @@ watch(text, async (newValue) => {
     query: newValue
   }
 
-  if (props.sdk.target || props.sdk.api) {
+  if (sdk.value.target || sdk.value.api) {
     delete params.is_latest_release_version
-    if (props.sdk.target) {
-      params.target = props.sdk.target
+    if (sdk.value.target) {
+      params.target = sdk.value.target
     }
-    if (props.sdk.api) {
-      params.api = props.sdk.api
+    if (sdk.value.api) {
+      params.api = sdk.value.api
     }
   }
 
@@ -97,7 +96,7 @@ watch(text, async (newValue) => {
 })
 
 const itemClicked = (app) => {
-  emit('openApp', app)
+  appsStore.openApp(app)
   text.value = ''
 }
 </script>

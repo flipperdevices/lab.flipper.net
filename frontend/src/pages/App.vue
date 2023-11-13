@@ -13,10 +13,10 @@
     <template v-else>
       <div class="row items-center q-mb-lg" :class="$q.screen.width > 670 ? 'no-wrap' : ''">
         <div class="app-icon q-mr-md">
-          <q-img :src="props.app.currentVersion.iconUri" style="image-rendering: pixelated;"/>
+          <q-img :src="app.currentVersion.iconUri" style="image-rendering: pixelated;"/>
         </div>
         <div :class="$q.screen.width > 350 ? 'q-mr-md' : ''">
-          <div class="text-h6" style="line-height: 1.5em; margin-bottom: 0.25rem;">{{ props.app.currentVersion.name }}</div>
+          <div class="text-h6" style="line-height: 1.5em; margin-bottom: 0.25rem;">{{ app.currentVersion.name }}</div>
           <div class="row q-gutter-md">
             <div
               :style="`background-color: #${category.color};`"
@@ -28,11 +28,11 @@
             </div>
             <div class="flex items-center q-ml-md">
               <span class="text-grey-7">Version:</span>
-              <b class="q-ml-xs">{{ props.app.currentVersion.version }}</b>
+              <b class="q-ml-xs">{{ app.currentVersion.version }}</b>
             </div>
             <div class="flex items-center q-ml-md">
-              <span class="text-grey-7" v-if="!!props.app.currentVersion.currentBuild">Size:</span>
-              <b class="q-ml-xs">{{ bytesToSize(props.app.currentVersion.currentBuild.metadata.length) }}</b>
+              <span class="text-grey-7" v-if="!!app.currentVersion.currentBuild">Size:</span>
+              <b class="q-ml-xs">{{ bytesToSize(app.currentVersion.currentBuild.metadata.length) }}</b>
             </div>
 
             <template v-if="currentStatusHint">
@@ -56,9 +56,9 @@
 
         <q-space />
 
-        <template v-if="props.action.type">
+        <template v-if="action.type">
           <q-linear-progress
-            :value="props.action.progress"
+            :value="action.progress"
             size="56px"
             :color="actionColors.bar"
             :track-color="actionColors.track"
@@ -69,13 +69,13 @@
               <div
                 class="app-progress-label"
                 style="font-size: 40px;"
-              >{{ `${props.action.progress * 100}%` }}</div>
+              >{{ `${action.progress * 100}%` }}</div>
             </div>
           </q-linear-progress>
         </template>
         <template v-else>
           <q-btn
-            v-if="props.app.isInstalled"
+            v-if="app.isInstalled"
             flat
             color="negative"
             icon="svguse:common-icons.svg#delete"
@@ -87,10 +87,10 @@
             flat
             color="white"
             style="font-size: 22px; padding: 0 60px; border-radius: 10px;"
-            :label="props.app.actionButton.text"
+            :label="app.actionButton.text"
             class="no-shadow text-pixelated"
-            :class="props.app.actionButton.class + ' ' + ($q.screen.width > 670 ? 'q-mr-md' : 'q-my-md full-width')"
-            @click="handleAction(props.app.actionButton.text)"
+            :class="app.actionButton.class + ' ' + ($q.screen.width > 670 ? 'q-mr-md' : 'q-my-md full-width')"
+            @click="handleAction(app.actionButton.text)"
           />
         </template>
       </div>
@@ -109,7 +109,7 @@
         >
           <div class="row no-wrap">
             <div
-              v-for="screenshot in props.app.currentVersion.screenshots"
+              v-for="screenshot in app.currentVersion.screenshots"
               :key="screenshot"
               class="q-mx-xs screenshot"
             >
@@ -133,7 +133,7 @@
           no-link
           no-linkify
           no-typographer
-          :src="props.app.currentVersion.shortDescription"
+          :src="app.currentVersion.shortDescription"
         ></q-markdown>
         <q-markdown
           no-heading-anchor-links
@@ -142,7 +142,7 @@
           no-link
           no-linkify
           no-typographer
-          :src="props.app.currentVersion.description"
+          :src="app.currentVersion.description"
         ></q-markdown>
         <div class="text-h5 q-my-sm">Changelog</div>
         <q-markdown
@@ -152,16 +152,16 @@
           no-link
           no-linkify
           no-typographer
-          :src="props.app.currentVersion.changelog"
+          :src="app.currentVersion.changelog"
         ></q-markdown>
         <div class="text-h6 q-my-sm">Developer</div>
         <p>
-          <a class="text-grey-7" :href="props.app.currentVersion.links.manifestUri" style="text-decoration: none;">
+          <a class="text-grey-7" :href="app.currentVersion.links.manifestUri" style="text-decoration: none;">
             <q-icon name="mdi-github" color="grey-7" size="20px"/>
             <span class="q-ml-xs" style="text-decoration: underline;">Manifest</span>
           </a>
           <br />
-          <a class="text-grey-7" :href="props.app.currentVersion.links.sourceCode.uri" style="text-decoration: none;">
+          <a class="text-grey-7" :href="app.currentVersion.links.sourceCode.uri" style="text-decoration: none;">
             <q-icon name="mdi-github" color="grey-7" size="20px"/>
             <span class="q-ml-xs" style="text-decoration: underline;">Repository</span>
           </a>
@@ -205,11 +205,11 @@
           <q-card-section class="q-pt-none q-my-md text-center">
             <div class="flex no-wrap items-center">
               <div class="app-icon q-mr-md">
-                <q-img :src="props.app.currentVersion.iconUri" width="50px" style="image-rendering: pixelated;"/>
+                <q-img :src="app.currentVersion.iconUri" width="50px" style="image-rendering: pixelated;"/>
               </div>
               <div class="column items-start">
-                <div class="text-h6" style="line-height: 1.5em; margin-bottom: 0.25rem;">{{ props.app.currentVersion.name }}</div>
-                <div class="text-grey-7"><b>v{{ props.app.currentVersion.version }}</b></div>
+                <div class="text-h6" style="line-height: 1.5em; margin-bottom: 0.25rem;">{{ app.currentVersion.name }}</div>
+                <div class="text-grey-7"><b>v{{ app.currentVersion.version }}</b></div>
               </div>
             </div>
           </q-card-section>
@@ -277,7 +277,7 @@
               color="primary"
               label="View on Github"
               v-close-popup
-              :href="props.app.currentVersion.links.manifestUri"
+              :href="app.currentVersion.links.manifestUri"
             ></q-btn>
           </q-card-section>
         </q-card>
@@ -287,21 +287,22 @@
 </template>
 
 <script setup>
-import { onUpdated, defineProps, defineEmits, ref, computed, watch } from 'vue'
+import { onUpdated, defineEmits, ref, computed, watch, onUnmounted } from 'vue'
 import { bytesToSize, submitAppReport } from '../util/util'
 
-const props = defineProps({
-  categories: Array,
-  app: Object,
-  flipper: Object,
-  connected: Boolean,
-  rpcActive: Boolean,
-  sdk: Object,
-  action: Object,
-  progress: Number
-})
+import { useMainStore } from 'stores/main'
+const mainStore = useMainStore()
 
-const emit = defineEmits(['action', 'showDialog'])
+const mainFlags = computed(() => mainStore.flags)
+
+import { useAppsStore } from 'stores/apps'
+const appsStore = useAppsStore()
+
+const action = computed(() => appsStore.action)
+const app = computed(() => appsStore.currentApp)
+const categories = computed(() => appsStore.categories)
+
+const emit = defineEmits(['showDialog'])
 
 const loading = ref(true)
 const flags = ref({
@@ -352,7 +353,7 @@ const report = ref({
 })
 
 const actionColors = computed(() => {
-  switch (props.action.type) {
+  switch (action.value.type) {
     case 'delete':
       return {
         bar: 'negative',
@@ -371,14 +372,14 @@ const actionColors = computed(() => {
   }
 })
 
-watch(() => props.app, () => {
+watch(() => app.value, () => {
   start()
 }, {
   deep: true
 })
 
 const setCategory = () => {
-  category.value = props.categories.find(category => category.id === props.app.categoryId)
+  category.value = categories.value.find(category => category.id === app.value.categoryId)
 }
 
 const animateScroll = (direction) => {
@@ -408,18 +409,18 @@ const handleAction = (value) => {
   } else {
     actionType = value.toLowerCase()
   }
-  emit('action', props.app, actionType)
+  appsStore.handleAction(app.value, actionType)
 }
 
 const sendReport = async () => {
-  await submitAppReport(props.app.id, { description: report.value.description, description_type: report.value.type })
+  await submitAppReport(app.value.id, { description: report.value.description, description_type: report.value.type })
   flags.value.reportSubmitted = true
 }
 
 const start = () => {
   loading.value = false
-  const status = props.app.currentVersion.status
-  if (props.connected && status === 'READY') {
+  const status = app.value.currentVersion.status
+  if (mainFlags.value.connected && status === 'READY') {
     currentStatusHint.value = null
   } else {
     currentStatusHint.value = status
@@ -435,6 +436,10 @@ onUpdated(() => {
   if (!loading.value) {
     start()
   }
+})
+
+onUnmounted(() => {
+  appsStore.setCurrentApp(null)
 })
 </script>
 
