@@ -5,18 +5,19 @@
 </template>
 
 <script setup>
-import { ref, defineProps, defineEmits, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import PixelEditor from 'src/components/PixelEditor.vue'
 import { imageDataToXBM } from '../util/pixeleditor/xbm'
+import { log } from 'composables/useLog'
+import showNotif from 'composables/useShowNotif'
+import { rpcErrorHandler } from 'composables/useRpcUtils'
 
-const props = defineProps({
-  flipper: Object,
-  connected: Boolean,
-  rpcActive: Boolean,
-  info: Object
-})
+import { useMainStore } from 'src/stores/main'
+const mainStore = useMainStore()
 
-const emit = defineEmits(['setRpcStatus', 'log', 'showNotif'])
+const mainFlags = computed(() => mainStore.flags)
+const flipper = computed(() => mainStore.flipper)
+const info = computed(() => mainStore.info)
 
 const componentName = 'Paint'
 const flags = ref({
@@ -35,28 +36,28 @@ const editor = ref(null)
 
 const startRpc = async () => {
   flags.value.rpcToggling = true
-  await props.flipper.startRPCSession()
+  await flipper.value.startRPCSession()
     .catch(error => {
       console.error(error)
-      emit('log', {
+      log({
         level: 'error',
         message: `${componentName}: Error while starting RPC: ${error.toString()}`
       })
     })
   flags.value.rpcActive = true
-  emit('setRpcStatus', true)
+  mainStore.setRpcStatus(true)
   flags.value.rpcToggling = false
-  emit('log', {
+  log({
     level: 'info',
     message: `${componentName}: RPC started`
   })
 }
 
 const startVirtualDisplay = async () => {
-  await props.flipper.RPC('guiStartVirtualDisplay')
+  await flipper.value.RPC('guiStartVirtualDisplay')
     .catch(error => {
-      rpcErrorHandler(error, 'guiStartVirtualDisplay')
-      emit('showNotif', {
+      rpcErrorHandler(componentName, error, 'guiStartVirtualDisplay')
+      showNotif({
         message: 'Couldn\'t start virtual display session',
         color: 'negative'
       })
@@ -70,21 +71,21 @@ const startVirtualDisplay = async () => {
   }
 }
 const stopVirtualDisplay = async () => {
-  await props.flipper.RPC('guiStopVirtualDisplay')
-    .catch(error => rpcErrorHandler(error, 'guiStopVirtualDisplay'))
+  await flipper.value.RPC('guiStopVirtualDisplay')
+    .catch(error => rpcErrorHandler(componentName, error, 'guiStopVirtualDisplay'))
 }
 const enableBacklight = async () => {
-  await props.flipper.RPC('guiSendInputEvent', { key: 'OK', type: 'PRESS' })
-    .catch(error => rpcErrorHandler(error, 'guiSendInputEvent'))
-  await props.flipper.RPC('guiSendInputEvent', { key: 'OK', type: 'SHORT' })
-    .catch(error => rpcErrorHandler(error, 'guiSendInputEvent'))
-  await props.flipper.RPC('guiSendInputEvent', { key: 'OK', type: 'RELEASE' })
-    .catch(error => rpcErrorHandler(error, 'guiSendInputEvent'))
+  await flipper.value.RPC('guiSendInputEvent', { key: 'OK', type: 'PRESS' })
+    .catch(error => rpcErrorHandler(componentName, error, 'guiSendInputEvent'))
+  await flipper.value.RPC('guiSendInputEvent', { key: 'OK', type: 'SHORT' })
+    .catch(error => rpcErrorHandler(componentName, error, 'guiSendInputEvent'))
+  await flipper.value.RPC('guiSendInputEvent', { key: 'OK', type: 'RELEASE' })
+    .catch(error => rpcErrorHandler(componentName, error, 'guiSendInputEvent'))
 }
 const sendFrame = async () => {
   const imageData = editor.value.pe.toImageData()
   const xbmBytes = imageDataToXBM(imageData)
-  await props.flipper.RPC('guiScreenFrame', { data: new Uint8Array(xbmBytes) })
+  await flipper.value.RPC('guiScreenFrame', { data: new Uint8Array(xbmBytes) })
 }
 const autoStream = () => {
   if (autoStreaming.value.enabled) {
@@ -97,27 +98,15 @@ const autoStream = () => {
   }
 }
 
-const rpcErrorHandler = (error, command) => {
-  error = error.toString()
-  emit('showNotif', {
-    message: `RPC error in command '${command}': ${error}`,
-    color: 'negative'
-  })
-  emit('log', {
-    level: 'error',
-    message: `${componentName}: RPC error in command '${command}': ${error}`
-  })
-}
-
 const start = () => {
-  flags.value.rpcActive = props.rpcActive
-  if (!props.rpcActive) {
+  flags.value.rpcActive = mainFlags.value.rpcActive
+  if (!mainFlags.value.rpcActive) {
     startRpc()
   }
 }
 
 onMounted(() => {
-  if (props.connected && props.info !== null && props.info.doneReading) {
+  if (mainFlags.value.connected && info.value !== null && info.value.doneReading) {
     start()
   }
 

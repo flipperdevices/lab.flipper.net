@@ -31,13 +31,14 @@
 </template>
 
 <script setup>
-import { onMounted, ref, watch, defineProps } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import FlipperPlotter from 'src/components/FlipperPlotter.vue'
 import { Notify } from 'quasar'
 
-const props = defineProps({
-  passedFile: Object
-})
+import { useMainStore } from 'src/stores/main'
+const mainStore = useMainStore()
+
+const fileToPass = computed(() => mainStore.fileToPass)
 
 const flags = ref({
   offscreenCanvasSupported: true,
@@ -252,8 +253,8 @@ const onShowPlotter = () => {
 }
 
 onMounted(() => {
-  if (props.passedFile) {
-    switchFiletype(props.passedFile.data, true)
+  if (fileToPass.value) {
+    switchFiletype(fileToPass.value.data, true)
   }
   if (typeof OffscreenCanvas !== 'undefined') {
     flags.value.offscreenCanvasSupported = true

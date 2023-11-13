@@ -40,7 +40,7 @@
           >Install</q-btn>
         </div>
         <q-btn
-          v-if="installFromFile && flags.uploadEnabled"
+          v-if="mainFlags.installFromFile && flags.uploadEnabled"
           @click="flags.uploadPopup = true; uploadedFile = null"
           class="q-mt-lg"
           outline
@@ -102,25 +102,29 @@
 </template>
 
 <script>
-import { defineComponent, ref } from 'vue'
+import { defineComponent, ref, computed } from 'vue'
 import { fetchChannels, fetchFirmware, fetchRegions, unpack } from '../util/util'
 import ProgressBar from './ProgressBar.vue'
 import semver from 'semver'
 import asyncSleep from 'simple-async-sleep'
 import { PB } from '../flipper-js/protobufCompiled'
+import { log } from 'composables/useLog'
+import showNotif from 'composables/useShowNotif'
+import { rpcErrorHandler } from 'composables/useRpcUtils'
+
+import { useMainStore } from 'src/stores/main'
+const mainStore = useMainStore()
+
+const mainFlags = computed(() => mainStore.flags)
+const flipper = computed(() => mainStore.flipper)
+
+const info = computed(() => mainStore.info)
 
 export default defineComponent({
   name: 'Updater',
 
   components: {
     ProgressBar
-  },
-
-  props: {
-    flipper: Object,
-    rpcActive: Boolean,
-    info: Object,
-    installFromFile: Boolean
   },
 
   setup () {
@@ -160,7 +164,9 @@ export default defineComponent({
         filename: '',
         progress: 0
       }),
-      uploadedFile: ref(null)
+      uploadedFile: ref(null),
+      info,
+      mainFlags
     }
   },
 
@@ -173,12 +179,12 @@ export default defineComponent({
   methods: {
     async update (fromFile) {
       if (!this.info.storage.sdcard.isInstalled) {
-        this.$emit('toggleMicroSDcardMissingDialog', true)
+        mainStore.toggleFlag('microSDcardMissingDialog', true)
         return
       }
       this.flags.updateInProgress = true
       this.$emit('update', 'start')
-      this.$emit('log', {
+      log({
         level: 'info',
         message: `${this.componentName}: Update started`
       })
@@ -194,7 +200,7 @@ export default defineComponent({
           this.updateStage = 'Wrong file format'
           throw new Error('Wrong file format')
         }
-        this.$emit('log', {
+        log({
           level: 'info',
           message: `${this.componentName}: Uploading firmware from file`
         })
@@ -203,11 +209,11 @@ export default defineComponent({
         .catch(error => {
           this.flags.updateError = true
           this.updateStage = error
-          this.$emit('showNotif', {
+          showNotif({
             message: error.toString(),
             color: 'negative'
           })
-          this.$emit('log', {
+          log({
             level: 'error',
             message: `${this.componentName}: ${error.toString()}`
           })
@@ -221,11 +227,11 @@ export default defineComponent({
       if (this.info.hardware.region !== '0' || this.flags.overrideDevRegion) {
         const regions = await fetchRegions()
           .catch(error => {
-            this.$emit('showNotif', {
+            showNotif({
               message: 'Failed to fetch regional update information',
               color: 'negative'
             })
-            this.$emit('log', {
+            log({
               level: 'error',
               message: `${this.componentName}: Failed to fetch regional update information: ${error.toString()}`
             })
@@ -255,7 +261,7 @@ export default defineComponent({
           options.bands.push(message)
         }
 
-        this.$emit('log', {
+        log({
           level: 'debug',
           message: `${this.componentName}: Region provisioning message: ${JSON.stringify(options)}`
         })
@@ -264,10 +270,10 @@ export default defineComponent({
         const message = PB.Region.create(options)
         const encoded = new Uint8Array(PB.Region.encodeDelimited(message).finish()).slice(1)
 
-        await this.flipper.RPC('storageWrite', { path: '/int/.region_data', buffer: encoded })
-          .catch(error => this.rpcErrorHandler(error, 'storageWrite'))
+        await flipper.value.RPC('storageWrite', { path: '/int/.region_data', buffer: encoded })
+          .catch(error => rpcErrorHandler(this.componentName, error, 'storageWrite'))
 
-        this.$emit('log', {
+        log({
           level: 'info',
           message: `${this.componentName}: Set Sub-GHz region: ${regions.country}`
         })
@@ -280,18 +286,18 @@ export default defineComponent({
             .catch(error => {
               this.flags.updateError = true
               this.updateStage = error
-              this.$emit('showNotif', {
+              showNotif({
                 message: 'Failed to fetch firmware: ' + error.toString(),
                 color: 'negative'
               })
-              this.$emit('log', {
+              log({
                 level: 'error',
                 message: `${this.componentName}: Failed to fetch firmware: ${error.toString()}`
               })
               throw error
             })
             .finally(() => {
-              this.$emit('log', {
+              log({
                 level: 'debug',
                 message: `${this.componentName}: Downloaded firmware from ${this.channels[this.fwModel.value].url}`
               })
@@ -300,7 +306,7 @@ export default defineComponent({
           const buffer = await this.uploadedFile.arrayBuffer()
           files = await unpack(buffer)
             .finally(() => {
-              this.$emit('log', {
+              log({
                 level: 'debug',
                 message: `${this.componentName}: Unpacked firmware`
               })
@@ -308,21 +314,21 @@ export default defineComponent({
         }
 
         this.updateStage = 'Loading firmware files'
-        this.$emit('log', {
+        log({
           level: 'info',
           message: `${this.componentName}: Loading firmware files`
         })
 
         let path = '/ext/update/'
-        await this.flipper.RPC('storageStat', { path: '/ext/update' })
+        await flipper.value.RPC('storageStat', { path: '/ext/update' })
           .catch(async error => {
             if (error.toString() !== 'ERROR_STORAGE_NOT_EXIST') {
-              this.rpcErrorHandler(error, 'storageStat')
+              rpcErrorHandler(this.componentName, error, 'storageStat')
             } else {
-              await this.flipper.RPC('storageMkdir', { path: '/ext/update' })
-                .catch(error => this.rpcErrorHandler(error, 'storageMkdir'))
+              await flipper.value.RPC('storageMkdir', { path: '/ext/update' })
+                .catch(error => rpcErrorHandler(this.componentName, error, 'storageMkdir'))
                 .finally(() => {
-                  this.$emit('log', {
+                  log({
                     level: 'debug',
                     message: `${this.componentName}: storageMkdir: /ext/update`
                   })
@@ -336,23 +342,23 @@ export default defineComponent({
             if (file.name.endsWith('/')) {
               path = path.slice(0, -1)
             }
-            await this.flipper.RPC('storageMkdir', { path })
-              .catch(error => this.rpcErrorHandler(error, 'storageMkdir'))
+            await flipper.value.RPC('storageMkdir', { path })
+              .catch(error => rpcErrorHandler(this.componentName, error, 'storageMkdir'))
               .finally(() => {
-                this.$emit('log', {
+                log({
                   level: 'debug',
                   message: `${this.componentName}: storageMkdir: ${path}`
                 })
               })
           } else {
             this.write.filename = file.name.slice(file.name.lastIndexOf('/') + 1)
-            const unbind = this.flipper.emitter.on('storageWriteRequest/progress', e => {
+            const unbind = flipper.value.emitter.on('storageWriteRequest/progress', e => {
               this.write.progress = e.progress / e.total
             })
-            await this.flipper.RPC('storageWrite', { path: '/ext/update/' + file.name, buffer: file.buffer })
-              .catch(error => this.rpcErrorHandler(error, 'storageWrite'))
+            await flipper.value.RPC('storageWrite', { path: '/ext/update/' + file.name, buffer: file.buffer })
+              .catch(error => rpcErrorHandler(this.componentName, error, 'storageWrite'))
               .finally(() => {
-                this.$emit('log', {
+                log({
                   level: 'debug',
                   message: `${this.componentName}: storageWrite: /ext/update/${file.name}`
                 })
@@ -365,37 +371,37 @@ export default defineComponent({
         this.write.progress = 0
 
         this.updateStage = 'Loading manifest...'
-        this.$emit('log', {
+        log({
           level: 'info',
           message: `${this.componentName}: Loading update manifest`
         })
 
-        await this.flipper.RPC('systemUpdate', { path: path + '/update.fuf' })
-          .catch(error => this.rpcErrorHandler(error, 'systemUpdate'))
+        await flipper.value.RPC('systemUpdate', { path: path + '/update.fuf' })
+          .catch(error => rpcErrorHandler(this.componentName, error, 'systemUpdate'))
           .finally(() => {
-            this.$emit('log', {
+            log({
               level: 'debug',
               message: `${this.componentName}: systemUpdate: OK`
             })
           })
 
         this.updateStage = 'Update in progress, pay attention to your Flipper'
-        this.$emit('log', {
+        log({
           level: 'info',
           message: `${this.componentName}: Rebooting Flipper`
         })
 
-        await this.flipper.RPC('systemReboot', { mode: 'UPDATE' })
-          .catch(error => this.rpcErrorHandler(error, 'systemReboot'))
+        await flipper.value.RPC('systemReboot', { mode: 'UPDATE' })
+          .catch(error => rpcErrorHandler(this.componentName, error, 'systemReboot'))
       } else {
         this.flags.updateError = true
         this.updateStage = 'Failed to fetch channel'
-        this.$emit('showNotif', {
+        showNotif({
           message: 'Unable to load firmware channel from the build server. Reload the page and try again.',
           color: 'negative',
           reloadBtn: true
         })
-        this.$emit('log', {
+        log({
           level: 'error',
           message: `${this.componentName}: Failed to fetch channel`
         })
@@ -420,30 +426,18 @@ export default defineComponent({
           this.flags.outdated = undefined
         }
       }
-    },
-
-    rpcErrorHandler (error, command) {
-      error = error.toString()
-      this.$emit('showNotif', {
-        message: `RPC error in command '${command}': ${error}`,
-        color: 'negative'
-      })
-      this.$emit('log', {
-        level: 'error',
-        message: `${this.componentName}: RPC error in command '${command}': ${error}`
-      })
     }
   },
 
   async mounted () {
     this.channels = await fetchChannels(this.info.hardware.target)
       .catch(error => {
-        this.$emit('showNotif', {
+        showNotif({
           message: 'Unable to load firmware channels from the build server. Reload the page and try again.',
           color: 'negative',
           reloadBtn: true
         })
-        this.$emit('log', {
+        log({
           level: 'error',
           message: `${this.componentName}: failed to fetch update channels`
         })

@@ -1,7 +1,7 @@
 <template>
   <q-page class="flex-center column full-width">
     <div class="flex-center column">
-      <div v-show="flags.updateInProgress || (connected && info !== null && info.doneReading && flags.rpcActive)" class="device-screen column">
+      <div v-show="flags.updateInProgress || (mainFlags.connected && info !== null && info.doneReading && flags.rpcActive)" class="device-screen column">
         <div class="flex">
           <div class="info">
             <p>
@@ -56,18 +56,11 @@
           </div>
         </div>
         <Updater
-          :flipper="flipper"
-          :rpcActive="rpcActive"
-          :info="info"
-          :installFromFile="installFromFile"
           @update="onUpdateStage"
-          @showNotif="passNotif"
-          @log="passLog"
-          @toggleMicroSDcardMissingDialog="toggleMicroSDcardMissingDialog"
         />
       </div>
       <div
-        v-if="!flags.updateInProgress && (!connected || info == null || !flags.rpcActive || flags.rpcToggling)"
+        v-if="!flags.updateInProgress && (!mainFlags.connected || info == null || !flags.rpcActive || flags.rpcToggling)"
         class="flex-center column q-my-xl"
       >
         <q-spinner
@@ -82,20 +75,19 @@
 </template>
 
 <script setup>
-import { ref, defineProps, defineEmits, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import Updater from 'components/Updater.vue'
 import asyncSleep from 'simple-async-sleep'
 import { bytesToSize } from '../util/util'
+import { log } from 'composables/useLog'
+import { rpcErrorHandler } from 'composables/useRpcUtils'
 
-const props = defineProps({
-  flipper: Object,
-  connected: Boolean,
-  rpcActive: Boolean,
-  info: Object,
-  installFromFile: Boolean
-})
+import { useMainStore } from 'src/stores/main'
+const mainStore = useMainStore()
 
-const emit = defineEmits(['setRpcStatus', 'log', 'update', 'showNotif', 'toggleMicroSDcardMissingDialog'])
+const mainFlags = computed(() => mainStore.flags)
+const flipper = computed(() => mainStore.flipper)
+const info = computed(() => mainStore.info)
 
 const componentName = 'Device'
 const flags = ref({
@@ -110,7 +102,7 @@ const screenScale = ref(1)
 const screenStreamCanvas = ref(null)
 
 const radioStackType = computed(() => {
-  switch (parseInt(props.info.radio.stack.type)) {
+  switch (parseInt(info.value.radio.stack.type)) {
     case 0x01:
       return 'full'
     case 0x02:
@@ -164,11 +156,11 @@ const radioStackType = computed(() => {
     case 0x90:
       return 'BLE_MAC_STATIC'
     default:
-      return props.info.radio.stack.type
+      return info.value.radio.stack.type
   }
 })
 const sdCardUsage = computed(() => {
-  const sdCard = props.info.storage.sdcard
+  const sdCard = info.value.storage.sdcard
   if (!sdCard.status.isInstalled) {
     return sdCard.status.label
   }
@@ -177,27 +169,27 @@ const sdCardUsage = computed(() => {
 
 const startRpc = async () => {
   flags.value.rpcToggling = true
-  await props.flipper.startRPCSession()
+  await flipper.value.startRPCSession()
     .catch(error => {
       console.error(error)
-      emit('log', {
+      log({
         level: 'error',
         message: `${componentName}: Error while starting RPC: ${error.toString()}`
       })
     })
   flags.value.rpcActive = true
-  emit('setRpcStatus', true)
+  mainStore.setRpcStatus(true)
   flags.value.rpcToggling = false
-  emit('log', {
+  log({
     level: 'info',
     message: `${componentName}: RPC started`
   })
 }
 const startScreenStream = async () => {
-  await props.flipper.RPC('guiStartScreenStream')
-    .catch(error => rpcErrorHandler(error, 'guiStartScreenStream'))
+  await flipper.value.RPC('guiStartScreenStream')
+    .catch(error => rpcErrorHandler(componentName, error, 'guiStartScreenStream'))
     .finally(() => {
-      emit('log', {
+      log({
         level: 'debug',
         message: `${componentName}: guiStartScreenStream: OK`
       })
@@ -212,7 +204,7 @@ const startScreenStream = async () => {
   ctx.fillRect(0, 0, 128 * screenScale.value, 64 * screenScale.value)
   ctx.fillStyle = 'black'
 
-  const unbind = props.flipper.emitter.on('screenStream/frame', (data, orientation) => {
+  const unbind = flipper.value.emitter.on('screenStream/frame', (data, orientation) => {
     if (!data) {
       return
     }
@@ -237,7 +229,7 @@ const startScreenStream = async () => {
       }
     }
 
-    const unbindStop = props.flipper.emitter.on('screenStream/stop', () => {
+    const unbindStop = flipper.value.emitter.on('screenStream/stop', () => {
       flags.value.screenStream = false
       unbind()
       unbindStop()
@@ -245,10 +237,10 @@ const startScreenStream = async () => {
   })
 }
 const stopScreenStream = async () => {
-  await props.flipper.RPC('guiStopScreenStream')
-    .catch(error => rpcErrorHandler(error, 'guiStopScreenStream'))
+  await flipper.value.RPC('guiStopScreenStream')
+    .catch(error => rpcErrorHandler(componentName, error, 'guiStopScreenStream'))
     .finally(() => {
-      emit('log', {
+      log({
         level: 'debug',
         message: `${componentName}: guiStopScreenStream: OK`
       })
@@ -256,38 +248,21 @@ const stopScreenStream = async () => {
   flags.value.screenStream = false
 }
 const onUpdateStage = (stage) => {
-  emit('update', stage)
+  mainStore.update(stage)
   if (stage === 'start') {
     flags.value.updateInProgress = true
     stopScreenStream()
     navigator.serial.addEventListener('connect', () => {
-      emit('update', 'end')
+      mainStore.update('end')
     })
   } else if (stage === 'end') {
-    emit('update', 'end')
+    mainStore.update('end')
   }
-}
-const passNotif = (config) => {
-  emit('showNotif', config)
-}
-const passLog = (config) => {
-  emit('log', config)
-}
-const rpcErrorHandler = (error, command) => {
-  error = error.toString()
-  emit('showNotif', {
-    message: `RPC error in command '${command}': ${error}`,
-    color: 'negative'
-  })
-  emit('log', {
-    level: 'error',
-    message: `${componentName}: RPC error in command '${command}': ${error}`
-  })
 }
 
 const start = async () => {
-  flags.value.rpcActive = props.rpcActive
-  if (!props.rpcActive) {
+  flags.value.rpcActive = mainFlags.value.rpcActive
+  if (!mainFlags.value.rpcActive) {
     await startRpc()
   }
   if (!flags.value.screenStream) {
@@ -295,24 +270,20 @@ const start = async () => {
   }
 }
 
-const toggleMicroSDcardMissingDialog = (state) => {
-  emit('toggleMicroSDcardMissingDialog', state)
-}
-
-watch(props.info, (newInfo) => {
-  if (newInfo !== null && props.info.doneReading && props.connected) {
+watch(info, (newInfo) => {
+  if (newInfo !== null && info.value.doneReading && mainFlags.value.connected) {
     start()
   }
 })
 
 onMounted(() => {
-  if (props.info !== null && props.info.doneReading && props.connected) {
+  if (info.value !== null && info.value.doneReading && mainFlags.value.connected) {
     start()
   }
   navigator.serial.addEventListener('disconnect', e => {
     flags.value.rpcActive = false
     flags.value.rpcToggling = false
-    emit('setRpcStatus', false)
+    mainStore.setRpcStatus(false)
     flags.value.screenStream = false
   })
 })

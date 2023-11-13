@@ -48,17 +48,17 @@
 </template>
 
 <script setup>
-import { ref, defineProps, defineEmits, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { startMfkey } from '../util/mfkey32v2/mfkey'
+import { log } from 'composables/useLog'
+import { rpcErrorHandler } from 'composables/useRpcUtils'
 
-const props = defineProps({
-  flipper: Object,
-  connected: Boolean,
-  info: Object,
-  rpcActive: Boolean
-})
+import { useMainStore } from 'src/stores/main'
+const mainStore = useMainStore()
 
-const emit = defineEmits(['setRpcStatus', 'log', 'showNotif', 'toggleMicroSDcardMissingDialog'])
+const mainFlags = computed(() => mainStore.flags)
+const flipper = computed(() => mainStore.flipper)
+const info = computed(() => mainStore.info)
 
 const componentName = 'NfcTools'
 const flags = ref({
@@ -79,7 +79,7 @@ const args = ref({
 })
 const result = ref('')
 
-watch(ref(props.connected), (newStatus) => {
+watch(() => mainFlags.value.connected, (newStatus) => {
   if (newStatus) {
     start()
   }
@@ -87,49 +87,38 @@ watch(ref(props.connected), (newStatus) => {
 
 const startRpc = async () => {
   flags.value.rpcToggling = true
-  await props.flipper.startRPCSession()
+  await flipper.value.startRPCSession()
     .catch(error => {
       console.error(error)
-      emit('log', {
+      log({
         level: 'error',
         message: `${componentName}: Error while starting RPC: ${error.toString()}`
       })
     })
   flags.value.rpcActive = true
-  emit('setRpcStatus', true)
+  mainStore.setRpcStatus(true)
   flags.value.rpcToggling = false
-  emit('log', {
+  log({
     level: 'info',
     message: `${componentName}: RPC started`
   })
 }
-const rpcErrorHandler = (error, command) => {
-  error = error.toString()
-  emit('showNotif', {
-    message: `RPC error in command '${command}': ${error}`,
-    color: 'negative'
-  })
-  emit('log', {
-    level: 'error',
-    message: `${componentName}: RPC error in command '${command}': ${error}`
-  })
-}
 const mfkeyFlipperStart = async () => {
-  if (!props.info?.storage.sdcard.status.isInstalled) {
-    emit('toggleMicroSDcardMissingDialog', true)
+  if (!info.value?.storage.sdcard.status.isInstalled) {
+    mainStore.toggleFlag('microSDcardMissingDialog', true)
     return
   }
   flags.value.mfkeyFlipperInProgress = true
   mfkeyStatus.value = 'Loading log'
 
-  let res = await props.flipper.RPC('storageRead', { path: '/ext/nfc/.mfkey32.log' })
+  let res = await flipper.value.RPC('storageRead', { path: '/ext/nfc/.mfkey32.log' })
     .catch(error => {
-      rpcErrorHandler(error, 'storageRead')
+      rpcErrorHandler(componentName, error, 'storageRead')
       mfkeyStatus.value = 'Mfkey log file not found'
       flags.value.mfkeyFlipperInProgress = false
     })
     .finally(() => {
-      emit('log', {
+      log({
         level: 'debug',
         message: `${componentName}: storageRead: /ext/nfc/.mfkey32.log`
       })
@@ -155,13 +144,13 @@ const mfkeyFlipperStart = async () => {
       if (!key.startsWith('Error')) {
         keys.add(key)
       }
-      emit('log', {
+      log({
         level: 'debug',
         message: `${componentName}: cracked nonce: ${args}, key: ${key}`
       })
     } catch (error) {
       errors.push(error.toString())
-      emit('log', {
+      log({
         level: 'error',
         message: `${componentName}: error in mfkey32v2: ${error}`
       })
@@ -169,12 +158,12 @@ const mfkeyFlipperStart = async () => {
   }
 
   mfkeyStatus.value = 'Loading user dictionary'
-  res = await props.flipper.RPC('storageRead', { path: '/ext/nfc/assets/mf_classic_dict_user.nfc' })
+  res = await flipper.value.RPC('storageRead', { path: '/ext/nfc/assets/mf_classic_dict_user.nfc' })
     .catch(error => {
-      rpcErrorHandler(error, 'storageRead')
+      rpcErrorHandler(componentName, error, 'storageRead')
     })
     .finally(() => {
-      emit('log', {
+      log({
         level: 'debug',
         message: `${componentName}: storageRead: /ext/nfc/assets/mf_classic_dict_user.nfc`
       })
@@ -199,10 +188,10 @@ const mfkeyFlipperStart = async () => {
   mfkeyStatus.value = 'Uploading user dictionary'
   const file = new TextEncoder().encode(Array.from(keys).join('\n'))
   const path = '/ext/nfc/assets/mf_classic_dict_user.nfc'
-  await props.flipper.RPC('storageWrite', { path, buffer: file.buffer })
-    .catch(error => rpcErrorHandler(error, 'storageWrite'))
+  await flipper.value.RPC('storageWrite', { path, buffer: file.buffer })
+    .catch(error => rpcErrorHandler(componentName, error, 'storageWrite'))
     .finally(() => {
-      emit('log', {
+      log({
         level: 'debug',
         message: `${componentName}: storage.write: ${path}`
       })
@@ -225,12 +214,12 @@ const mfkey = async (localArgs) => {
   let localResult
   try {
     localResult = await startMfkey(localArgs)
-    emit('log', {
+    log({
       level: 'debug',
       message: `${componentName}: cracked nonce: ${localArgs}, key: ${localResult}`
     })
   } catch (error) {
-    emit('log', {
+    log({
       level: 'error',
       message: `${componentName}: error in mfkey32v2: ${error}`
     })
@@ -244,14 +233,14 @@ const mfkey = async (localArgs) => {
 }
 
 const start = async () => {
-  flags.value.rpcActive = props.rpcActive
-  if (!props.rpcActive) {
+  flags.value.rpcActive = mainFlags.value.rpcActive
+  if (!mainFlags.value.rpcActive) {
     await startRpc()
   }
 }
 
 onMounted(() => {
-  if (props.connected) {
+  if (mainFlags.value.connected) {
     start()
   }
 })

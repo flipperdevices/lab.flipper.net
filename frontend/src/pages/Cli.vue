@@ -1,7 +1,7 @@
 <template>
   <q-page class="column items-center bg-black q-pl-sm full-width">
     <div
-      v-if="!connected"
+      v-if="!mainFlags.connected"
       class="column flex-center q-my-xl"
     >
       <q-spinner
@@ -11,7 +11,7 @@
       ></q-spinner>
       <p class="text-white">Waiting for Flipper...</p>
     </div>
-    <div v-if="connected && !flags.rpcActive" class="full-width" style="height: calc(100vh - 50px)">
+    <div v-if="mainFlags.connected && !flags.rpcActive" class="full-width" style="height: calc(100vh - 50px)">
       <div id="terminal-container" class="fit bg-black"></div>
 
       <q-btn
@@ -85,22 +85,22 @@
 </template>
 
 <script setup>
-import { ref, defineProps, defineEmits, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { Terminal } from 'xterm'
 import 'xterm/css/xterm.css'
 import { FitAddon } from 'xterm-addon-fit'
 import { SerializeAddon } from 'xterm-addon-serialize'
 import { io } from 'socket.io-client'
 import asyncSleep from 'simple-async-sleep'
+import { log } from 'composables/useLog'
+import showNotif from 'composables/useShowNotif'
 
-const props = defineProps({
-  flipper: Object,
-  connected: Boolean,
-  rpcActive: Boolean,
-  info: Object
-})
+import { useMainStore } from 'src/stores/main'
+const mainStore = useMainStore()
 
-const emit = defineEmits(['setRpcStatus', 'log', 'showNotif'])
+const mainFlags = computed(() => mainStore.flags)
+const flipper = computed(() => mainStore.flipper)
+const info = computed(() => mainStore.info)
 
 const componentName = 'CLI'
 const flags = ref({
@@ -155,7 +155,7 @@ const init = () => {
   })
 }
 const write = (data) => {
-  props.flipper.write(data)
+  flipper.value.write(data)
 }
 
 const downloadDump = () => {
@@ -175,11 +175,11 @@ const clearDump = () => {
 
 const stopRpc = async () => {
   flags.value.rpcToggling = true
-  await props.flipper.setReadingMode('text', 'promptBreak')
+  await flipper.value.setReadingMode('text', 'promptBreak')
   flags.value.rpcActive = false
-  emit('setRpcStatus', false)
+  mainStore.setRpcStatus(false)
   flags.value.rpcToggling = false
-  emit('log', {
+  log({
     level: 'info',
     message: `${componentName}: RPC stopped`
   })
@@ -188,24 +188,24 @@ const stopRpc = async () => {
 // TODO
 const startServer = () => {
   flags.value.serverToggling = true
-  roomName.value = props.info.hardware.name
+  roomName.value = info.value.hardware.name
   if (!socket.value) {
     socket.value = io('ws://lab.flipper.net:3000')
   }
 
   socket.value.on('connect', () => {
-    emit('log', {
+    log({
       level: 'info',
       message: `${componentName}: Connected to cli server. My id: ${socket.value.id}, room name: ${roomName.value}`
     })
 
     socket.value.emit('claimRoomName', roomName.value, (res) => {
       if (res.error) {
-        emit('showNotif', {
+        showNotif({
           message: `Failed to claim room ${roomName.value}`,
           color: 'negative'
         })
-        emit('log', {
+        log({
           level: 'error',
           message: `${componentName}: Failed to claim room ${roomName.value}: ${res.error.toString()}`
         })
@@ -214,16 +214,16 @@ const startServer = () => {
 
     socket.value.emit('joinRoom', roomName.value, (res) => {
       if (res.error) {
-        emit('showNotif', {
+        showNotif({
           message: `Failed to join room ${roomName.value}`,
           color: 'negative'
         })
-        emit('log', {
+        log({
           level: 'error',
           message: `${componentName}: Failed to join room ${roomName.value}: ${res.error.toString()}`
         })
       } else {
-        emit('log', {
+        log({
           level: 'info',
           message: `${componentName}: Hosting room ${roomName.value}`
         })
@@ -246,10 +246,10 @@ const startServer = () => {
   })
 
   socket.value.on('disconnect', () => {
-    emit('showNotif', {
+    showNotif({
       message: 'Disconnected from cli server'
     })
-    emit('log', {
+    log({
       level: 'warn',
       message: `${componentName}: Disconnected from CLI server`
     })
@@ -275,7 +275,7 @@ const stopServer = () => {
 const broadcast = (msg) => {
   socket.value.emit('broadcast', roomName, msg, (res) => {
     if (res.error) {
-      emit('log', {
+      log({
         level: 'error',
         message: `${componentName}: Failed to broadcast: ${res.error.toString()}`
       })
@@ -285,8 +285,8 @@ const broadcast = (msg) => {
 }
 
 const start = async () => {
-  flags.value.rpcActive = props.rpcActive
-  if (props.rpcActive) {
+  flags.value.rpcActive = mainFlags.value.rpcActive
+  if (mainFlags.value.rpcActive) {
     await stopRpc()
   }
   if (window.innerWidth < 381) {
@@ -297,9 +297,9 @@ const start = async () => {
 
   setTimeout(init, 500)
   await asyncSleep(1000)
-  await props.flipper.setReadingMode('text')
+  await flipper.value.setReadingMode('text')
 
-  unbind.value = props.flipper.emitter.on('cli/output', data => {
+  unbind.value = flipper.value.emitter.on('cli/output', data => {
     terminal.value.write(data)
   })
 }
@@ -313,7 +313,7 @@ watch(fontSize, (newSize) => {
 
 onMounted(() => {
   dump.value = localStorage.getItem('cli-dump')
-  if (props.connected) {
+  if (mainFlags.value.connected) {
     setTimeout(start, 500)
   }
 

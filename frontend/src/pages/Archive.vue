@@ -1,7 +1,7 @@
 <template>
   <q-page class="column items-center q-pa-md full-width" :class="$q.screen.width > 960 && $q.screen.height > 500 ? 'q-mt-xl' : 'q-mt-xs'">
     <div
-      v-if="!connected || !flags.rpcActive || flags.rpcToggling"
+      v-if="!mainFlags.connected || !flags.rpcActive || flags.rpcToggling"
       class="column flex-center q-my-xl"
     >
       <q-spinner
@@ -11,7 +11,7 @@
       ></q-spinner>
       <p>Waiting for Flipper...</p>
     </div>
-    <div v-if="connected && flags.rpcActive" class="file-container">
+    <div v-if="mainFlags.connected && flags.rpcActive" class="file-container">
       <div class="file-menu flex no-wrap q-pa-xs rounded-borders">
         <q-btn
           flat
@@ -294,16 +294,17 @@
 </template>
 
 <script setup>
-import { ref, defineProps, defineEmits, watch, onMounted } from 'vue'
+import { ref, watch, onMounted, computed } from 'vue'
 import ProgressBar from 'components/ProgressBar.vue'
 import { exportFile } from 'quasar'
+import { log } from 'composables/useLog'
+import { rpcErrorHandler } from 'composables/useRpcUtils'
 
-const props = defineProps({
-  flipper: Object,
-  connected: Boolean,
-  rpcActive: Boolean
-})
-const emit = defineEmits(['setRpcStatus', 'log', 'showNotif', 'openFileIn'])
+import { useMainStore } from 'src/stores/main'
+const mainStore = useMainStore()
+
+const mainFlags = computed(() => mainStore.flags)
+const flipper = computed(() => mainStore.flipper)
 
 const componentName = 'Archive'
 const path = ref('/')
@@ -327,7 +328,7 @@ const file = ref({
 })
 const itemToDelete = ref(null)
 
-watch(() => props.connected, (newStatus) => {
+watch(() => mainFlags.value.connected, (newStatus) => {
   if (newStatus) {
     start()
   }
@@ -335,19 +336,19 @@ watch(() => props.connected, (newStatus) => {
 
 const startRpc = async () => {
   flags.value.rpcToggling = true
-  await props.flipper.startRPCSession()
+  await flipper.value.startRPCSession()
     .then(() => {
       flags.value.rpcActive = true
-      emit('setRpcStatus', true)
+      mainStore.setRpcStatus(true)
       flags.value.rpcToggling = false
-      emit('log', {
+      log({
         level: 'info',
         message: `${componentName}: RPC started`
       })
     })
     .catch(error => {
       console.error(error)
-      emit('log', {
+      log({
         level: 'error',
         message: `${componentName}: Error while starting RPC: ${error.toString()}`
       })
@@ -355,15 +356,15 @@ const startRpc = async () => {
 }
 
 const list = async () => {
-  const list = await props.flipper.RPC('storageList', { path: path.value })
+  const list = await flipper.value.RPC('storageList', { path: path.value })
     .then(list => {
-      emit('log', {
+      log({
         level: 'debug',
         message: `${componentName}: storageList: ${path.value}`
       })
       return list
     })
-    .catch(error => rpcErrorHandler(error, 'storageList'))
+    .catch(error => rpcErrorHandler(componentName, error, 'storageList'))
   if (list.length === 0) {
     dir.value = []
     return
@@ -380,19 +381,19 @@ const read = async (path, preventDownload) => {
   file.value.name = path.slice(path.lastIndexOf('/') + 1)
   const localFile = dir.value.find(e => e.name === file.value.name && !e.type)
   const total = localFile.size
-  const unbind = props.flipper.emitter.on('storageReadRequest/progress', chunks => {
+  const unbind = flipper.value.emitter.on('storageReadRequest/progress', chunks => {
     file.value.progress = Math.min(chunks * 512, total) / total
   })
 
-  const res = await props.flipper.RPC('storageRead', { path })
+  const res = await flipper.value.RPC('storageRead', { path })
     .then(data => {
-      emit('log', {
+      log({
         level: 'debug',
         message: `${componentName}: storageRead: ${path}`
       })
       return data
     })
-    .catch(error => rpcErrorHandler(error, 'storageRead'))
+    .catch(error => rpcErrorHandler(componentName, error, 'storageRead'))
   const s = path.split('/')
   if (!preventDownload) {
     exportFile(s[s.length - 1], res)
@@ -404,36 +405,36 @@ const read = async (path, preventDownload) => {
   }
 }
 const remove = async (path, isRecursive) => {
-  await props.flipper.RPC('storageRemove', { path, recursive: isRecursive })
+  await flipper.value.RPC('storageRemove', { path, recursive: isRecursive })
     .then(() => {
-      emit('log', {
+      log({
         level: 'debug',
         message: `${componentName}: storageRemove: ${path}, recursive: ${isRecursive}`
       })
     })
-    .catch(error => rpcErrorHandler(error, 'storageRemove'))
+    .catch(error => rpcErrorHandler(componentName, error, 'storageRemove'))
   list()
 }
 const rename = async (path, oldName, newName) => {
-  await props.flipper.RPC('storageRename', { oldPath: path + '/' + oldName, newPath: path + '/' + newName })
+  await flipper.value.RPC('storageRename', { oldPath: path + '/' + oldName, newPath: path + '/' + newName })
     .then(() => {
-      emit('log', {
+      log({
         level: 'debug',
         message: `${componentName}: storageRename: ${path}, old name: ${oldName}, new name: ${newName}`
       })
     })
-    .catch(error => rpcErrorHandler(error, 'storageRename'))
+    .catch(error => rpcErrorHandler(componentName, error, 'storageRename'))
   list()
 }
 const mkdir = async (path) => {
-  await props.flipper.RPC('storageMkdir', { path })
+  await flipper.value.RPC('storageMkdir', { path })
     .then(() => {
-      emit('log', {
+      log({
         level: 'debug',
         message: `${componentName}: storageMkdir: ${path}`
       })
     })
-    .catch(error => rpcErrorHandler(error, 'storageMkdir'))
+    .catch(error => rpcErrorHandler(componentName, error, 'storageMkdir'))
   list()
 }
 const upload = async () => {
@@ -450,25 +451,25 @@ const upload = async () => {
       path.pop()
       while (path.length > 0) {
         dir += '/' + path.shift()
-        const stat = await props.flipper.RPC('storageStat', { path: dir })
+        const stat = await flipper.value.RPC('storageStat', { path: dir })
         if (!stat) {
-          await props.flipper.RPC('storageMkdir', { path: dir })
+          await flipper.value.RPC('storageMkdir', { path: dir })
         }
       }
     }
 
-    const unbind = props.flipper.emitter.on('storageWriteRequest/progress', e => {
+    const unbind = flipper.value.emitter.on('storageWriteRequest/progress', e => {
       file.value.progress = e.progress / e.total
     })
 
-    await props.flipper.RPC('storageWrite', { path: dir + '/' + localFile.name, buffer: await localFile.arrayBuffer() })
+    await flipper.value.RPC('storageWrite', { path: dir + '/' + localFile.name, buffer: await localFile.arrayBuffer() })
       .then(() => {
-        emit('log', {
+        log({
           level: 'debug',
           message: `${componentName}: storageWrite: ${path.value}/${localFile.name}`
         })
       })
-      .catch(error => rpcErrorHandler(error, 'storageWrite'))
+      .catch(error => rpcErrorHandler(componentName, error, 'storageWrite'))
     unbind()
   }
   file.value.name = ''
@@ -495,7 +496,7 @@ const itemClicked = (item) => {
 }
 const openFileIn = async (item, destination) => {
   const res = await read(path.value + '/' + item.name, true)
-  emit('openFileIn', {
+  mainStore.openFileIn({
     path: destination,
     file: {
       name: item.name,
@@ -529,28 +530,16 @@ const itemIconSwitcher = (item) => {
   }
 }
 
-const rpcErrorHandler = (error, command) => {
-  error = error.toString()
-  emit('showNotif', {
-    message: `RPC error in command '${command}': ${error}`,
-    color: 'negative'
-  })
-  emit('log', {
-    level: 'error',
-    message: `${componentName}: RPC error in command '${command}': ${error}`
-  })
-}
-
 const start = async () => {
-  flags.value.rpcActive = props.rpcActive
-  if (!props.rpcActive) {
+  flags.value.rpcActive = mainFlags.value.rpcActive
+  if (!mainFlags.value.rpcActive) {
     await startRpc()
   }
   await list()
 }
 
 onMounted(() => {
-  if (props.connected) {
+  if (mainFlags.value.connected) {
     start()
   }
 })

@@ -245,20 +245,6 @@
     <q-page-container class="flex justify-center">
       <router-view
         v-if="!flags.connectionRequired || flags.updateInProgress || (flags.serialSupported && info !== null && info.doneReading)"
-        :flipper="flipper"
-        :rpcActive="flags.rpcActive"
-        :connected="flags.connected"
-        :info="info"
-        :installFromFile="flags.installFromFile"
-        :passedFile="fileToPass"
-        @setRpcStatus="setRpcStatus"
-        @setInfo="setInfo"
-        @update="onUpdateStage"
-        @openFileIn="openFileIn"
-        @showNotif="showNotif"
-        @log="log"
-        @connect="start"
-        @toggleMicroSDcardMissingDialog="toggleMicroSDcardMissingDialog"
       />
       <q-page v-else class="flex-center column">
         <div
@@ -372,19 +358,23 @@
 </template>
 
 <script setup>
-import { ref, defineEmits, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import { useRoute, useRouter } from 'vue-router'
 import ExternalLink from 'components/ExternalLink.vue'
 import RouterLink from 'components/RouterLink.vue'
-import Flipper from 'src/flipper-js/flipper'
-import * as loglevel from 'loglevel'
+import { logger, history, log } from 'composables/useLog'
+import showNotif from 'composables/useShowNotif'
 
-const emit = defineEmits(['log'])
+import { useMainStore } from 'src/stores/main'
+const mainStore = useMainStore()
+
+const flags = computed(() => mainStore.flags)
+const flipper = computed(() => mainStore.flipper)
+const info = computed(() => mainStore.info)
 
 const $q = useQuasar()
 $q.screen.setSizes({ md: 900 })
-const notify = $q.notify
 
 const router = useRouter()
 const route = useRoute()
@@ -460,38 +450,11 @@ const canLoadWithoutFlipper = [
   'pulse-plotter',
   'apps'
 ]
-let dismissNotif
 
-const flipper = new Flipper()
-const info = ref(null)
-
-const flags = ref({
-  serialSupported: true,
-  connectionRequired: true,
-  portSelectRequired: false,
-  connected: false,
-  rpcActive: false,
-  connectOnStart: true,
-  autoReconnect: false,
-  updateInProgress: false,
-  installFromFile: false,
-  logsPopup: false,
-  settingsView: false,
-  flipperOccupiedDialog: false,
-  microSDcardMissingDialog: false,
-
-  catalogCanBeEnabled: false,
-  catalogCanSwitchChannel: false,
-  catalogEnabled: true,
-  catalogChannelProduction: true
-})
 const leftDrawer = ref(true)
 const linksMenu = ref(false)
 const reconnectLoop = ref(null)
 const connectionStatus = ref('Ready to connect')
-const logger = loglevel
-const history = ref([])
-const fileToPass = ref(null)
 
 const batteryIcon = computed(() => {
   const roundedCharge = Math.round(Number(info.value?.power.charge.level) / 10) * 10
@@ -530,36 +493,6 @@ watch(route, (to) => {
   checkConnectionRequirement(to.path)
 })
 
-const connect = async () => {
-  await flipper.connect()
-    .then(() => {
-      flags.value.portSelectRequired = false
-      connectionStatus.value = 'Flipper connected'
-      flags.value.connected = true
-      flags.value.flipperOccupiedDialog = false
-      log({
-        level: 'info',
-        message: `${componentName}: Flipper connected`
-      })
-      if (dismissNotif) {
-        dismissNotif()
-      }
-    })
-    .catch(error => {
-      if (error.toString() === 'Error: No known ports') {
-        flags.value.portSelectRequired = true
-      } else if (error.toString().includes('Failed to open serial port')) {
-        flags.value.portSelectRequired = true
-        flags.value.flipperOccupiedDialog = true
-      } else {
-        log({
-          level: 'error',
-          message: `${componentName}: Failed to connect: ${error}`
-        })
-        connectionStatus.value = error.toString()
-      }
-    })
-}
 const selectPort = async () => {
   const filters = [
     { usbVendorId: 0x0483, usbProductId: 0x5740 }
@@ -568,11 +501,11 @@ const selectPort = async () => {
   return start(true)
 }
 const disconnect = () => {
-  flipper.disconnect()
+  flipper.value.disconnect()
     .then(() => {
       connectionStatus.value = 'Disconnected'
-      flags.value.connected = false
-      info.value = null
+      mainStore.toggleFlag('connected', false)
+      mainStore.setInfo(null)
       log({
         level: 'info',
         message: `${componentName}: Flipper disconnected`
@@ -585,129 +518,6 @@ const disconnect = () => {
       })
       connectionStatus.value = error.toString()
     })
-}
-const startRpc = async () => {
-  if (!flags.value.connected) {
-    return
-  }
-  flags.value.rpcToggling = true
-  await flipper.startRPCSession()
-    .catch(error => {
-      console.error(error)
-      emit('log', {
-        level: 'error',
-        message: `${componentName}: Error while starting RPC: ${error.toString()}`
-      })
-    })
-  flags.value.rpcActive = true
-  flags.value.rpcToggling = false
-  log({
-    level: 'info',
-    message: `${componentName}: RPC started`
-  })
-}
-
-const readInfo = async () => {
-  if (!flags.value.connected) {
-    return
-  }
-  info.value = {
-    doneReading: false,
-    storage: {
-      sdcard: {
-        status: {}
-      },
-      databases: {},
-      internal: {}
-    }
-  }
-  await flipper.RPC('propertyGet', { key: 'devinfo' })
-    .then(devInfo => {
-      log({
-        level: 'debug',
-        message: `${componentName}: propertyGet: OK`
-      })
-      info.value = { ...info.value, ...devInfo }
-    })
-    .catch(error => rpcErrorHandler(error, 'propertyGet'))
-
-  await flipper.RPC('propertyGet', { key: 'pwrinfo' })
-    .then(powerInfo => {
-      log({
-        level: 'debug',
-        message: `${componentName}: propertyGet: OK`
-      })
-      info.value.power = powerInfo
-    })
-    .catch(error => rpcErrorHandler(error, 'propertyGet'))
-
-  const ext = await flipper.RPC('storageList', { path: '/ext' })
-    .then(list => {
-      log({
-        level: 'debug',
-        message: `${componentName}: storageList: /ext`
-      })
-      return list
-    })
-    .catch(error => rpcErrorHandler(error, 'storageList'))
-
-  if (ext && ext.length) {
-    const manifest = ext.find(e => e.name === 'Manifest')
-    if (manifest) {
-      info.value.storage.databases.status = 'installed'
-    } else {
-      info.value.storage.databases.status = 'missing'
-    }
-
-    await flipper.RPC('storageInfo', { path: '/ext' })
-      .then(extInfo => {
-        log({
-          level: 'debug',
-          message: `${componentName}: storageInfo: /ext`
-        })
-        info.value.storage.sdcard.status.label = 'installed'
-        info.value.storage.sdcard.status.isInstalled = true
-
-        info.value.storage.sdcard.totalSpace = extInfo.totalSpace
-        info.value.storage.sdcard.freeSpace = extInfo.freeSpace
-      })
-      .catch(error => rpcErrorHandler(error, 'storageInfo'))
-  } else {
-    info.value.storage.sdcard.status.label = 'missing'
-    info.value.storage.sdcard.status.isInstalled = false
-
-    info.value.storage.databases.status = 'missing'
-  }
-
-  await flipper.RPC('storageInfo', { path: '/int' })
-    .then(intInfo => {
-      log({
-        level: 'debug',
-        message: `${componentName}: storageInfo: /int`
-      })
-      info.value.storage.internal.totalSpace = intInfo.totalSpace
-      info.value.storage.internal.freeSpace = intInfo.freeSpace
-      log({
-        level: 'info',
-        message: `${componentName}: Fetched device info`
-      })
-    })
-    .catch(error => rpcErrorHandler(error, 'storageInfo'))
-  info.value.doneReading = true
-}
-
-const setTime = async () => {
-  if (!flags.value.connected) {
-    return
-  }
-  await flipper.RPC('systemSetDatetime', { date: new Date() })
-    .then(() => {
-      log({
-        level: 'debug',
-        message: `${componentName}: systemSetDatetime: OK`
-      })
-    })
-    .catch(error => rpcErrorHandler(error, 'systemSetDatetime'))
 }
 
 const findKnownDevices = () => {
@@ -757,33 +567,11 @@ const toggleCatalogChannel = () => {
   location.reload()
 }
 
-const setRpcStatus = (s) => {
-  flags.value.rpcActive = s
-}
-const setInfo = (newInfo) => {
-  info.value = newInfo
-}
-const onUpdateStage = (stage) => {
-  if (stage === 'start') {
-    flags.value.updateInProgress = true
-  } else if (stage === 'end') {
-    flags.value.updateInProgress = false
-  }
-}
-const openFileIn = ({ path, file }) => {
-  log({
-    level: 'info',
-    message: `${componentName}: Passing file ${file.name} to ${path}`
-  })
-  fileToPass.value = file
-  router.push(path)
-}
-
 const checkConnectionRequirement = (path) => {
-  flags.value.connectionRequired = true
+  mainStore.toggleFlag('connectionRequired', true)
   for (const link of canLoadWithoutFlipper) {
     if ((path && path.includes(link)) || location.pathname.includes(link)) {
-      flags.value.connectionRequired = false
+      mainStore.toggleFlag('connectionRequired', false)
       break
     }
   }
@@ -796,69 +584,9 @@ const checkConnectionRequirement = (path) => {
   }
 }
 
-const showNotif = ({ message, color, reloadBtn }) => {
-  const actions = []
-
-  if (reloadBtn) {
-    actions.push({ label: 'Reload', color: 'white', handler: () => { location.reload() } })
-  }
-  if (actions.length === 0) {
-    actions.push({ icon: 'close', color: 'white', class: 'q-px-sm' })
-  } else {
-    actions.push({ label: 'Dismiss', color: 'white' })
-  }
-
-  dismissNotif = notify({
-    message: message,
-    color: color,
-    textColor: 'white',
-    position: 'bottom-right',
-    timeout: 0,
-    group: true,
-    actions: actions
-  })
-}
-
-const log = ({ level, message }) => {
-  const timestamp = Date.now()
-  const t = new Date(timestamp)
-  history.value.push({
-    level,
-    timestamp,
-    time: `${t.getHours()}:${t.getMinutes()}:${t.getSeconds()}`,
-    message
-  })
-  switch (level) {
-    case 'error':
-      logger.error(message)
-      break
-    case 'warn':
-      logger.warn(message)
-      break
-    case 'info':
-      logger.info(message)
-      break
-    case 'debug':
-      logger.debug(message)
-      break
-  }
-}
-
-const rpcErrorHandler = (error, command) => {
-  error = error.toString()
-  showNotif({
-    message: `RPC error in command '${command}': ${error}`,
-    color: 'negative'
-  })
-  log({
-    level: 'error',
-    message: `${componentName}: RPC error in command '${command}': ${error}`
-  })
-}
-
 const downloadLogs = () => {
   let text = ''
-  for (const line of history.value) {
+  for (const line of history) {
     text += `${line.time} [${line.level}] ${line.message}\n`
   }
   const dl = document.createElement('a')
@@ -871,24 +599,7 @@ const downloadLogs = () => {
 }
 
 const start = async (manual) => {
-  const ports = await findKnownDevices()
-  if (ports && ports.length > 0) {
-    await connect()
-    setTimeout(async () => {
-      await startRpc()
-      await readInfo()
-      await setTime()
-    }, 500)
-  } else {
-    flags.value.portSelectRequired = true
-    if (manual) {
-      return selectPort()
-    }
-  }
-}
-
-const toggleMicroSDcardMissingDialog = (state) => {
-  flags.value.microSDcardMissingDialog = state
+  mainStore.start(manual)
 }
 
 onMounted(async () => {
@@ -897,35 +608,35 @@ onMounted(async () => {
   }
   if ('serial' in navigator) {
     if (localStorage.getItem('connectOnStart') !== 'false') {
-      flags.value.connectOnStart = true
+      mainStore.toggleFlag('connectOnStart', true)
       if (flags.value.connectionRequired) {
         await start()
       }
     } else {
-      flags.value.connectOnStart = false
+      mainStore.toggleFlag('connectOnStart', false)
     }
     if (localStorage.getItem('autoReconnect') !== 'false') {
-      flags.value.autoReconnect = true
+      mainStore.toggleFlag('autoReconnect', true)
     }
     if (localStorage.getItem('installFromFile') === 'true') {
-      flags.value.installFromFile = true
+      mainStore.toggleFlag('installFromFile', true)
     }
 
     const isProd = process.env.PRODUCTION
     const savedChannel = localStorage.getItem('catalogChannel')
     if (savedChannel) {
       if (savedChannel !== 'production') {
-        flags.value.catalogChannelProduction = false
+        mainStore.toggleFlag('catalogChannelProduction', false)
       } else {
-        flags.value.catalogCanSwitchChannel = true
+        mainStore.toggleFlag('catalogCanSwitchChannel', true)
       }
     } else {
       if (isProd) {
         localStorage.setItem('catalogChannel', 'production')
       } else {
         localStorage.setItem('catalogChannel', 'dev')
-        flags.value.catalogChannelProduction = false
-        flags.value.catalogCanSwitchChannel = true
+        mainStore.toggleFlag('catalogChannelProduction', false)
+        mainStore.toggleFlag('catalogCanSwitchChannel', true)
       }
     }
 
@@ -933,7 +644,7 @@ onMounted(async () => {
       autoReconnect()
     })
   } else {
-    flags.value.serialSupported = false
+    mainStore.toggleFlag('serialSupported', false)
   }
   checkConnectionRequirement()
 
@@ -942,8 +653,8 @@ onMounted(async () => {
       showNotif({
         message: 'Flipper has been disconnected'
       })
-      flags.value.connected = false
-      flags.value.portSelectRequired = true
+      mainStore.toggleFlag('connected', false)
+      mainStore.toggleFlag('portSelectRequired', true)
     }
     log({
       level: 'info',
@@ -965,3 +676,4 @@ onMounted(async () => {
   logger.setLevel(logger.getLevel())
 })
 </script>
+src/composables/useLog
