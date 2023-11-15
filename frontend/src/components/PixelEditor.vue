@@ -84,12 +84,11 @@
 </template>
 
 <script setup>
-import { ref, defineEmits, defineExpose, computed, watch, onMounted } from 'vue'
+import { ref, defineExpose, computed, watch, onMounted } from 'vue'
 import PixelEditor from '../util/pixeleditor/pixeleditor'
 import DitherDialog from 'src/components/DitherDialog.vue'
 import { exportFile } from 'quasar'
-
-const emit = defineEmits(['showNotif'])
+import showNotif from 'composables/useShowNotif'
 
 const flags = ref({
   checkerboard: false,
@@ -242,7 +241,7 @@ const download = async () => {
   const status = exportFile(`Paint_${new Date().toISOString()}.png`, blob)
   if (!status) {
     console.error('Failed to download image: permission denied')
-    emit('showNotif', {
+    showNotif({
       message: 'Failed to download image: permission denied',
       color: 'negative'
     })

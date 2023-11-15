@@ -23,6 +23,7 @@
     "loglevel": "^1.8.0",
     "nanoevents": "^6.0.2",
     "pako": "^2.0.4",
+    "pinia": "^2.1.7",
     "prettier": "^3.0.3",
     "protobufjs": "~6.11.2",
     "quasar": "^2.7.1",

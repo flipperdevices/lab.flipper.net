@@ -1,6 +1,6 @@
 <template>
   <q-page class="column full-width">
-    <template v-if="loading">
+    <template v-if="loadingInstalledApps">
       <div class="column items-center">
         <q-spinner
           color="primary"
@@ -10,7 +10,7 @@
         <p>Loading installed app...</p>
       </div>
     </template>
-    <template v-else-if="!props.info?.storage.sdcard.status.isInstalled">
+    <template v-else-if="!info?.storage.sdcard.status.isInstalled">
       <div class="column items-center">
         <q-card flat>
           <q-card-section class="q-pa-none q-ma-md" align="center">
@@ -33,9 +33,9 @@
     </template>
     <template v-else>
       <div v-if="updatableApps.length" style="width: 140px">
-        <template v-if="props.batch.totalCount">
+        <template v-if="batch.totalCount">
           <q-linear-progress
-            :value="props.batch.doneCount / props.batch.totalCount + props.action.progress / props.batch.totalCount"
+            :value="batch.doneCount / batch.totalCount + action.progress / batch.totalCount"
             size="32px"
             :color="actionColors.bar"
             :track-color="actionColors.track"
@@ -45,7 +45,7 @@
               <div
                 class="app-progress-label"
                 style="font-size: 28px;"
-              >{{ `${props.batch.doneCount} / ${props.batch.totalCount}` }}</div>
+              >{{ `${batch.doneCount} / ${batch.totalCount}` }}</div>
             </div>
           </q-linear-progress>
         </template>
@@ -57,23 +57,23 @@
           style="margin-left: 5px; padding: 0; border-radius: 5px; font-size: 16px; line-height: 16px;"
           label="Update all"
           class="fit no-shadow text-pixelated bg-positive"
-          @click="emit('batchUpdate', updatableApps);"
+          @click="appsStore.batchUpdate(updatableApps);"
         >
           <div class="install-all-badge">{{ updatableApps.length }}</div>
         </q-btn>
       </div>
 
-      <div v-if="props.batch.failed.length" class="text-negative">
+      <div v-if="batch.failed.length" class="text-negative">
         Update failed for
-        <span v-for="app, index in props.batch.failed" :key="app.id">"{{ app.currentVersion.name }}"<span v-if="props.batch.failed[index + 1]">, </span></span>
+        <span v-for="app, index in batch.failed" :key="app.id">"{{ app.currentVersion.name }}"<span v-if="batch.failed[index + 1]">, </span></span>
       </div>
 
-      <div class="column full-width" :class="props.batch.totalCount ? 'disabled' : ''">
+      <div class="column full-width" :class="batch.totalCount ? 'disabled' : ''">
         <div
           v-for="app in updatableApps"
           :key="app.currentVersion.name"
           class="flex no-wrap items-center q-my-md"
-          :class="props.action.type === 'delete' && props.action.id === app.id ? 'disabled' : ''"
+          :class="action.type === 'delete' && action.id === app.id ? 'disabled' : ''"
         >
           <div class="flex no-wrap items-center cursor-pointer" @click="appClicked(app)">
             <div class="app-icon q-mr-md">
@@ -92,9 +92,9 @@
             <b>{{ app.installedVersion.version }}</b>
           </div>
           <div class="q-ml-md" style="width: 80px;">
-            <template v-if="props.action.type && props.action.id === app.id">
+            <template v-if="action.type && action.id === app.id">
               <q-linear-progress
-                :value="props.action.progress"
+                :value="action.progress"
                 size="32px"
                 :color="actionColors.bar"
                 :track-color="actionColors.track"
@@ -105,7 +105,7 @@
                   <div
                     class="app-progress-label"
                     style="font-size: 28px;"
-                  >{{ `${props.action.progress * 100}%` }}</div>
+                  >{{ `${action.progress * 100}%` }}</div>
                 </div>
               </q-linear-progress>
             </template>
@@ -137,7 +137,7 @@
           v-for="app in upToDateApps"
           :key="app.currentVersion.name"
           class="flex no-wrap items-center q-my-md"
-          :class="props.action.type === 'delete' && props.action.id === app.id ? 'disabled' : ''"
+          :class="action.type === 'delete' && action.id === app.id ? 'disabled' : ''"
         >
           <div class="flex no-wrap items-center cursor-pointer" @click="appClicked(app)">
             <div class="app-icon q-mr-md">
@@ -180,7 +180,7 @@
           v-for="app in unsupportedApps"
           :key="app.name"
           class="flex no-wrap items-center q-my-md"
-          :class="props.action.type === 'delete' && props.action.id === app.id ? 'disabled' : ''"
+          :class="action.type === 'delete' && action.id === app.id ? 'disabled' : ''"
         >
           <div class="flex no-wrap items-center cursor-pointer" @click="$router.push(`/apps/${app.id}`)">
             <div class="app-icon q-mr-md">
@@ -275,20 +275,23 @@
 </template>
 
 <script setup>
-import { defineProps, defineEmits, ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 // import semver from 'semver'
 
-const props = defineProps({
-  apps: Array,
-  flipper: Object,
-  installedApps: Array,
-  sdk: Object,
-  action: Object,
-  batch: Object,
-  info: Object
-})
+import { useMainStore } from 'src/stores/main'
+const mainStore = useMainStore()
 
-const emit = defineEmits(['openApp', 'action', 'batchUpdate'])
+const info = computed(() => mainStore.info)
+
+import { useAppsStore } from 'stores/apps'
+const appsStore = useAppsStore()
+
+const sdk = computed(() => appsStore.sdk)
+const action = computed(() => appsStore.action)
+const batch = computed(() => appsStore.batch)
+const apps = computed(() => appsStore.apps)
+const loadingInstalledApps = computed(() => appsStore.loadingInstalledApps)
+const installedApps = computed(() => appsStore.installedApps)
 
 const flags = ref({
   deleteConfirmationDialog: false
@@ -296,15 +299,20 @@ const flags = ref({
 const appToDelete = ref(null)
 const actionType = ref('')
 
-const loading = ref(true)
-watch(() => props.info?.storage.sdcard.status.isInstalled, () => {
-  loading.value = false
+watch(() => info.value?.storage.sdcard.status.isInstalled, () => {
+  appsStore.toggleLoadingInstalledApps(false)
+})
+
+onMounted(async () => {
+  if (installedApps.value.length === 0) {
+    await appsStore.getInstalledApps()
+  }
 })
 
 const updatableApps = computed(() => {
-  return props.apps.filter(app => {
+  return apps.value.filter(app => {
     if (app.isInstalled === true && app.installedVersion && app.currentVersion.status === 'READY') {
-      if (props.sdk.api && app.installedVersion.api !== props.sdk.api) {
+      if (sdk.value.api && app.installedVersion.api !== sdk.value.api) {
         return true
       }
       if (app.installedVersion.isOutdated) {
@@ -316,9 +324,9 @@ const updatableApps = computed(() => {
 })
 
 const upToDateApps = computed(() => {
-  return props.apps.filter(app => {
+  return apps.value.filter(app => {
     if (app.isInstalled === true && app.installedVersion) {
-      if (props.sdk.api && app.installedVersion.api !== props.sdk.api) {
+      if (sdk.value.api && app.installedVersion.api !== sdk.value.api) {
         return false
       }
       if (!app.installedVersion.isOutdated && app.currentVersion.status === 'READY') {
@@ -330,8 +338,8 @@ const upToDateApps = computed(() => {
 })
 
 const unsupportedApps = computed(() => {
-  return props.installedApps.filter(installedApp => {
-    if (!props.apps.find(app => app.id === installedApp.id)) {
+  return installedApps.value.filter(installedApp => {
+    if (!apps.value.find(app => app.id === installedApp.id)) {
       return true
     }
     return false
@@ -339,7 +347,7 @@ const unsupportedApps = computed(() => {
 })
 
 const actionColors = computed(() => {
-  switch (props.action.type) {
+  switch (action.value.type) {
     case 'delete':
       return {
         bar: 'negative',
@@ -359,10 +367,10 @@ const actionColors = computed(() => {
 })
 
 const appClicked = (app) => {
-  if (props.action.type) {
+  if (action.value.type) {
     return
   }
-  emit('openApp', app)
+  appsStore.openApp(app)
 }
 
 const handleAction = (app, value) => {
@@ -371,7 +379,7 @@ const handleAction = (app, value) => {
   } else {
     actionType.value = value.toLowerCase()
   }
-  emit('action', app, actionType.value)
+  appsStore.handleAction(app, actionType.value)
 }
 </script>
 

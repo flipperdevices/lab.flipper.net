@@ -40,7 +40,7 @@
           >Install</q-btn>
         </div>
         <q-btn
-          v-if="installFromFile && flags.uploadEnabled"
+          v-if="mainFlags.installFromFile && flags.uploadEnabled"
           @click="flags.uploadPopup = true; uploadedFile = null"
           class="q-mt-lg"
           outline
@@ -102,21 +102,25 @@
 </template>
 
 <script setup>
-import { ref, defineProps, defineEmits, watch, onMounted } from 'vue'
+import { ref, defineEmits, watch, onMounted, computed } from 'vue'
 import ProgressBar from './ProgressBar.vue'
 import { fetchChannels, fetchFirmware, fetchRegions, unpack } from '../util/util'
 import semver from 'semver'
 import asyncSleep from 'simple-async-sleep'
 import { PB } from '../flipper-js/protobufCompiled'
+import { log } from 'composables/useLog'
+import showNotif from 'composables/useShowNotif'
+import { rpcErrorHandler } from 'composables/useRpcUtils'
 
-const props = defineProps({
-  flipper: Object,
-  rpcActive: Boolean,
-  info: Object,
-  installFromFile: Boolean
-})
+import { useMainStore } from 'src/stores/main'
+const mainStore = useMainStore()
 
-const emit = defineEmits(['log', 'update', 'showNotif', 'toggleMicroSDcardMissingDialog'])
+const mainFlags = computed(() => mainStore.flags)
+const flipper = computed(() => mainStore.flipper)
+
+const info = computed(() => mainStore.info)
+
+const emit = defineEmits(['update'])
 
 const componentName = 'Updater'
 const flags = ref({
@@ -157,13 +161,13 @@ watch(fwModel, (newModel) => {
 })
 
 const update = async (fromFile) => {
-  if (!props.info.storage.sdcard.status.isInstalled) {
-    emit('toggleMicroSDcardMissingDialog', true)
+  if (!info.value.storage.sdcard.status.isInstalled) {
+    mainStore.toggleFlag('microSDcardMissingDialog', true)
     return
   }
   flags.value.updateInProgress = true
   emit('update', 'start')
-  emit('log', {
+  log({
     level: 'info',
     message: `${componentName}: Update started`
   })
@@ -179,7 +183,7 @@ const update = async (fromFile) => {
       updateStage.value = 'Wrong file format'
       throw new Error('Wrong file format')
     }
-    emit('log', {
+    log({
       level: 'info',
       message: `${componentName}: Uploading firmware from file`
     })
@@ -188,11 +192,11 @@ const update = async (fromFile) => {
     .catch(error => {
       flags.value.updateError = true
       updateStage.value = error
-      emit('showNotif', {
+      showNotif({
         message: error.toString(),
         color: 'negative'
       })
-      emit('log', {
+      log({
         level: 'error',
         message: `${componentName}: ${error.toString()}`
       })
@@ -203,14 +207,14 @@ const update = async (fromFile) => {
 
 const loadFirmware = async (fromFile) => {
   updateStage.value = 'Loading firmware bundle...'
-  if (props.info.hardware.region !== '0' || flags.value.overrideDevRegion) {
+  if (info.value.hardware.region !== '0' || flags.value.overrideDevRegion) {
     const regions = await fetchRegions()
       .catch(error => {
-        emit('showNotif', {
+        showNotif({
           message: 'Failed to fetch regional update information',
           color: 'negative'
         })
-        emit('log', {
+        log({
           level: 'error',
           message: `${componentName}: Failed to fetch regional update information: ${error.toString()}`
         })
@@ -240,7 +244,7 @@ const loadFirmware = async (fromFile) => {
       options.bands.push(message)
     }
 
-    emit('log', {
+    log({
       level: 'debug',
       message: `${componentName}: Region provisioning message: ${JSON.stringify(options)}`
     })
@@ -249,10 +253,10 @@ const loadFirmware = async (fromFile) => {
     const message = PB.Region.create(options)
     const encoded = new Uint8Array(PB.Region.encodeDelimited(message).finish()).slice(1)
 
-    await props.flipper.RPC('storageWrite', { path: '/int/.region_data', buffer: encoded })
+    await flipper.value.RPC('storageWrite', { path: '/int/.region_data', buffer: encoded })
       .catch(error => rpcErrorHandler(error, 'storageWrite'))
 
-    emit('log', {
+    log({
       level: 'info',
       message: `${componentName}: Set Sub-GHz region: ${regions.country}`
     })
@@ -265,18 +269,18 @@ const loadFirmware = async (fromFile) => {
         .catch(error => {
           flags.value.updateError = true
           updateStage.value = error
-          emit('showNotif', {
+          showNotif({
             message: 'Failed to fetch firmware: ' + error.toString(),
             color: 'negative'
           })
-          emit('log', {
+          log({
             level: 'error',
             message: `${componentName}: Failed to fetch firmware: ${error.toString()}`
           })
           throw error
         })
         .finally(() => {
-          emit('log', {
+          log({
             level: 'debug',
             message: `${componentName}: Downloaded firmware from ${channels.value[fwModel.value.value].url}`
           })
@@ -285,7 +289,7 @@ const loadFirmware = async (fromFile) => {
       const buffer = await uploadedFile.value.arrayBuffer()
       files = await unpack(buffer)
         .finally(() => {
-          emit('log', {
+          log({
             level: 'debug',
             message: `${componentName}: Unpacked firmware`
           })
@@ -293,21 +297,21 @@ const loadFirmware = async (fromFile) => {
     }
 
     updateStage.value = 'Loading firmware files'
-    emit('log', {
+    log({
       level: 'info',
       message: `${componentName}: Loading firmware files`
     })
 
     let path = '/ext/update/'
-    await props.flipper.RPC('storageStat', { path: '/ext/update' })
+    await flipper.value.RPC('storageStat', { path: '/ext/update' })
       .catch(async error => {
         if (error.toString() !== 'ERROR_STORAGE_NOT_EXIST') {
-          rpcErrorHandler(error, 'storageStat')
+          rpcErrorHandler(componentName, error, 'storageStat')
         } else {
-          await props.flipper.RPC('storageMkdir', { path: '/ext/update' })
-            .catch(error => rpcErrorHandler(error, 'storageMkdir'))
+          await flipper.value.RPC('storageMkdir', { path: '/ext/update' })
+            .catch(error => rpcErrorHandler(componentName, error, 'storageMkdir'))
             .finally(() => {
-              emit('log', {
+              log({
                 level: 'debug',
                 message: `${componentName}: storageMkdir: /ext/update`
               })
@@ -321,23 +325,23 @@ const loadFirmware = async (fromFile) => {
         if (file.name.endsWith('/')) {
           path = path.slice(0, -1)
         }
-        await props.flipper.RPC('storageMkdir', { path })
-          .catch(error => rpcErrorHandler(error, 'storageMkdir'))
+        await flipper.value.RPC('storageMkdir', { path })
+          .catch(error => rpcErrorHandler(componentName, error, 'storageMkdir'))
           .finally(() => {
-            emit('log', {
+            log({
               level: 'debug',
               message: `${componentName}: storageMkdir: ${path}`
             })
           })
       } else {
         write.value.filename = file.name.slice(file.name.lastIndexOf('/') + 1)
-        const unbind = props.flipper.emitter.on('storageWriteRequest/progress', e => {
+        const unbind = flipper.value.emitter.on('storageWriteRequest/progress', e => {
           write.value.progress = e.progress / e.total
         })
-        await props.flipper.RPC('storageWrite', { path: '/ext/update/' + file.name, buffer: file.buffer })
-          .catch(error => rpcErrorHandler(error, 'storageWrite'))
+        await flipper.value.RPC('storageWrite', { path: '/ext/update/' + file.name, buffer: file.buffer })
+          .catch(error => rpcErrorHandler(componentName, error, 'storageWrite'))
           .finally(() => {
-            emit('log', {
+            log({
               level: 'debug',
               message: `${componentName}: storageWrite: /ext/update/${file.name}`
             })
@@ -350,37 +354,37 @@ const loadFirmware = async (fromFile) => {
     write.value.progress = 0
 
     updateStage.value = 'Loading manifest...'
-    emit('log', {
+    log({
       level: 'info',
       message: `${componentName}: Loading update manifest`
     })
 
-    await props.flipper.RPC('systemUpdate', { path: path + '/update.fuf' })
-      .catch(error => rpcErrorHandler(error, 'systemUpdate'))
+    await flipper.value.RPC('systemUpdate', { path: path + '/update.fuf' })
+      .catch(error => rpcErrorHandler(componentName, error, 'systemUpdate'))
       .finally(() => {
-        emit('log', {
+        log({
           level: 'debug',
           message: `${componentName}: systemUpdate: OK`
         })
       })
 
     updateStage.value = 'Update in progress, pay attention to your Flipper'
-    emit('log', {
+    log({
       level: 'info',
       message: `${componentName}: Rebooting Flipper`
     })
 
-    await props.flipper.RPC('systemReboot', { mode: 'UPDATE' })
-      .catch(error => rpcErrorHandler(error, 'systemReboot'))
+    await flipper.value.RPC('systemReboot', { mode: 'UPDATE' })
+      .catch(error => rpcErrorHandler(componentName, error, 'systemReboot'))
   } else {
     flags.value.updateError = true
     updateStage.value = 'Failed to fetch channel'
-    emit('showNotif', {
+    showNotif({
       message: 'Unable to load firmware channel from the build server. Reload the page and try again.',
       color: 'negative',
       reloadBtn: true
     })
-    emit('log', {
+    log({
       level: 'error',
       message: `${componentName}: Failed to fetch channel`
     })
@@ -388,14 +392,14 @@ const loadFirmware = async (fromFile) => {
 }
 
 const compareVersions = () => {
-  if (semver.lt((props.info.protobuf.version.major + '.' + props.info.protobuf.version.minor) + '.0', '0.6.0')) {
+  if (semver.lt((info.value.protobuf.version.major + '.' + info.value.protobuf.version.minor) + '.0', '0.6.0')) {
     flags.value.ableToUpdate = false
   }
-  if (props.info.firmware.version) {
-    if (props.info.firmware.version !== 'unknown' && semver.valid(props.info.firmware.version)) {
-      if (semver.eq(props.info.firmware.version, channels.value.release.version)) {
+  if (info.value.firmware.version) {
+    if (info.value.firmware.version !== 'unknown' && semver.valid(info.value.firmware.version)) {
+      if (semver.eq(info.value.firmware.version, channels.value.release.version)) {
         flags.value.outdated = false
-      } else if (semver.gt(props.info.firmware.version, channels.value.release.version)) {
+      } else if (semver.gt(info.value.firmware.version, channels.value.release.version)) {
         flags.value.outdated = false
         flags.value.aheadOfRelease = true
       } else {
@@ -407,27 +411,15 @@ const compareVersions = () => {
   }
 }
 
-const rpcErrorHandler = (error, command) => {
-  error = error.toString()
-  emit('showNotif', {
-    message: `RPC error in command '${command}': ${error}`,
-    color: 'negative'
-  })
-  emit('log', {
-    level: 'error',
-    message: `${componentName}: RPC error in command '${command}': ${error}`
-  })
-}
-
 onMounted(async () => {
-  channels.value = await fetchChannels(props.info.hardware.target)
+  channels.value = await fetchChannels(info.value.hardware.target)
     .catch(error => {
-      emit('showNotif', {
+      showNotif({
         message: 'Unable to load firmware channels from the build server. Reload the page and try again.',
         color: 'negative',
         reloadBtn: true
       })
-      emit('log', {
+      log({
         level: 'error',
         message: `${componentName}: failed to fetch update channels`
       })
