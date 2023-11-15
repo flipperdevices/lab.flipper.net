@@ -13,7 +13,7 @@ try {
 
 let mainWindow
 
-function createWindow () {
+async function createWindow () {
   /**
    * Initial window options
    */
@@ -24,7 +24,6 @@ function createWindow () {
     useContentSize: true,
     webPreferences: {
       contextIsolation: true,
-      // More info: /quasar-cli/developing-electron-apps/electron-preload-script
       preload: path.resolve(__dirname, process.env.QUASAR_ELECTRON_PRELOAD)
     }
   })
@@ -32,10 +31,8 @@ function createWindow () {
   mainWindow.loadURL(process.env.APP_URL)
 
   if (process.env.DEBUGGING) {
-    // if on DEV or Production with debug enabled
     mainWindow.webContents.openDevTools()
   } else {
-    // we're on production; no access to devtools pls
     mainWindow.webContents.on('devtools-opened', () => {
       mainWindow.webContents.closeDevTools()
     })
@@ -54,6 +51,7 @@ function createWindow () {
   mainWindow.webContents.session.setDevicePermissionHandler((details) => {
     if (details.deviceType === 'serial') {
       if (details.device.vendorId === 1155 && details.device.productId === 22336) {
+        console.log(details.device)
         // Always allow this type of device (this allows skipping the call to `navigator.serial.requestPort` first)
         return true
       }
@@ -66,7 +64,8 @@ function createWindow () {
       return device.vendorId === '1155' && device.productId === '22336'
     })
     if (!selectedPort) {
-      throw new Error('No matching ports')
+      // eslint-disable-next-line node/no-callback-literal
+      callback('')
     } else {
       callback(selectedPort.portId)
     }
