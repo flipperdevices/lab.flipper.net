@@ -136,6 +136,7 @@
             <div class="column items-center">
               <div v-if="info && info.hardware && info.power" class="flex justify-center q-px-md">
                 <img v-if="info.hardware.color === '1'" src="../assets/flipper_black.svg" style="width: 100%"/>
+                <img v-else-if="info.hardware.color === '3'" src="../assets/flipper_transparent.svg" style="width: 100%"/>
                 <img v-else src="../assets/flipper_white.svg" style="width: 100%"/>
                 <div class="flex full-width justify-between items-center q-mt-md q-mb-sm">
                   <div style="font-size: 1rem; font-weight: 600;">{{ info.hardware.name }}</div>

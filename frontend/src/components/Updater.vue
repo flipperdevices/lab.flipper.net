@@ -9,7 +9,7 @@
         </template>
         <p v-if="channels.custom">
           Detected custom firmware <b>"{{ channels.custom.channel }}"</b>
-          <span v-if="!this.channels.custom.url.endsWith('tgz')"> with <b>unsupported</b> filetype</span>
+          <span v-if="!channels.custom.url.endsWith('tgz')"> with <b>unsupported</b> filetype</span>
         </p>
         <div class="flex q-mt-sm">
           <q-select
@@ -101,10 +101,10 @@
   </div>
 </template>
 
-<script>
-import { defineComponent, ref, computed } from 'vue'
-import { fetchChannels, fetchFirmware, fetchRegions, unpack } from '../util/util'
+<script setup>
+import { ref, defineEmits, watch, onMounted, computed } from 'vue'
 import ProgressBar from './ProgressBar.vue'
+import { fetchChannels, fetchFirmware, fetchRegions, unpack } from '../util/util'
 import semver from 'semver'
 import asyncSleep from 'simple-async-sleep'
 import { PB } from '../flipper-js/protobufCompiled'
@@ -120,349 +120,330 @@ const flipper = computed(() => mainStore.flipper)
 
 const info = computed(() => mainStore.info)
 
-export default defineComponent({
-  name: 'Updater',
+const emit = defineEmits(['update'])
 
-  components: {
-    ProgressBar
+const componentName = 'Updater'
+const flags = ref({
+  restarting: false,
+  rpcActive: false,
+  rpcToggling: false,
+  outdated: undefined,
+  aheadOfRelease: false,
+  ableToUpdate: true,
+  updateInProgress: false,
+  updateError: false,
+  uploadEnabled: true,
+  uploadPopup: false,
+  overrideDevRegion: false
+})
+const channels = ref({})
+const fwOptions = ref([
+  {
+    label: 'Release', value: 'release', version: ''
   },
+  {
+    label: 'Release-candidate', value: 'rc', version: ''
+  },
+  {
+    label: 'Dev (unstable)', value: 'dev', version: ''
+  }
+])
+const fwModel = ref(fwOptions.value[0])
+const updateStage = ref('')
+const write = ref({
+  filename: '',
+  progress: 0
+})
+const uploadedFile = ref(null)
 
-  setup () {
-    return {
-      componentName: 'Updater',
+watch(fwModel, (newModel) => {
+  localStorage.setItem('selectedFwChannel', newModel.value)
+})
 
-      flags: ref({
-        restarting: false,
-        rpcActive: false,
-        rpcToggling: false,
-        outdated: undefined,
-        aheadOfRelease: false,
-        ableToUpdate: true,
-        updateInProgress: false,
-        updateError: false,
-        uploadEnabled: true,
-        uploadPopup: false,
-        overrideDevRegion: false
-      }),
-      channels: ref({}),
-      fwModel: ref({
-        label: 'Release', value: 'release', version: ''
-      }),
-      fwOptions: ref([
-        {
-          label: 'Release', value: 'release', version: ''
-        },
-        {
-          label: 'Release-candidate', value: 'rc', version: ''
-        },
-        {
-          label: 'Dev (unstable)', value: 'dev', version: ''
-        }
-      ]),
-      updateStage: ref(''),
-      write: ref({
-        filename: '',
-        progress: 0
-      }),
-      uploadedFile: ref(null),
-      info,
-      mainFlags
+const update = async (fromFile) => {
+  if (!info.value.storage.sdcard.status.isInstalled) {
+    mainStore.toggleFlag('microSDcardMissingDialog', true)
+    return
+  }
+  flags.value.updateInProgress = true
+  emit('update', 'start')
+  log({
+    level: 'info',
+    message: `${componentName}: Update started`
+  })
+  if (fromFile) {
+    if (!uploadedFile.value) {
+      flags.value.updateError = true
+      emit('update', 'end')
+      updateStage.value = 'No file selected'
+      throw new Error('No file selected')
+    } else if (!uploadedFile.value.name.endsWith('.tgz')) {
+      flags.value.updateError = true
+      emit('update', 'end')
+      updateStage.value = 'Wrong file format'
+      throw new Error('Wrong file format')
     }
-  },
-
-  watch: {
-    async fwModel (newModel, oldModel) {
-      localStorage.setItem('selectedFwChannel', newModel.value)
-    }
-  },
-
-  methods: {
-    async update (fromFile) {
-      if (!this.info.storage.sdcard.isInstalled) {
-        mainStore.toggleFlag('microSDcardMissingDialog', true)
-        return
-      }
-      this.flags.updateInProgress = true
-      this.$emit('update', 'start')
-      log({
-        level: 'info',
-        message: `${this.componentName}: Update started`
+    log({
+      level: 'info',
+      message: `${componentName}: Uploading firmware from file`
+    })
+  }
+  await loadFirmware(fromFile)
+    .catch(error => {
+      flags.value.updateError = true
+      updateStage.value = error
+      showNotif({
+        message: error.toString(),
+        color: 'negative'
       })
-      if (fromFile) {
-        if (!this.uploadedFile) {
-          this.flags.updateError = true
-          this.$emit('update', 'end')
-          this.updateStage = 'No file selected'
-          throw new Error('No file selected')
-        } else if (!this.uploadedFile.name.endsWith('.tgz')) {
-          this.flags.updateError = true
-          this.$emit('update', 'end')
-          this.updateStage = 'Wrong file format'
-          throw new Error('Wrong file format')
-        }
-        log({
-          level: 'info',
-          message: `${this.componentName}: Uploading firmware from file`
+      log({
+        level: 'error',
+        message: `${componentName}: ${error.toString()}`
+      })
+      throw error
+    })
+  // flags.value.updateInProgress = false
+}
+
+const loadFirmware = async (fromFile) => {
+  updateStage.value = 'Loading firmware bundle...'
+  if (info.value.hardware.region !== '0' || flags.value.overrideDevRegion) {
+    const regions = await fetchRegions()
+      .catch(error => {
+        showNotif({
+          message: 'Failed to fetch regional update information',
+          color: 'negative'
         })
+        log({
+          level: 'error',
+          message: `${componentName}: Failed to fetch regional update information: ${error.toString()}`
+        })
+        throw error
+      })
+
+    let bands
+    if (regions.countries[regions.country]) {
+      bands = regions.countries[regions.country].map(e => regions.bands[e])
+    } else {
+      bands = regions.default.map(e => regions.bands[e])
+      regions.country = 'JP'
+    }
+    const options = {
+      countryCode: regions.country,
+      bands: []
+    }
+
+    for (const band of bands) {
+      const bandOptions = {
+        start: band.start,
+        end: band.end,
+        powerLimit: band.max_power,
+        dutyCycle: band.duty_cycle
       }
-      await this.loadFirmware(fromFile)
+      const message = PB.Region.Band.create(bandOptions)
+      options.bands.push(message)
+    }
+
+    log({
+      level: 'debug',
+      message: `${componentName}: Region provisioning message: ${JSON.stringify(options)}`
+    })
+
+    options.countryCode = new TextEncoder().encode(regions.country)
+    const message = PB.Region.create(options)
+    const encoded = new Uint8Array(PB.Region.encodeDelimited(message).finish()).slice(1)
+
+    await flipper.value.RPC('storageWrite', { path: '/int/.region_data', buffer: encoded })
+      .catch(error => rpcErrorHandler(error, 'storageWrite'))
+
+    log({
+      level: 'info',
+      message: `${componentName}: Set Sub-GHz region: ${regions.country}`
+    })
+  }
+
+  if (fromFile || (channels.value[fwModel.value.value] && channels.value[fwModel.value.value].url)) {
+    let files
+    if (!fromFile) {
+      files = await fetchFirmware(channels.value[fwModel.value.value].url)
         .catch(error => {
-          this.flags.updateError = true
-          this.updateStage = error
+          flags.value.updateError = true
+          updateStage.value = error
           showNotif({
-            message: error.toString(),
+            message: 'Failed to fetch firmware: ' + error.toString(),
             color: 'negative'
           })
           log({
             level: 'error',
-            message: `${this.componentName}: ${error.toString()}`
+            message: `${componentName}: Failed to fetch firmware: ${error.toString()}`
           })
           throw error
         })
-      // this.flags.updateInProgress = false
-    },
-
-    async loadFirmware (fromFile) {
-      this.updateStage = 'Loading firmware bundle...'
-      if (this.info.hardware.region !== '0' || this.flags.overrideDevRegion) {
-        const regions = await fetchRegions()
-          .catch(error => {
-            showNotif({
-              message: 'Failed to fetch regional update information',
-              color: 'negative'
-            })
-            log({
-              level: 'error',
-              message: `${this.componentName}: Failed to fetch regional update information: ${error.toString()}`
-            })
-            throw error
+        .finally(() => {
+          log({
+            level: 'debug',
+            message: `${componentName}: Downloaded firmware from ${channels.value[fwModel.value.value].url}`
           })
+        })
+    } else {
+      const buffer = await uploadedFile.value.arrayBuffer()
+      files = await unpack(buffer)
+        .finally(() => {
+          log({
+            level: 'debug',
+            message: `${componentName}: Unpacked firmware`
+          })
+        })
+    }
 
-        let bands
-        if (regions.countries[regions.country]) {
-          bands = regions.countries[regions.country].map(e => regions.bands[e])
+    updateStage.value = 'Loading firmware files'
+    log({
+      level: 'info',
+      message: `${componentName}: Loading firmware files`
+    })
+
+    let path = '/ext/update/'
+    await flipper.value.RPC('storageStat', { path: '/ext/update' })
+      .catch(async error => {
+        if (error.toString() !== 'ERROR_STORAGE_NOT_EXIST') {
+          rpcErrorHandler(componentName, error, 'storageStat')
         } else {
-          bands = regions.default.map(e => regions.bands[e])
-          regions.country = 'JP'
-        }
-        const options = {
-          countryCode: regions.country,
-          bands: []
-        }
-
-        for (const band of bands) {
-          const bandOptions = {
-            start: band.start,
-            end: band.end,
-            powerLimit: band.max_power,
-            dutyCycle: band.duty_cycle
-          }
-          const message = PB.Region.Band.create(bandOptions)
-          options.bands.push(message)
-        }
-
-        log({
-          level: 'debug',
-          message: `${this.componentName}: Region provisioning message: ${JSON.stringify(options)}`
-        })
-
-        options.countryCode = new TextEncoder().encode(regions.country)
-        const message = PB.Region.create(options)
-        const encoded = new Uint8Array(PB.Region.encodeDelimited(message).finish()).slice(1)
-
-        await flipper.value.RPC('storageWrite', { path: '/int/.region_data', buffer: encoded })
-          .catch(error => rpcErrorHandler(this.componentName, error, 'storageWrite'))
-
-        log({
-          level: 'info',
-          message: `${this.componentName}: Set Sub-GHz region: ${regions.country}`
-        })
-      }
-
-      if (fromFile || (this.channels[this.fwModel.value] && this.channels[this.fwModel.value].url)) {
-        let files
-        if (!fromFile) {
-          files = await fetchFirmware(this.channels[this.fwModel.value].url)
-            .catch(error => {
-              this.flags.updateError = true
-              this.updateStage = error
-              showNotif({
-                message: 'Failed to fetch firmware: ' + error.toString(),
-                color: 'negative'
-              })
-              log({
-                level: 'error',
-                message: `${this.componentName}: Failed to fetch firmware: ${error.toString()}`
-              })
-              throw error
-            })
+          await flipper.value.RPC('storageMkdir', { path: '/ext/update' })
+            .catch(error => rpcErrorHandler(componentName, error, 'storageMkdir'))
             .finally(() => {
               log({
                 level: 'debug',
-                message: `${this.componentName}: Downloaded firmware from ${this.channels[this.fwModel.value].url}`
-              })
-            })
-        } else {
-          const buffer = await this.uploadedFile.arrayBuffer()
-          files = await unpack(buffer)
-            .finally(() => {
-              log({
-                level: 'debug',
-                message: `${this.componentName}: Unpacked firmware`
+                message: `${componentName}: storageMkdir: /ext/update`
               })
             })
         }
+      })
 
-        this.updateStage = 'Loading firmware files'
-        log({
-          level: 'info',
-          message: `${this.componentName}: Loading firmware files`
-        })
-
-        let path = '/ext/update/'
-        await flipper.value.RPC('storageStat', { path: '/ext/update' })
-          .catch(async error => {
-            if (error.toString() !== 'ERROR_STORAGE_NOT_EXIST') {
-              rpcErrorHandler(this.componentName, error, 'storageStat')
-            } else {
-              await flipper.value.RPC('storageMkdir', { path: '/ext/update' })
-                .catch(error => rpcErrorHandler(this.componentName, error, 'storageMkdir'))
-                .finally(() => {
-                  log({
-                    level: 'debug',
-                    message: `${this.componentName}: storageMkdir: /ext/update`
-                  })
-                })
-            }
-          })
-
-        for (const file of files) {
-          if (file.size === 0) {
-            path = '/ext/update/' + file.name
-            if (file.name.endsWith('/')) {
-              path = path.slice(0, -1)
-            }
-            await flipper.value.RPC('storageMkdir', { path })
-              .catch(error => rpcErrorHandler(this.componentName, error, 'storageMkdir'))
-              .finally(() => {
-                log({
-                  level: 'debug',
-                  message: `${this.componentName}: storageMkdir: ${path}`
-                })
-              })
-          } else {
-            this.write.filename = file.name.slice(file.name.lastIndexOf('/') + 1)
-            const unbind = flipper.value.emitter.on('storageWriteRequest/progress', e => {
-              this.write.progress = e.progress / e.total
-            })
-            await flipper.value.RPC('storageWrite', { path: '/ext/update/' + file.name, buffer: file.buffer })
-              .catch(error => rpcErrorHandler(this.componentName, error, 'storageWrite'))
-              .finally(() => {
-                log({
-                  level: 'debug',
-                  message: `${this.componentName}: storageWrite: /ext/update/${file.name}`
-                })
-              })
-            unbind()
-          }
-          await asyncSleep(300)
+    for (const file of files) {
+      if (file.size === 0) {
+        path = '/ext/update/' + file.name
+        if (file.name.endsWith('/')) {
+          path = path.slice(0, -1)
         }
-        this.write.filename = ''
-        this.write.progress = 0
-
-        this.updateStage = 'Loading manifest...'
-        log({
-          level: 'info',
-          message: `${this.componentName}: Loading update manifest`
-        })
-
-        await flipper.value.RPC('systemUpdate', { path: path + '/update.fuf' })
-          .catch(error => rpcErrorHandler(this.componentName, error, 'systemUpdate'))
+        await flipper.value.RPC('storageMkdir', { path })
+          .catch(error => rpcErrorHandler(componentName, error, 'storageMkdir'))
           .finally(() => {
             log({
               level: 'debug',
-              message: `${this.componentName}: systemUpdate: OK`
+              message: `${componentName}: storageMkdir: ${path}`
             })
           })
-
-        this.updateStage = 'Update in progress, pay attention to your Flipper'
-        log({
-          level: 'info',
-          message: `${this.componentName}: Rebooting Flipper`
-        })
-
-        await flipper.value.RPC('systemReboot', { mode: 'UPDATE' })
-          .catch(error => rpcErrorHandler(this.componentName, error, 'systemReboot'))
       } else {
-        this.flags.updateError = true
-        this.updateStage = 'Failed to fetch channel'
-        showNotif({
-          message: 'Unable to load firmware channel from the build server. Reload the page and try again.',
-          color: 'negative',
-          reloadBtn: true
+        write.value.filename = file.name.slice(file.name.lastIndexOf('/') + 1)
+        const unbind = flipper.value.emitter.on('storageWriteRequest/progress', e => {
+          write.value.progress = e.progress / e.total
         })
-        log({
-          level: 'error',
-          message: `${this.componentName}: Failed to fetch channel`
-        })
+        await flipper.value.RPC('storageWrite', { path: '/ext/update/' + file.name, buffer: file.buffer })
+          .catch(error => rpcErrorHandler(componentName, error, 'storageWrite'))
+          .finally(() => {
+            log({
+              level: 'debug',
+              message: `${componentName}: storageWrite: /ext/update/${file.name}`
+            })
+          })
+        unbind()
       }
-    },
-
-    compareVersions () {
-      if (semver.lt((this.info.protobuf.version.major + '.' + this.info.protobuf.version.minor) + '.0', '0.6.0')) {
-        this.flags.ableToUpdate = false
-      }
-      if (this.info.firmware.version) {
-        if (this.info.firmware.version !== 'unknown' && semver.valid(this.info.firmware.version)) {
-          if (semver.eq(this.info.firmware.version, this.channels.release.version)) {
-            this.flags.outdated = false
-          } else if (semver.gt(this.info.firmware.version, this.channels.release.version)) {
-            this.flags.outdated = false
-            this.flags.aheadOfRelease = true
-          } else {
-            this.flags.outdated = true
-          }
-        } else {
-          this.flags.outdated = undefined
-        }
-      }
+      await asyncSleep(300)
     }
-  },
+    write.value.filename = ''
+    write.value.progress = 0
 
-  async mounted () {
-    this.channels = await fetchChannels(this.info.hardware.target)
-      .catch(error => {
-        showNotif({
-          message: 'Unable to load firmware channels from the build server. Reload the page and try again.',
-          color: 'negative',
-          reloadBtn: true
-        })
+    updateStage.value = 'Loading manifest...'
+    log({
+      level: 'info',
+      message: `${componentName}: Loading update manifest`
+    })
+
+    await flipper.value.RPC('systemUpdate', { path: path + '/update.fuf' })
+      .catch(error => rpcErrorHandler(componentName, error, 'systemUpdate'))
+      .finally(() => {
         log({
-          level: 'error',
-          message: `${this.componentName}: failed to fetch update channels`
+          level: 'debug',
+          message: `${componentName}: systemUpdate: OK`
         })
-        throw error
       })
-    this.compareVersions()
-    this.fwOptions[0].version = this.channels.release.version
-    this.fwOptions[1].version = this.channels.rc.version
-    this.fwOptions[2].version = this.channels.dev.version
-    if (this.channels.custom && this.channels.custom.url.endsWith('tgz')) {
-      this.fwOptions.unshift({
-        label: this.channels.custom.channel || 'Custom', value: 'custom', version: this.channels.custom.version || 'unknown'
-      })
-    }
 
-    const selectedBefore = this.fwOptions.find(e => e.value === localStorage.getItem('selectedFwChannel'))
-    if (selectedBefore && !this.channels.custom) {
-      this.fwModel = selectedBefore
+    updateStage.value = 'Update in progress, pay attention to your Flipper'
+    log({
+      level: 'info',
+      message: `${componentName}: Rebooting Flipper`
+    })
+
+    await flipper.value.RPC('systemReboot', { mode: 'UPDATE' })
+      .catch(error => rpcErrorHandler(componentName, error, 'systemReboot'))
+  } else {
+    flags.value.updateError = true
+    updateStage.value = 'Failed to fetch channel'
+    showNotif({
+      message: 'Unable to load firmware channel from the build server. Reload the page and try again.',
+      color: 'negative',
+      reloadBtn: true
+    })
+    log({
+      level: 'error',
+      message: `${componentName}: Failed to fetch channel`
+    })
+  }
+}
+
+const compareVersions = () => {
+  if (semver.lt((info.value.protobuf.version.major + '.' + info.value.protobuf.version.minor) + '.0', '0.6.0')) {
+    flags.value.ableToUpdate = false
+  }
+  if (info.value.firmware.version) {
+    if (info.value.firmware.version !== 'unknown' && semver.valid(info.value.firmware.version)) {
+      if (semver.eq(info.value.firmware.version, channels.value.release.version)) {
+        flags.value.outdated = false
+      } else if (semver.gt(info.value.firmware.version, channels.value.release.version)) {
+        flags.value.outdated = false
+        flags.value.aheadOfRelease = true
+      } else {
+        flags.value.outdated = true
+      }
     } else {
-      this.fwModel = this.fwOptions[0]
+      flags.value.outdated = undefined
     }
+  }
+}
 
-    if (new URLSearchParams(location.search).get('overrideDevRegion') === 'true') {
-      this.flags.overrideDevRegion = true
-    }
+onMounted(async () => {
+  channels.value = await fetchChannels(info.value.hardware.target)
+    .catch(error => {
+      showNotif({
+        message: 'Unable to load firmware channels from the build server. Reload the page and try again.',
+        color: 'negative',
+        reloadBtn: true
+      })
+      log({
+        level: 'error',
+        message: `${componentName}: failed to fetch update channels`
+      })
+      throw error
+    })
+  compareVersions()
+  fwOptions.value[0].version = channels.value.release.version
+  fwOptions.value[1].version = channels.value.rc.version
+  fwOptions.value[2].version = channels.value.dev.version
+  if (channels.value.custom && channels.value.custom.url.endsWith('tgz')) {
+    fwOptions.value.unshift({
+      label: channels.value.custom.channel || 'Custom', value: 'custom', version: channels.value.custom.version || 'unknown'
+    })
+  }
+
+  const selectedBefore = fwOptions.value.find(e => e.value === localStorage.getItem('selectedFwChannel'))
+  if (selectedBefore && !channels.value.custom) {
+    fwModel.value = selectedBefore
+  } else {
+    fwModel.value = fwOptions.value[0]
+  }
+
+  if (new URLSearchParams(location.search).get('overrideDevRegion') === 'true') {
+    flags.value.overrideDevRegion = true
   }
 })
 </script>

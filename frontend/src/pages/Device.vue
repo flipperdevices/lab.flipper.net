@@ -37,7 +37,7 @@
             <h5>{{ info.hardware.name }}</h5>
             <div
               class="flipper"
-              :class="info.hardware.color === '1' ? 'body-black' : 'body-white'"
+              :class="flipperBodyClass"
             >
               <canvas
                 v-show="flags.screenStream"
@@ -166,6 +166,16 @@ const sdCardUsage = computed(() => {
   }
   return `${bytesToSize(sdCard.totalSpace - sdCard.freeSpace)} / ${bytesToSize(sdCard.totalSpace)}`
 })
+const flipperBodyClass = computed(() => {
+  switch (info.value.hardware.color) {
+    case '1':
+      return 'body-black'
+    case '3':
+      return 'body-transparent'
+    default:
+      return 'body-white'
+  }
+})
 
 const startRpc = async () => {
   flags.value.rpcToggling = true
@@ -200,7 +210,7 @@ const startScreenStream = async () => {
   ctx.lineWidth = 1
   ctx.lineCap = 'square'
   ctx.imageSmoothingEnabled = false
-  ctx.fillStyle = '#fe8a2b'
+  ctx.fillStyle = '#ff8201'
   ctx.fillRect(0, 0, 128 * screenScale.value, 64 * screenScale.value)
   ctx.fillStyle = 'black'
 
@@ -223,7 +233,7 @@ const startScreenStream = async () => {
           ctx.fillStyle = 'black'
           ctx.fillRect(x * screenScale.value, y * screenScale.value, 1 * screenScale.value, 1 * screenScale.value)
         } else {
-          ctx.fillStyle = '#fe8a2b'
+          ctx.fillStyle = '#ff8201'
           ctx.fillRect(x * screenScale.value, y * screenScale.value, 1 * screenScale.value, 1 * screenScale.value)
         }
       }
