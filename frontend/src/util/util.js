@@ -12,6 +12,12 @@ if (localStorage.getItem('catalogChannel') !== null) {
   }
 }
 
+const defaultAction = {
+  type: '',
+  progress: 0,
+  id: ''
+}
+
 function camelCaseDeep (object) {
   return Object.fromEntries(Object.entries(object).map(e => {
     if (!!e[1] && typeof e[1] === 'object') {
@@ -163,7 +169,10 @@ async function fetchCategories (params) {
 
 async function fetchAppsShort (params) {
   const res = await fetch(`${API_ENDPOINT}/application?${new URLSearchParams({ ...params }).toString()}`).then(res => res.json())
-  const apps = res.map(app => camelCaseDeep(app))
+  const apps = res.map(app => {
+    app.action = defaultAction
+    return camelCaseDeep(app)
+  })
   return apps
 }
 
@@ -175,6 +184,7 @@ async function fetchAppById (id, params) {
     delete params.api
   }
   const res = await fetch(`${API_ENDPOINT}/application/${id}?${new URLSearchParams({ ...params }).toString()}`).then(res => res.json())
+  res.action = defaultAction
   return camelCaseDeep(res)
 }
 

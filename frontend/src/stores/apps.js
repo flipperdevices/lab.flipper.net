@@ -7,6 +7,8 @@ import { log } from 'composables/useLog'
 import showNotif from 'composables/useShowNotif'
 import useSetProperty from 'composables/useSetProperty'
 import { rpcErrorHandler } from 'composables/useRpcUtils'
+import promiseQueue from 'composables/usePromiseQueue'
+const actionQueue = promiseQueue()
 
 import { useMainStore } from 'stores/main'
 
@@ -35,37 +37,70 @@ export const useAppsStore = defineStore('apps', () => {
 
   const flipperReady = computed(() => mainFlags.value.rpcActive && info.value !== null && info.value.doneReading)
 
-  const action = ref({
-    type: '',
-    progress: 0,
-    id: ''
-  })
+  const actionColors = (app) => {
+    switch (app.action.type) {
+      case 'delete':
+        return {
+          bar: 'negative',
+          track: 'deep-orange-5'
+        }
+      case 'install':
+        return {
+          bar: 'primary',
+          track: 'orange-6'
+        }
+      case 'processed':
+        return {
+          bar: 'primary',
+          track: 'orange-6'
+        }
+      default:
+        return {
+          bar: 'positive',
+          track: 'green-6'
+        }
+    }
+  }
+  const onAction = (app, value) => {
+    app.action.type = 'processed'
+    app.actionButton.text = 'Processed'
+    app.actionButton.class = 'bg-grey-6'
+    app.actionButton.disabled = true
+
+    const action = async (app, value) => {
+      await handleAction(app, value === 'Installed' ? '' : value.toLowerCase())
+
+      return Promise.resolve()
+    }
+
+    actionQueue.addToQueue(action, [app, value])
+  }
   const handleAction = (app, actionType) => {
     if (!mainFlags.value.connected) {
-      action.value.type = actionType
+      app.action.type = actionType
       flags.value.connectFlipperDialog = true
 
       setTimeout(() => {
-        action.value.type = ''
+        app.action.type = ''
       }, 300)
       return
     }
     if (!info.value.storage.sdcard.status.isInstalled) {
-      action.value.type = actionType
+      app.action.type = actionType
       mainStore.toggleFlag('microSDcardMissingDialog', true)
       setTimeout(() => {
-        action.value.type = ''
+        app.action.type = ''
       }, 300)
       return
     }
     if (!actionType) {
       return
     }
-    action.value.type = actionType
-    action.value.progress = 0
-    action.value.id = app.id
+    app.action.type = actionType
+    app.action.progress = 0
+    app.action.id = app.id
 
-    switch (action.value.type) {
+    switch (app.action.type) {
       case 'install':
         return installApp(app)
       case 'update':
@@ -84,7 +119,7 @@ export const useAppsStore = defineStore('apps', () => {
     batch.value.totalCount = apps.length
     batch.value.doneCount = 0
 
-    action.value.type = 'update'
+    // action.value.type = 'update'
 
     for (const app of apps) {
       try {
@@ -116,17 +151,20 @@ export const useAppsStore = defineStore('apps', () => {
     if (!sdk.value.api) {
       return { text: 'Install', class: 'bg-primary' }
     }
+    if (app.action.type === 'processed') {
+      return { text: 'Processed', class: 'bg-grey-6', disabled: true }
+    }
     if (app.isInstalled && app.installedVersion) {
       if (app.installedVersion.api !== sdk.value.api) {
         if (app.currentVersion.status === 'READY') {
           return { text: 'Update', class: 'bg-positive' }
         }
-        return { text: 'Installed', class: 'bg-grey-6' }
+        return { text: 'Installed', class: 'bg-grey-6', disabled: true }
       } else {
         if (app.installedVersion.isOutdated) {
           return { text: 'Update', class: 'bg-positive' }
         } else {
-          return { text: 'Installed', class: 'bg-grey-6' }
+          return { text: 'Installed', class: 'bg-grey-6', disabled: true }
         }
       }
     }
@@ -258,11 +296,11 @@ export const useAppsStore = defineStore('apps', () => {
       })
     })
     if (!fap) {
-      action.value.type = ''
-      action.value.progress = 0
+      app.action.type = ''
+      app.action.progress = 0
       return
     }
-    action.value.progress = 0.33
+    app.action.progress = 0.33
     await asyncSleep(300)
     log({
       level: 'debug',
@@ -283,7 +321,7 @@ export const useAppsStore = defineStore('apps', () => {
     const base64Icon = dataUri.split(',')[1]
     const manifestText = `Filetype: Flipper Application Installation Manifest\r\nVersion: 1\r\nFull Name: ${app.currentVersion.name}\r\nIcon: ${base64Icon}\r\nVersion Build API: ${info.value.firmware.api.major}.${info.value.firmware.api.minor}\r\nUID: ${app.id}\r\nVersion UID: ${app.currentVersion.id}\r\nPath: ${paths.appDir}/${app.alias}.fap`
     const manifestFile = new TextEncoder().encode(manifestText)
-    action.value.progress = 0.45
+    app.action.progress = 0.45
     await asyncSleep(300)
 
     // upload manifest to temp
@@ -295,7 +333,7 @@ export const useAppsStore = defineStore('apps', () => {
         })
       })
       .catch(error => rpcErrorHandler(componentName, error, 'storageWrite'))
-    action.value.progress = 0.5
+    app.action.progress = 0.5
     await asyncSleep(300)
 
     // upload fap to temp
@@ -307,7 +345,7 @@ export const useAppsStore = defineStore('apps', () => {
         })
       })
       .catch(error => rpcErrorHandler(componentName, error, 'storageWrite'))
-    action.value.progress = 0.75
+    app.action.progress = 0.75
     await asyncSleep(300)
 
     // move manifest and fap
@@ -333,7 +371,7 @@ export const useAppsStore = defineStore('apps', () => {
         })
       })
       .catch(error => rpcErrorHandler(componentName, error, 'storageRename'))
-    action.value.progress = 0.8
+    app.action.progress = 0.8
     await asyncSleep(300)
 
     dirList = await flipper.value.RPC('storageList', { path: paths.appDir })
@@ -358,14 +396,14 @@ export const useAppsStore = defineStore('apps', () => {
         })
       })
       .catch(error => rpcErrorHandler(componentName, error, 'storageRename'))
-    action.value.progress = 1
+    app.action.progress = 1
     await asyncSleep(300)
 
     // post-install
     await updateInstalledApps()
 
-    action.value.type = ''
-    action.value.progress = 0
+    app.action.type = ''
+    app.action.progress = 0
   }
 
   const deleteApp = async (app) => {
@@ -396,7 +434,7 @@ export const useAppsStore = defineStore('apps', () => {
         })
         .catch(error => rpcErrorHandler(componentName, error, 'storageRemove'))
     }
-    action.value.progress = 0.5
+    app.action.progress = 0.5
 
     // remove manifest
     dirList = await flipper.value.RPC('storageList', { path: paths.manifestDir })
@@ -412,13 +450,13 @@ export const useAppsStore = defineStore('apps', () => {
         })
         .catch(error => rpcErrorHandler(componentName, error, 'storageRemove'))
     }
-    action.value.progress = 1
+    app.action.progress = 1
 
     // post-delete
     await updateInstalledApps()
 
-    action.value.type = ''
-    action.value.progress = 0
+    app.action.type = ''
+    app.action.progress = 0
   }
 
   const currentApp = ref(null)
@@ -463,8 +501,9 @@ export const useAppsStore = defineStore('apps', () => {
     flags,
     flipperReady,
 
-    action,
+    actionColors,
     handleAction,
+    onAction,
 
     batch,
     batchUpdate,

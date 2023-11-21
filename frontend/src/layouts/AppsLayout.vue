@@ -9,7 +9,6 @@
     >
       <div
         class="apps-navbar row justify-end items-center full-width q-mb-xl"
-        :class="action.type ? 'disabled' : ''"
       >
         <q-icon
           v-if="currentApp || flags.installedPage"
@@ -197,7 +196,6 @@ const appsStore = useAppsStore()
 
 const flags = computed(() => appsStore.flags)
 const flipperReady = computed(() => appsStore.flipperReady)
-const action = computed(() => appsStore.action)
 const sdk = computed(() => appsStore.sdk)
 const currentApp = computed(() => appsStore.currentApp)
 const apps = computed(() => appsStore.apps)

@@ -35,10 +35,10 @@
       <div v-if="updatableApps.length" style="width: 140px">
         <template v-if="batch.totalCount">
           <q-linear-progress
-            :value="batch.doneCount / batch.totalCount + action.progress / batch.totalCount"
+            :value="batch.doneCount / batch.totalCount + app.action.progress / batch.totalCount"
             size="32px"
-            :color="actionColors.bar"
-            :track-color="actionColors.track"
+            :color="appsStore.actionColors(app).bar"
+            :track-color="appsStore.actionColors(app).track"
             style="border-radius: 5px;"
           >
             <div class="absolute-full flex flex-center" style="border: 2px solid; border-radius: 5px;">
@@ -73,7 +73,6 @@
           v-for="app in updatableApps"
           :key="app.currentVersion.name"
           class="flex no-wrap items-center q-my-md"
-          :class="action.type === 'delete' && action.id === app.id ? 'disabled' : ''"
         >
           <div class="flex no-wrap items-center cursor-pointer" @click="appClicked(app)">
             <div class="app-icon q-mr-md">
@@ -92,12 +91,12 @@
             <b>{{ app.installedVersion.version }}</b>
           </div>
           <div class="q-ml-md" style="width: 80px;">
-            <template v-if="action.type && action.id === app.id">
+            <template v-if="app.action.type && app.action.id === app.id">
               <q-linear-progress
-                :value="action.progress"
+                :value="app.action.progress"
                 size="32px"
-                :color="actionColors.bar"
-                :track-color="actionColors.track"
+                :color="appsStore.actionColors(app).bar"
+                :track-color="appsStore.actionColors(app).track"
                 style="width: 80px; border-radius: 5px;"
                 class="q-ml-xs"
               >
@@ -105,7 +104,7 @@
                   <div
                     class="app-progress-label"
                     style="font-size: 28px;"
-                  >{{ `${action.progress * 100}%` }}</div>
+                  >{{ `${app.action.progress * 100}%` }}</div>
                 </div>
               </q-linear-progress>
             </template>
@@ -117,7 +116,7 @@
               style="margin-left: 5px; padding: 0; border-radius: 5px; font-size: 16px; line-height: 16px;"
               label="Update"
               class="fit no-shadow text-pixelated bg-positive"
-              @click="handleAction(app, 'update')"
+              @click="appsStore.onAction(app, 'update')"
             />
           </div>
           <q-btn
@@ -137,7 +136,7 @@
           v-for="app in upToDateApps"
           :key="app.currentVersion.name"
           class="flex no-wrap items-center q-my-md"
-          :class="action.type === 'delete' && action.id === app.id ? 'disabled' : ''"
+          :class="app.action.type === 'delete' && app.action.id === app.id ? 'disabled' : ''"
         >
           <div class="flex no-wrap items-center cursor-pointer" @click="appClicked(app)">
             <div class="app-icon q-mr-md">
@@ -180,7 +179,7 @@
           v-for="app in unsupportedApps"
           :key="app.name"
           class="flex no-wrap items-center q-my-md"
-          :class="action.type === 'delete' && action.id === app.id ? 'disabled' : ''"
+          :class="app.action.type === 'delete' && app.action.id === app.id ? 'disabled' : ''"
         >
           <div class="flex no-wrap items-center cursor-pointer" @click="$router.push(`/apps/${app.id}`)">
             <div class="app-icon q-mr-md">
@@ -265,7 +264,7 @@
               color="negative"
               label="Delete"
               v-close-popup
-              @click="handleAction(appToDelete, 'delete')"
+              @click="appsStore.onAction(appToDelete, 'delete')"
             ></q-btn>
           </q-card-section>
         </q-card>
@@ -287,7 +286,6 @@ import { useAppsStore } from 'stores/apps'
 const appsStore = useAppsStore()
 
 const sdk = computed(() => appsStore.sdk)
-const action = computed(() => appsStore.action)
 const batch = computed(() => appsStore.batch)
 const apps = computed(() => appsStore.apps)
 const loadingInstalledApps = computed(() => appsStore.loadingInstalledApps)
@@ -297,7 +295,6 @@ const flags = ref({
   deleteConfirmationDialog: false
 })
 const appToDelete = ref(null)
-const actionType = ref('')
 
 watch(() => info.value?.storage.sdcard.status.isInstalled, () => {
   appsStore.toggleLoadingInstalledApps(false)
@@ -346,40 +343,11 @@ const unsupportedApps = computed(() => {
   })
 })
 
-const actionColors = computed(() => {
-  switch (action.value.type) {
-    case 'delete':
-      return {
-        bar: 'negative',
-        track: 'deep-orange-5'
-      }
-    case 'install':
-      return {
-        bar: 'primary',
-        track: 'orange-6'
-      }
-    default:
-      return {
-        bar: 'positive',
-        track: 'green-6'
-      }
-  }
-})
-
 const appClicked = (app) => {
-  if (action.value.type) {
+  if (app.action.type) {
     return
   }
   appsStore.openApp(app)
-}
-
-const handleAction = (app, value) => {
-  if (value === 'Installed') {
-    actionType.value = ''
-  } else {
-    actionType.value = value.toLowerCase()
-  }
-  appsStore.handleAction(app, actionType.value)
 }
 </script>
 
