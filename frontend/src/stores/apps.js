@@ -7,6 +7,7 @@ import { log } from 'composables/useLog'
 import showNotif from 'composables/useShowNotif'
 import useSetProperty from 'composables/useSetProperty'
 import { rpcErrorHandler } from 'composables/useRpcUtils'
+import { axios } from 'boot/axios'
 
 import { useMainStore } from 'stores/main'
 
@@ -270,13 +271,12 @@ export const useAppsStore = defineStore('apps', () => {
     })
 
     // generate manifest
-    function urlContentToDataUri (url) {
-      return fetch(url)
-        .then(response => response.blob())
-        .then(blob => new Promise(resolve => {
+    async function urlContentToDataUri (url) {
+      return await axios.get(url, { responseType: 'blob' })
+        .then(({ data }) => new Promise(resolve => {
           const reader = new FileReader()
           reader.onload = function () { resolve(this.result) }
-          reader.readAsDataURL(blob)
+          reader.readAsDataURL(data)
         }))
     }
     const dataUri = await urlContentToDataUri(app.currentVersion.iconUri)
