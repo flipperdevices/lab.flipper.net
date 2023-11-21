@@ -35,8 +35,8 @@
           <div>
             <q-btn
               flat
+              rounded
               no-caps
-              dense
               :color="flags.installedPage ? 'primary' : 'black'"
               style="font-weight: 400"
               icon="svguse:common-icons.svg#installed"
@@ -55,8 +55,8 @@
           <div class="q-ml-md">
             <q-btn
               flat
+              rounded
               no-caps
-              dense
               color="black"
               style="font-weight: 400"
               icon="mdi-github"
@@ -252,13 +252,12 @@ const startRpc = async () => {
 }
 
 const toggleInstalled = () => {
-  if (flags.value.installedPage) {
-    appsStore.toggleFlag('installedPage', false)
-
-    router.push({ name: 'Apps' })
-  } else {
-    router.push({ name: 'InstalledApps' })
+  if (!mainFlags.value.connected) {
+    appsStore.toggleFlag('connectFlipperDialog', true)
+    return
   }
+
+  router.push({ name: 'InstalledApps' })
 }
 
 const ensureCommonPaths = async () => {
@@ -292,17 +291,13 @@ const watchParams = async () => {
 
   if (route.name === 'InstalledApps') {
     appsStore.toggleFlag('installedPage', true)
-
-    if (!mainFlags.value.connected) {
-      appsStore.toggleFlag('connectFlipperDialog', true)
-    }
     return
+  } else {
+    appsStore.toggleFlag('installedPage', false)
   }
   if (!path) {
     return
   }
-
-  appsStore.toggleFlag('installedPage', false)
 
   const normalize = (string) => string.toLowerCase().replaceAll(' ', '-')
   const category = categories.value.find(e => normalize(e.name) === normalize(path))

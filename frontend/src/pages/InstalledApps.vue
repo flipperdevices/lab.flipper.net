@@ -1,14 +1,18 @@
 <template>
   <q-page class="column full-width">
     <template v-if="loadingInstalledApps">
-      <div class="column items-center">
-        <q-spinner
-          color="primary"
-          size="3em"
-          class="q-mb-md"
-        ></q-spinner>
-        <p>Loading installed app...</p>
-      </div>
+      <Loading
+        label="Loading installed app..."
+      />
+    </template>
+    <template v-else-if="!mainFlags.connected">
+      <q-card flat>
+        <q-card-section class="q-pa-none q-ma-md" align="center">
+          <q-icon name="mdi-alert-circle" color="primary" size="64px" />
+          <div class="text-h6 q-my-sm">Flipper disconnected</div>
+          <p>Plug in your Flipper and click the button below.</p>
+        </q-card-section>
+      </q-card>
     </template>
     <template v-else-if="!info?.storage.sdcard.status.isInstalled">
       <div class="column items-center">
@@ -275,11 +279,13 @@
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
+import Loading from 'src/components/Loading.vue'
 // import semver from 'semver'
 
 import { useMainStore } from 'src/stores/main'
 const mainStore = useMainStore()
 
+const mainFlags = computed(() => mainStore.flags)
 const info = computed(() => mainStore.info)
 
 import { useAppsStore } from 'stores/apps'
@@ -301,6 +307,10 @@ watch(() => info.value?.storage.sdcard.status.isInstalled, () => {
 })
 
 onMounted(async () => {
+  if (!mainFlags.value.connected) {
+    appsStore.toggleLoadingInstalledApps(false)
+    return
+  }
   if (installedApps.value.length === 0) {
     await appsStore.getInstalledApps()
   }

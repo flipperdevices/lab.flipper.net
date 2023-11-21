@@ -37,10 +37,12 @@
         </div>
       </div>
 
-      <q-list class="apps full-width q-mt-sm">
-        <div
+      <div class="apps full-width q-mt-sm">
+        <q-intersection
           v-for="app in filteredSortedApps"
           :key="app.name"
+          once
+          transition="scale"
           class="flex justify-center q-pa-none card-container"
           style="width: fit-content"
         >
@@ -49,8 +51,15 @@
             class="app-card"
             @click="appClicked(app)"
           >
-            <div class="screenshot q-mb-sm">
-              <img :src="app.currentVersion.screenshots[0]" style="width: 256px" />
+            <div
+              class="rounded-borders q-pa-xs q-mb-sm bg-primary"
+              style="border-radius: 6px;"
+            >
+              <q-img
+                :src="app.currentVersion.screenshots[0]"
+                :ratio="256/128"
+                style="image-rendering: pixelated"
+              />
             </div>
 
             <div class="flex justify-between no-wrap" style="padding: 0 4px">
@@ -102,24 +111,20 @@
               </div>
             </div>
           </div>
-        </div>
-      </q-list>
+        </q-intersection>
+      </div>
     </template>
     <template v-else>
-      <div class="column items-center">
-        <q-spinner
-          color="primary"
-          size="3em"
-          class="q-mb-md"
-        ></q-spinner>
-        <p>Loading apps...</p>
-      </div>
+      <Loading
+        label="Loading apps..."
+      />
     </template>
   </q-page>
 </template>
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
+import Loading from 'src/components/Loading.vue'
 import { useRouter } from 'vue-router'
 const router = useRouter()
 
@@ -232,15 +237,6 @@ const onSortApps = (category) => {
     justify-content: center
     padding: 0
     border-radius: 3px
-    .screenshot
-      display: flex
-      justify-content: center
-      padding: 4px
-      background-color: $primary
-      border: 2px solid #000000
-      border-radius: 6px
-      img
-        image-rendering: pixelated
     .text-h6
       line-height: 1.75rem
     .desc

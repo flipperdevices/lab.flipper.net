@@ -1,14 +1,9 @@
 <template>
   <q-page class="full-width q-pl-md">
     <template v-if="loading">
-      <div class="column items-center">
-        <q-spinner
-          color="primary"
-          size="3em"
-          class="q-mb-md"
-        ></q-spinner>
-        <p>Loading app...</p>
-      </div>
+      <Loading
+        label="Loading app..."
+      />
     </template>
     <template v-else>
       <div class="row items-center q-mb-lg" :class="$q.screen.width > 670 ? 'no-wrap' : ''">
@@ -288,6 +283,7 @@
 
 <script setup>
 import { onUpdated, defineEmits, ref, computed, watch, onUnmounted } from 'vue'
+import Loading from 'src/components/Loading.vue'
 import { bytesToSize, submitAppReport } from 'util/util'
 
 import { useMainStore } from 'stores/main'
