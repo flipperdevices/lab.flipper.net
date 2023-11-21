@@ -288,7 +288,8 @@
 
 <script setup>
 import { onUpdated, defineEmits, ref, computed, watch, onUnmounted } from 'vue'
-import { bytesToSize, submitAppReport } from '../util/util'
+import { bytesToSize } from 'util/util'
+import { submitAppReport } from 'util/fetch'
 
 import { useMainStore } from 'stores/main'
 const mainStore = useMainStore()

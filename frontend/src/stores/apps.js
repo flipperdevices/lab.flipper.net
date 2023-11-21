@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { fetchAppsVersions, fetchAppFap } from 'util/util'
+import { fetchAppsVersions, fetchAppFap } from 'util/fetch'
 import asyncSleep from 'simple-async-sleep'
 import { log } from 'composables/useLog'
 import showNotif from 'composables/useShowNotif'

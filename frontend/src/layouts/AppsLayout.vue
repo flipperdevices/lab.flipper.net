@@ -180,7 +180,7 @@
 import { onMounted, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useQuasar } from 'quasar'
-import { fetchCategories, fetchAppsShort, fetchAppById } from 'util/util'
+import { fetchCategories, fetchAppsShort, fetchAppById } from 'util/fetch'
 import SearchBar from 'components/SearchBar.vue'
 import { log } from 'composables/useLog'
 import { rpcErrorHandler } from 'composables/useRpcUtils'
