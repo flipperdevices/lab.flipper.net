@@ -50,11 +50,6 @@ export const useAppsStore = defineStore('apps', () => {
           bar: 'primary',
           track: 'orange-6'
         }
-      case 'processed':
-        return {
-          bar: 'primary',
-          track: 'orange-6'
-        }
       default:
         return {
           bar: 'positive',
@@ -63,29 +58,25 @@ export const useAppsStore = defineStore('apps', () => {
     }
   }
   const onAction = (app, value) => {
-    app.action.type = 'processed'
-    app.actionButton.text = 'Processed'
-    app.actionButton.class = 'bg-grey-6'
-    app.actionButton.disabled = true
+    const actionType = value === 'Installed' ? '' : value.toLowerCase()
+    if (!mainFlags.value.connected) {
+      flags.value.connectFlipperDialog = true
+      return
+    }
 
-    const action = async (app, value) => {
-      await handleAction(app, value === 'Installed' ? '' : value.toLowerCase())
+    app.action.type = actionType
+    app.action.progress = 0
+    app.action.id = app.id
+
+    const action = async (app, actionType) => {
+      await handleAction(app, actionType)
 
       return Promise.resolve()
     }
 
-    actionQueue.addToQueue(action, [app, value])
+    actionQueue.addToQueue(action, [app, actionType])
   }
   const handleAction = (app, actionType) => {
-    if (!mainFlags.value.connected) {
-      app.action.type = actionType
-      flags.value.connectFlipperDialog = true
-
-      setTimeout(() => {
-        app.action.type = ''
-      }, 300)
-      return
-    }
     if (!info.value.storage.sdcard.status.isInstalled) {
       app.action.type = actionType
       mainStore.toggleFlag('microSDcardMissingDialog', true)
@@ -97,9 +88,6 @@ export const useAppsStore = defineStore('apps', () => {
     if (!actionType) {
       return
     }
-    app.action.type = actionType
-    app.action.progress = 0
-    app.action.id = app.id
 
     switch (app.action.type) {
       case 'install':
@@ -151,9 +139,6 @@ export const useAppsStore = defineStore('apps', () => {
   const actionButton = (app) => {
     if (!sdk.value.api) {
       return { text: 'Install', class: 'bg-primary' }
-    }
-    if (app.action.type === 'processed') {
-      return { text: 'Processed', class: 'bg-grey-6', disabled: true }
     }
     if (app.isInstalled && app.installedVersion) {
       if (app.installedVersion.api !== sdk.value.api) {
@@ -233,6 +218,11 @@ export const useAppsStore = defineStore('apps', () => {
     for (const version of versions) {
       const app = installed.find(app => app.id === version.applicationId)
       if (app) {
+        app.action = {
+          type: '',
+          progress: 0,
+          id: app.id
+        }
         app.installedVersion = { ...app.installedVersion, ...version }
       }
     }
