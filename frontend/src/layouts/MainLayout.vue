@@ -600,7 +600,7 @@ const downloadLogs = () => {
 }
 
 const start = async (manual) => {
-  mainStore.start(manual)
+  await mainStore.start(manual)
 }
 
 onMounted(async () => {
