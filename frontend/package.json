@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@quasar/extras": "^1.14.0",
+    "axios": "^1.6.2",
     "core-js": "^3.6.5",
     "d3": "^7.8.5",
     "loglevel": "^1.8.0",
