@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { fetchAppsVersions, fetchAppFap } from 'util/util'
+import { fetchAppsVersions, fetchAppFap } from 'util/fetch'
 import asyncSleep from 'simple-async-sleep'
 import { log } from 'composables/useLog'
 import showNotif from 'composables/useShowNotif'
@@ -9,6 +9,7 @@ import useSetProperty from 'composables/useSetProperty'
 import { rpcErrorHandler } from 'composables/useRpcUtils'
 import promiseQueue from 'composables/usePromiseQueue'
 const actionQueue = promiseQueue()
+import { axios } from 'boot/axios'
 
 import { useMainStore } from 'stores/main'
 
@@ -308,13 +309,12 @@ export const useAppsStore = defineStore('apps', () => {
     })
 
     // generate manifest
-    function urlContentToDataUri (url) {
-      return fetch(url)
-        .then(response => response.blob())
-        .then(blob => new Promise(resolve => {
+    async function urlContentToDataUri (url) {
+      return await axios.get(url, { responseType: 'blob' })
+        .then(({ data }) => new Promise(resolve => {
           const reader = new FileReader()
           reader.onload = function () { resolve(this.result) }
-          reader.readAsDataURL(blob)
+          reader.readAsDataURL(data)
         }))
     }
     const dataUri = await urlContentToDataUri(app.currentVersion.iconUri)
