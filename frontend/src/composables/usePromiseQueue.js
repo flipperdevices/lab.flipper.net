@@ -1,4 +1,4 @@
-import { beforunloadActive, beforunloadDeactivate } from 'composables/useBeforunload'
+import { beforeunloadActive, beforeunloadDeactivate } from 'composables/useBeforunload'
 
 export default function promiseQueue () {
   const queue = []
@@ -17,7 +17,7 @@ export default function promiseQueue () {
 
   const executeQueue = () => {
     process = true
-    beforunloadActive()
+    beforeunloadActive()
 
     return new Promise((resolve, reject) => {
       const next = () => {
@@ -28,12 +28,12 @@ export default function promiseQueue () {
             .then(() => next())
             .catch((error) => {
               process = false
-              beforunloadDeactivate()
+              beforeunloadDeactivate()
               reject(error)
             })
         } else {
           process = false
-          beforunloadDeactivate()
+          beforeunloadDeactivate()
           resolve()
         }
       }

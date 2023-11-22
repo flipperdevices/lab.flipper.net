@@ -6,12 +6,12 @@ const beforeUnloadHandler = (event) => {
   event.returnValue = true
 }
 
-const beforunloadActive = () => {
+const beforeunloadActive = () => {
   window.addEventListener('beforeunload', beforeUnloadHandler)
 }
 
-const beforunloadDeactivate = () => {
+const beforeunloadDeactivate = () => {
   window.removeEventListener('beforeunload', beforeUnloadHandler)
 }
 
-export { beforunloadActive, beforunloadDeactivate }
+export { beforeunloadActive, beforeunloadDeactivate }
