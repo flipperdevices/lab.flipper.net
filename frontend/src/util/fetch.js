@@ -93,9 +93,11 @@ async function fetchFirmware (url) {
     .then(async ({ data }) => {
       return unpack(data)
     })
-    .catch(({ status }) => {
-      if (status >= 400) {
-        throw new Error('Failed to fetch resources (' + status + ')')
+    .catch((error) => {
+      const decoder = new TextDecoder('utf-8')
+      const data = JSON.parse(decoder.decode(error.response.data)).detail
+      if (data.code >= 400) {
+        throw new Error('Failed to fetch resources (' + data.code + ')')
       }
     })
 }
@@ -157,9 +159,11 @@ async function fetchAppFap (params) {
     .then(({ data }) => {
       return data
     })
-    .catch(({ status }) => {
-      if (status >= 400) {
-        throw new Error('Failed to fetch application build (' + status + ')')
+    .catch((error) => {
+      const decoder = new TextDecoder('utf-8')
+      const data = JSON.parse(decoder.decode(error.response.data)).detail
+      if (data.code >= 400) {
+        throw new Error('Failed to fetch application build (' + data.code + ')')
       }
     })
 }
