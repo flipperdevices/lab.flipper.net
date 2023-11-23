@@ -102,16 +102,21 @@ export const useAppsStore = defineStore('apps', () => {
   const batch = ref({
     totalCount: 0,
     doneCount: 0,
-    failed: []
+    failed: [],
+    action: {
+      type: '',
+      progress: 0
+    }
   })
   const batchUpdate = async (apps) => {
     batch.value.totalCount = apps.length
     batch.value.doneCount = 0
 
-    // action.value.type = 'update'
+    batch.value.action.type = 'update'
 
     for (const app of apps) {
       try {
+        app.action.type = 'update'
         await updateApp(app)
         batch.value.doneCount++
       } catch (error) {
@@ -288,10 +293,14 @@ export const useAppsStore = defineStore('apps', () => {
     })
     if (!fap) {
       app.action.type = ''
+      batch.value.progress = 0
       app.action.progress = 0
       return
     }
     app.action.progress = 0.33
+    if (app.action.type === 'update') {
+      batch.value.progress = 0.33
+    }
     await asyncSleep(300)
     log({
       level: 'debug',
@@ -312,6 +321,9 @@ export const useAppsStore = defineStore('apps', () => {
     const manifestText = `Filetype: Flipper Application Installation Manifest\r\nVersion: 1\r\nFull Name: ${app.currentVersion.name}\r\nIcon: ${base64Icon}\r\nVersion Build API: ${info.value.firmware.api.major}.${info.value.firmware.api.minor}\r\nUID: ${app.id}\r\nVersion UID: ${app.currentVersion.id}\r\nPath: ${paths.appDir}/${app.alias}.fap`
     const manifestFile = new TextEncoder().encode(manifestText)
     app.action.progress = 0.45
+    if (app.action.type === 'update') {
+      batch.value.progress = 0.45
+    }
     await asyncSleep(300)
 
     // upload manifest to temp
@@ -324,6 +336,9 @@ export const useAppsStore = defineStore('apps', () => {
       })
       .catch(error => rpcErrorHandler(componentName, error, 'storageWrite'))
     app.action.progress = 0.5
+    if (app.action.type === 'update') {
+      batch.value.progress = 0.5
+    }
     await asyncSleep(300)
 
     // upload fap to temp
@@ -336,6 +351,9 @@ export const useAppsStore = defineStore('apps', () => {
       })
       .catch(error => rpcErrorHandler(componentName, error, 'storageWrite'))
     app.action.progress = 0.75
+    if (app.action.type === 'update') {
+      batch.value.progress = 0.75
+    }
     await asyncSleep(300)
 
     // move manifest and fap
@@ -362,6 +380,9 @@ export const useAppsStore = defineStore('apps', () => {
       })
       .catch(error => rpcErrorHandler(componentName, error, 'storageRename'))
     app.action.progress = 0.8
+    if (app.action.type === 'update') {
+      batch.value.progress = 0.8
+    }
     await asyncSleep(300)
 
     dirList = await flipper.value.RPC('storageList', { path: paths.appDir })
@@ -387,6 +408,9 @@ export const useAppsStore = defineStore('apps', () => {
       })
       .catch(error => rpcErrorHandler(componentName, error, 'storageRename'))
     app.action.progress = 1
+    if (app.action.type === 'update') {
+      batch.value.progress = 1
+    }
     await asyncSleep(300)
 
     // post-install
@@ -394,6 +418,9 @@ export const useAppsStore = defineStore('apps', () => {
 
     app.action.type = ''
     app.action.progress = 0
+    if (app.action.type === 'update') {
+      batch.value.progress = 0
+    }
   }
 
   const deleteApp = async (app) => {
