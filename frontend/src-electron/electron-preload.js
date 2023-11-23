@@ -1,5 +1,11 @@
-import { contextBridge } from 'electron'
-import { SerialPort } from 'serialport'
+// const { contextBridge, utilityProcess } = require('electron')
+import { contextBridge, ipcRenderer } from 'electron'
+
+contextBridge.exposeInMainWorld('qFlipper', {
+  spawn: (args) => ipcRenderer.send('qFlipper:spawn', args),
+  onLog: (callback) => ipcRenderer.on('qFlipper:log', (_event, value) => callback(value))
+})
+/* const { SerialPort } = require('serialport')
 
 let port
 
@@ -49,4 +55,4 @@ contextBridge.exposeInMainWorld('bridge', {
   write: (data) => {
     port.write(data)
   }
-})
+}) */

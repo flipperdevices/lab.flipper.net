@@ -1,4 +1,5 @@
 <template>
+  <q-btn @click="recoveryTest" label="Recovery"/>
   <q-layout view="hhh LpR fff">
     <q-header>
       <q-toolbar>
@@ -676,4 +677,10 @@ onMounted(async () => {
   }
   logger.setLevel(logger.getLevel())
 })
+
+// ///////////////////////////////////////////////////////////////////////////////////////////////////
+const recoveryTest = async () => {
+  window.qFlipper.onLog(console.log)
+  await window.qFlipper.spawn([])
+}
 </script>

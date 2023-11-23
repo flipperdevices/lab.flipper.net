@@ -1,6 +1,19 @@
-import { app, BrowserWindow, nativeTheme } from 'electron'
+import { app, BrowserWindow, nativeTheme, utilityProcess, ipcMain } from 'electron'
 import path from 'path'
 import os from 'os'
+
+const qFlipper = {
+  spawn (event, args) {
+    try {
+      const webContents = event.sender
+      const cliProcess = utilityProcess.fork(/* path.join(process.resourcesPath, 'extraResources/qflipper/cli/process.js') */'/Users/slipn3r/Documents/GitHub/lab.flipper.net/frontend/src-electron/extraResources/qflipper/cli/process.js')
+      cliProcess.postMessage({ args })
+      cliProcess.on('message', data => webContents.send('qFlipper:log', data))
+    } catch (error) {
+      console.error(error)
+    }
+  }
+}
 
 // needed in case process is undefined under Linux
 const platform = process.platform || os.platform()
@@ -22,6 +35,7 @@ async function createWindow () {
     width: 1000,
     height: 600,
     useContentSize: true,
+    sandbox: false,
     webPreferences: {
       contextIsolation: true,
       preload: path.resolve(__dirname, process.env.QUASAR_ELECTRON_PRELOAD)
@@ -72,7 +86,11 @@ async function createWindow () {
   })
 }
 
-app.whenReady().then(createWindow)
+app.whenReady()
+  .then(() => {
+    ipcMain.on('qFlipper:spawn', qFlipper.spawn)
+    createWindow()
+  })
 
 app.on('window-all-closed', () => {
   if (platform !== 'darwin') {

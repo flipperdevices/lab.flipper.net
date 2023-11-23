@@ -225,6 +225,15 @@ module.exports = configure(function (ctx) {
           provider: 'github',
           publishAutoUpdate: false
         },
+        extraResources: [
+          {
+            "from": "src-electron/extraResources/",
+            "to": "extraResources",
+            "filter": [
+              "**/*"
+            ]
+          }
+        ],
         mac: {
           target: {
             target: 'default',
