@@ -39,10 +39,10 @@
       <div v-if="updatableApps.length" style="width: 140px">
         <template v-if="batch.totalCount">
           <q-linear-progress
-            :value="batch.doneCount / batch.totalCount + app.action.progress / batch.totalCount"
+            :value="batch.doneCount / batch.totalCount + batch.action.progress / batch.totalCount"
             size="32px"
-            :color="appsStore.actionColors(app).bar"
-            :track-color="appsStore.actionColors(app).track"
+            :color="appsStore.actionColors(batch).bar"
+            :track-color="appsStore.actionColors(batch).track"
             style="border-radius: 5px;"
           >
             <div class="absolute-full flex flex-center" style="border: 2px solid; border-radius: 5px;">
@@ -69,7 +69,7 @@
 
       <div v-if="batch.failed.length" class="text-negative">
         Update failed for
-        <span v-for="app, index in batch.failed" :key="app.id">"{{ app.currentVersion.name }}"<span v-if="batch.failed[index + 1]">, </span></span>
+        <span v-for="app, index in batch.failed" :key="app.id">"{{ app.installedVersion.name }}"<span v-if="batch.failed[index + 1]">, </span></span>
       </div>
 
       <div class="column full-width" :class="batch.totalCount ? 'disabled' : ''">
