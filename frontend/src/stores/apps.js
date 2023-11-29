@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
-import { fetchAppsVersions, fetchAppFap, fetchPostAppsShort } from 'util/fetch'
+import { useRoute, useRouter } from 'vue-router'
+import { fetchAppsVersions, fetchAppFap, fetchPostAppsShort, fetchAppsShort, fetchCategories } from 'util/fetch'
 import asyncSleep from 'simple-async-sleep'
 import { log } from 'composables/useLog'
 import showNotif from 'composables/useShowNotif'
@@ -22,6 +22,7 @@ export const useAppsStore = defineStore('apps', () => {
   const info = computed(() => mainStore.info)
 
   const router = useRouter()
+  const route = useRoute()
 
   const flags = ref({
     restarting: false,
@@ -32,12 +33,18 @@ export const useAppsStore = defineStore('apps', () => {
     outdatedFirmwareDialog: false,
     outdatedAppDialog: false,
     connectFlipperDialog: false,
+    updatabledAppsCount: 0,
     mobileAppDialog: false,
+    fetchEnd: false,
+    loadingCategories: true,
     loadingInitial: true,
     loadingInstalledApps: true
   })
 
   const flipperReady = computed(() => mainFlags.value.rpcActive && info.value !== null && info.value.doneReading)
+
+  const api = computed(() => `${info.value.firmware.api.major}.${info.value.firmware.api.minor}`)
+  const target = computed(() => `f${info.value.firmware.target}`)
 
   const actionColors = (app) => {
     switch (app.action.type) {
@@ -323,11 +330,11 @@ export const useAppsStore = defineStore('apps', () => {
     updateInstalledApps()
     flags.value.loadingInstalledApps = false
   }
-  const updateInstalledApps = async (installed) => {
-    if (!installed) {
-      await getInstalledApps()
+  const updateInstalledApps = (newApps) => {
+    if (!newApps) {
+      newApps = apps.value
     }
-    for (const app of apps.value) {
+    for (const app of newApps) {
       const installed = installedApps.value.find(e => e.id === app.id)
       if (installed) {
         app.isInstalled = true
@@ -504,7 +511,7 @@ export const useAppsStore = defineStore('apps', () => {
     await asyncSleep(300)
 
     // post-install
-    await updateInstalledApps()
+    await getInstalledApps()
 
     app.action.type = ''
     app.action.progress = 0
@@ -560,7 +567,7 @@ export const useAppsStore = defineStore('apps', () => {
     app.action.progress = 1
 
     // post-delete
-    await updateInstalledApps()
+    await getInstalledApps()
 
     app.action.type = ''
     app.action.progress = 0
@@ -575,10 +582,88 @@ export const useAppsStore = defineStore('apps', () => {
   const setApps = (newApps) => {
     apps.value = newApps
   }
+  const onClearAppsList = () => {
+    apps.value = []
+  }
+  const defaultParamsAppsShort = {
+    limit: 48,
+    is_latest_release_version: true
+  }
+  const getAppsShort = async (options = {}) => {
+    flags.value.loadingInitial = true
 
-  const installedApps = ref([])
-  const setInstalledApps = (newInstalledApps) => {
-    installedApps.value = newInstalledApps
+    const params = {
+      ...defaultParamsAppsShort,
+      ...options
+    }
+
+    if (initialCategory.value) {
+      params.category_id = initialCategory.value.id
+    }
+
+    if (flipperReady.value) {
+      params.api = api.value
+      params.target = target.value
+      delete params.is_latest_release_version
+    }
+
+    let newApps = []
+    if (!flags.value.fetchEnd) {
+      await fetchAppsShort(params).then((res) => {
+        newApps = res
+        if (!newApps.length) {
+          flags.value.fetchEnd = true
+        } else {
+          if (params.offset === 0) {
+            setApps(newApps)
+          } else {
+            setApps(apps.value.concat(newApps))
+          }
+        }
+
+        updateInstalledApps(newApps)
+
+        // FIXME: Bring me back when they fix the request
+        // if (newApps.length < params.limit) {
+        //   flags.value.fetchEnd = true
+        // }
+
+        flags.value.loadingInitial = false
+      })
+    } else {
+      flags.value.loadingInitial = false
+    }
+  }
+
+  const initialCategory = ref(null)
+  const setInitalCategory = (category) => {
+    initialCategory.value = category
+  }
+  const getCategories = async () => {
+    flags.value.loadingCategories = true
+
+    const categoryParams = {
+      limit: 500
+    }
+
+    if (flipperReady.value) {
+      categoryParams.api = api.value
+      categoryParams.target = target.value
+    }
+
+    setCategories(await fetchCategories(categoryParams))
+
+    const path = route.params.path
+    if (path) {
+      const normalize = (string) => string.toLowerCase().replaceAll(' ', '-')
+
+      const category = categories.value.find(e => normalize(e.name) === normalize(path))
+      if (category) {
+        setInitalCategory(category)
+      }
+    }
+
+    flags.value.loadingCategories = false
   }
 
   const categories = ref([])
@@ -619,15 +704,11 @@ export const useAppsStore = defineStore('apps', () => {
     sdk,
     setPropertySdk,
 
-    initialCategory,
-    setInitalCategory,
-
-    loadingInstalledApps,
-    toggleLoadingInstalledApps,
+    installedApps,
+    setInstalledApps,
+    onClearInstalledAppsList,
     getInstalledApps,
     updateInstalledApps,
-
-    actionButton,
 
     openApp,
     installApp,
@@ -639,12 +720,16 @@ export const useAppsStore = defineStore('apps', () => {
 
     apps,
     setApps,
+    onClearAppsList,
+    defaultParamsAppsShort,
+    getAppsShort,
 
-    installedApps,
-    setInstalledApps,
+    initialCategory,
+    setInitalCategory,
 
     categories,
     setCategory,
-    setCategories
+    setCategories,
+    getCategories
   }
 })

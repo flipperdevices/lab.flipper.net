@@ -84,7 +84,8 @@
             style="font-size: 22px; padding: 0 60px; border-radius: 10px;"
             :label="app.actionButton.text"
             class="no-shadow text-pixelated"
-            :class="app.actionButton.class + ' ' + ($q.screen.width > 670 ? 'q-mr-md' : 'q-my-md full-width')"
+            :loading="mainFlags.connected && appsFlags.loadingInstalledApps"
+            :class="mainFlags.connected && appsFlags.loadingInstalledApps ? 'bg-primary' : (app.actionButton.class + ' ' + ($q.screen.width > 670 ? 'q-mr-md' : 'q-my-md full-width'))"
             @click="appsStore.onAction(app, app.actionButton.text)"
           />
         </template>
@@ -282,10 +283,14 @@
 </template>
 
 <script setup>
-import { onUpdated, defineEmits, ref, computed, watch, onUnmounted } from 'vue'
+import { defineEmits, ref, computed, onUnmounted, onMounted, watch } from 'vue'
 import Loading from 'src/components/Loading.vue'
 import { bytesToSize } from 'util/util'
-import { submitAppReport } from 'util/fetch'
+import { submitAppReport, fetchAppById } from 'util/fetch'
+
+import { useRoute, useRouter } from 'vue-router'
+const router = useRouter()
+const route = useRoute()
 
 import { useMainStore } from 'stores/main'
 const mainStore = useMainStore()
@@ -295,6 +300,8 @@ const mainFlags = computed(() => mainStore.flags)
 import { useAppsStore } from 'stores/apps'
 const appsStore = useAppsStore()
 
+const appsFlags = computed(() => appsStore.flags)
+const sdk = computed(() => appsStore.sdk)
 const app = computed(() => appsStore.currentApp)
 const categories = computed(() => appsStore.categories)
 
@@ -348,12 +355,6 @@ const report = ref({
   description: ''
 })
 
-watch(() => app.value, () => {
-  start()
-}, {
-  deep: true
-})
-
 const setCategory = () => {
   category.value = categories.value.find(category => category.id === app.value.categoryId)
 }
@@ -383,25 +384,47 @@ const sendReport = async () => {
   flags.value.reportSubmitted = true
 }
 
-const start = () => {
-  loading.value = false
+const start = async () => {
+  loading.value = true
+  const path = route.params.path
+  if (!path) {
+    return
+  }
+
+  const appFull = await fetchAppById(path, sdk.value)
+  if (appFull.detail && appFull.detail.status === 'error') {
+    router.push({ name: 'Apps' })
+    return
+  }
+  appsStore.setCurrentApp(appFull)
   const status = app.value.currentVersion.status
   if (mainFlags.value.connected && status === 'READY') {
     currentStatusHint.value = null
   } else {
     currentStatusHint.value = status
   }
+  if (!categories.value.length) {
+    await appsStore.getCategories()
+  }
   setCategory()
+
+  appsStore.updateInstalledApps([app.value])
+
+  loading.value = false
 }
 
-// mounted () {
-//   start()
-// }
+watch(() => mainFlags.value.connected && appsFlags.value.loadingInstalledApps, () => {
+  appsStore.updateInstalledApps([app.value])
+})
 
-onUpdated(() => {
-  if (!loading.value) {
-    start()
+watch(() => mainFlags.value.connected, (condition) => {
+  if (!condition) {
+    appsStore.updateInstalledApps([app.value])
   }
+})
+
+onMounted(() => {
+  start()
 })
 
 onUnmounted(() => {

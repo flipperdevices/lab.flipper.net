@@ -1,45 +1,52 @@
 <template>
   <q-page>
-    <template v-if="apps.length">
-      <div
-        class="row q-mb-lg"
-        :class="`${$q.screen.width > 670 ? 'no-wrap' : 'justify-center'}`"
-      >
-        <q-list class="row q-col-gutter-md" :class="$q.screen.width > 670 ? 'col-8 items-center' : 'justify-center q-mb-lg'">
-          <div
-            v-for="category in catalogCategories"
-            :key="category.name"
-            class="col-auto"
+    <div
+      class="row q-mb-lg"
+      :class="`${$q.screen.width > 670 ? 'no-wrap' : 'justify-center'}`"
+    >
+      <q-list class="row q-col-gutter-md" :class="$q.screen.width > 670 ? 'col-8 items-center' : 'justify-center q-mb-lg'">
+        <div
+          v-for="category in catalogCategories"
+          :key="category.name"
+          class="col-auto"
+        >
+          <q-chip
+            class="q-ma-none"
+            :style="`background-color: #${category.color}; opacity: ${currentCategory && currentCategory.name !== category.name ? '0.5' : '1'}`"
+            clickable
+            @click="onSelectCategory(category)"
           >
-            <q-chip
-              class="q-ma-none"
-              :style="`background-color: #${category.color}; opacity: ${currentCategory && currentCategory.name !== category.name ? '0.5' : '1'}`"
-              clickable
-              @click="onSortApps(category)"
-            >
-              <q-icon v-if="category.iconUri" :name="`img:${category.iconUri}`" size="14px" class="q-my-xs q-mr-sm"/>
-              <span class="text-no-wrap">{{ category.name }}</span>
-            </q-chip>
-          </div>
-        </q-list>
-        <q-space v-if="$q.screen.width > 670"/>
-        <div>
-          <div class="row no-wrap justify-end text-grey-7">
-            <q-select
-              v-model="sortModel"
-              :options="sortOptions"
-              dense
-              standout="bg-primary text-white no-shadow"
-              rounded
-              style="min-width: fit-content; border-radius: 20px;"
-            />
-          </div>
+            <q-icon v-if="category.iconUri" :name="`img:${category.iconUri}`" size="14px" class="q-my-xs q-mr-sm"/>
+            <span class="text-no-wrap">{{ category.name }}</span>
+          </q-chip>
+        </div>
+      </q-list>
+      <q-space v-if="$q.screen.width > 670"/>
+      <div>
+        <div class="row no-wrap justify-end text-grey-7">
+          <q-select
+            v-model="sortModel"
+            @update:model-value="onSortApps()"
+            :options="sortOptions"
+            dense
+            standout="bg-primary text-white no-shadow"
+            rounded
+            style="min-width: fit-content; border-radius: 20px;"
+          />
         </div>
       </div>
+    </div>
 
-      <div class="apps full-width q-mt-sm">
+    <q-infinite-scroll
+      ref="infinityScrollRef"
+      v-if="!flags.loadingCategories"
+      @load="onLoad"
+      :offset="250"
+      class="full-width q-mt-sm"
+    >
+      <div class="apps">
         <q-intersection
-          v-for="app in filteredSortedApps"
+          v-for="app in apps"
           :key="app.name"
           once
           transition="scale"
@@ -102,10 +109,11 @@
                   dense
                   color="white"
                   style="margin-left: 5px; padding: 0; border-radius: 5px; font-size: 16px; line-height: 16px;"
-                  :disable="app.actionButton.disabled || false"
+                  :loading="mainFlags.connected && flags.loadingInstalledApps"
+                  :disable="app.actionButton?.disabled || false"
                   :label="app.actionButton?.text"
                   class="fit no-shadow text-pixelated"
-                  :class="app.actionButton?.class"
+                  :class="mainFlags.connected && flags.loadingInstalledApps ? 'bg-primary' : app.actionButton?.class"
                   @click.stop="appsStore.onAction(app, app.actionButton?.text)"
                 />
               </div>
@@ -113,12 +121,14 @@
           </div>
         </q-intersection>
       </div>
-    </template>
-    <template v-else>
-      <Loading
-        label="Loading apps..."
-      />
-    </template>
+      <template v-slot:loading>
+        <div class="row justify-center q-my-md">
+          <Loading
+            label="Loading apps..."
+          />
+        </div>
+      </template>
+    </q-infinite-scroll>
   </q-page>
 </template>
 
@@ -128,13 +138,23 @@ import Loading from 'src/components/Loading.vue'
 import { useRouter } from 'vue-router'
 const router = useRouter()
 
+import { useMainStore } from 'src/stores/main'
+const mainStore = useMainStore()
+
+const mainFlags = computed(() => mainStore.flags)
+
 import { useAppsStore } from 'stores/apps'
 const appsStore = useAppsStore()
 
+const flags = computed(() => appsStore.flags)
 const apps = computed(() => appsStore.apps)
 const categories = computed(() => appsStore.categories)
 
-onMounted(() => {
+const infinityScrollRef = ref(null)
+
+onMounted(async () => {
+  await appsStore.getCategories()
+
   currentCategory.value = appsStore.initialCategory
 })
 
@@ -143,6 +163,58 @@ const initialCategory = computed(() => appsStore.initialCategory)
 watch(initialCategory, (newCategory) => {
   currentCategory.value = newCategory
 })
+
+watch(() => mainFlags.value.connected, (condition) => {
+  appsStore.toggleFlag('fetchEnd', false)
+
+  if (!condition) {
+    appsStore.updateInstalledApps()
+  }
+})
+
+const options = {
+  limit: appsStore.defaultParamsAppsShort.limit,
+  offset: 0
+}
+
+const reLoad = async () => {
+  options.offset = 0
+
+  await infinityScrollRef.value.stop()
+  await infinityScrollRef.value.reset()
+  await infinityScrollRef.value.resume()
+}
+const onLoad = async (index, done) => {
+  if (index > 1) {
+    options.offset += options.limit
+  }
+
+  await getAppsShort(options)
+  done(flags.value.fetchEnd)
+}
+
+const getAppsShort = async (options = {}) => {
+  switch (sortModel.value) {
+    case 'New Updates':
+      options.sort_by = 'updated_at'
+      options.sort_order = -1
+      break
+    case 'Old Updates':
+      options.sort_by = 'updated_at'
+      options.sort_order = 1
+      break
+    case 'New Releases':
+      options.sort_by = 'created_at'
+      options.sort_order = -1
+      break
+    case 'Old Releases':
+      options.sort_by = 'created_at'
+      options.sort_order = 1
+      break
+  }
+
+  await appsStore.getAppsShort(options)
+}
 
 const catalogCategories = computed(() => {
   return [{
@@ -153,40 +225,6 @@ const catalogCategories = computed(() => {
   }, ...categories.value]
 })
 
-const filteredSortedApps = computed(() => {
-  let filtered
-  if (currentCategory.value) {
-    filtered = apps.value.filter(app => app.categoryId === currentCategory.value.id)
-  } else {
-    filtered = apps.value
-  }
-
-  let sortBy = '', direction = -1
-  switch (sortModel.value) {
-    case 'New Updates':
-      sortBy = 'updatedAt'
-      break
-    case 'Old Updates':
-      sortBy = 'updatedAt'
-      direction = 1
-      break
-    case 'New Releases':
-      sortBy = 'createdAt'
-      break
-    case 'Old Releases':
-      sortBy = 'createdAt'
-      direction = 1
-      break
-  }
-
-  return filtered.sort((a, b) => {
-    if (a[sortBy] >= b[sortBy]) {
-      return 1 * direction
-    }
-    return -1 * direction
-  })
-})
-
 const currentCategory = ref(null)
 const sortOptions = [
   'New Updates',
@@ -195,6 +233,11 @@ const sortOptions = [
   'Old Releases'
 ]
 const sortModel = ref('New Updates')
+const onSortApps = () => {
+  appsStore.onClearAppsList()
+  appsStore.toggleFlag('fetchEnd', false)
+  reLoad()
+}
 
 const appClicked = (app) => {
   if (app.action.type) {
@@ -203,11 +246,16 @@ const appClicked = (app) => {
   appsStore.openApp(app)
 }
 
-const onSortApps = (category) => {
+const onSelectCategory = (category) => {
+  appsStore.onClearAppsList()
+  appsStore.toggleFlag('fetchEnd', false)
+
   if (category.name === 'All apps') {
     currentCategory.value = null
     appsStore.setInitalCategory(null)
     router.push({ name: 'Apps' })
+
+    reLoad()
 
     return
   }
@@ -215,6 +263,8 @@ const onSortApps = (category) => {
   router.push({ name: 'AppsCategory', params: { path: category.name.toLowerCase() } })
   appsStore.setInitalCategory(category)
   currentCategory.value = category
+
+  reLoad()
 }
 </script>
 
