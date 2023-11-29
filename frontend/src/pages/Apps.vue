@@ -53,7 +53,7 @@
           >
             <div
               class="rounded-borders q-pa-xs q-mb-sm bg-primary"
-              style="border-radius: 6px;"
+              style="border-radius: 6px; border: 2px solid black;"
             >
               <q-img
                 :src="app.currentVersion.screenshots[0]"
