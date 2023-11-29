@@ -625,20 +625,21 @@ onMounted(async () => {
 
     const isProd = process.env.PRODUCTION
     const savedChannel = localStorage.getItem('catalogChannel')
-    if (savedChannel) {
-      if (savedChannel !== 'production') {
-        mainStore.toggleFlag('catalogChannelProduction', false)
-      } else {
-        mainStore.toggleFlag('catalogCanSwitchChannel', true)
-      }
+    if (isProd) {
+      localStorage.setItem('catalogChannel', 'production')
     } else {
-      if (isProd) {
-        localStorage.setItem('catalogChannel', 'production')
+      if (savedChannel === 'production') {
+        mainStore.toggleFlag('catalogChannelProduction', true)
       } else {
+        mainStore.toggleFlag('catalogChannelProduction', false)
+      }
+
+      if (!savedChannel) {
         localStorage.setItem('catalogChannel', 'dev')
         mainStore.toggleFlag('catalogChannelProduction', false)
-        mainStore.toggleFlag('catalogCanSwitchChannel', true)
       }
+
+      mainStore.toggleFlag('catalogCanSwitchChannel', true)
     }
 
     navigator.serial.addEventListener('disconnect', e => {
