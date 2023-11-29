@@ -98,6 +98,29 @@ export const useAppsStore = defineStore('apps', () => {
         return deleteApp(app)
     }
   }
+  const actionButton = (app) => {
+    if (!sdk.value.api) {
+      return { text: 'Install', class: 'bg-primary' }
+    }
+    if (app.isInstalled && app.installedVersion) {
+      if (app.installedVersion.api !== sdk.value.api) {
+        if (app.currentVersion.status === 'READY') {
+          return { text: 'Update', class: 'bg-positive' }
+        }
+        return { text: 'Installed', class: 'bg-grey-6', disabled: true }
+      } else {
+        if (app.installedVersion.isOutdated) {
+          return { text: 'Update', class: 'bg-positive' }
+        } else {
+          return { text: 'Installed', class: 'bg-grey-6', disabled: true }
+        }
+      }
+    }
+    return {
+      text: 'Install',
+      class: 'bg-primary'
+    }
+  }
 
   const batch = ref({
     totalCount: 0,
@@ -521,6 +544,7 @@ export const useAppsStore = defineStore('apps', () => {
     actionColors,
     handleAction,
     onAction,
+    actionButton,
 
     batch,
     batchUpdate,
