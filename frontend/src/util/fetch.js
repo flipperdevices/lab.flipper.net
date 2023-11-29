@@ -169,19 +169,28 @@ async function fetchAppFap (params) {
 }
 
 async function fetchAppsVersions (uids) {
-  const size = 100
-  const subUids = []
-
-  for (let i = 0; i < Math.ceil(uids.length / size); i++) {
-    subUids[i] = uids.slice(i * size, i * size + size)
-  }
-
   const allVersions = []
-  for (const sliceUids of subUids) {
+
+  if (uids) {
+    const size = 100
+    const subUids = []
+
+    for (let i = 0; i < Math.ceil(uids.length / size); i++) {
+      subUids[i] = uids.slice(i * size, i * size + size)
+    }
+
+    for (const sliceUids of subUids) {
+      await api
+        .post('/1/application/versions', {
+          application_versions: sliceUids,
+          limit: size
+        })
+        .then(({ data }) => allVersions.push(...data))
+    }
+  } else {
     await api
       .post('/1/application/versions', {
-        application_versions: sliceUids,
-        limit: size
+        limit: 500
       })
       .then(({ data }) => allVersions.push(...data))
   }
