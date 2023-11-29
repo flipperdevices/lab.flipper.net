@@ -125,6 +125,18 @@ async function fetchCategories (params) {
   })
 }
 
+async function fetchPostAppsShort (params) {
+  return await api.post('/1/application', params)
+    .then(res => res.data.map(app => {
+      app.action = {
+        type: '',
+        progress: 0,
+        id: app.id
+      }
+      return camelCaseDeep(app)
+    }))
+}
+
 async function fetchAppsShort (params) {
   return await api.get('/0/application', { params }).then(({ data }) => {
     return data.map((app) => {
@@ -210,6 +222,7 @@ export {
   fetchFirmware,
   fetchRegions,
   fetchCategories,
+  fetchPostAppsShort,
   fetchAppsShort,
   fetchAppById,
   fetchAppFap,
