@@ -126,7 +126,7 @@ async function fetchCategories (params) {
 }
 
 async function fetchAppsShort (params) {
-  return await api.get('/application', { params }).then(({ data }) => {
+  return await api.get('/0/application', { params }).then(({ data }) => {
     return data.map((app) => {
       app.action = defaultAction
       return camelCaseDeep(app)
