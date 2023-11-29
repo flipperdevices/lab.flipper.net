@@ -2,6 +2,12 @@ import semver from 'semver'
 import { axios, api } from 'boot/axios'
 import { camelCaseDeep, unpack } from 'util/util'
 
+const defaultAction = {
+  type: '',
+  progress: 0,
+  id: ''
+}
+
 async function fetchChannels (target) {
   return await axios
     .get('https://update.flipperzero.one/firmware/directory.json')
@@ -87,9 +93,11 @@ async function fetchFirmware (url) {
     .then(async ({ data }) => {
       return unpack(data)
     })
-    .catch(({ status }) => {
-      if (status >= 400) {
-        throw new Error('Failed to fetch resources (' + status + ')')
+    .catch((error) => {
+      const decoder = new TextDecoder('utf-8')
+      const data = JSON.parse(decoder.decode(error.response.data)).detail
+      if (data.code >= 400) {
+        throw new Error('Failed to fetch resources (' + data.code + ')')
       }
     })
 }
@@ -117,9 +125,24 @@ async function fetchCategories (params) {
   })
 }
 
+async function fetchPostAppsShort (params) {
+  return await api.post('/1/application', params)
+    .then(res => res.data.map(app => {
+      app.action = {
+        type: '',
+        progress: 0,
+        id: app.id
+      }
+      return camelCaseDeep(app)
+    }))
+}
+
 async function fetchAppsShort (params) {
-  return await api.get('/application', { params }).then(({ data }) => {
-    return data.map((app) => camelCaseDeep(app))
+  return await api.get('/0/application', { params }).then(({ data }) => {
+    return data.map((app) => {
+      app.action = defaultAction
+      return camelCaseDeep(app)
+    })
   })
 }
 
@@ -131,6 +154,7 @@ async function fetchAppById (id, params) {
     delete params.api
   }
   return await api.get(`/application/${id}`, { params }).then(({ data }) => {
+    data.action = defaultAction
     return camelCaseDeep(data)
   })
 }
@@ -147,27 +171,38 @@ async function fetchAppFap (params) {
     .then(({ data }) => {
       return data
     })
-    .catch(({ status }) => {
-      if (status >= 400) {
-        throw new Error('Failed to fetch application build (' + status + ')')
+    .catch((error) => {
+      const decoder = new TextDecoder('utf-8')
+      const data = JSON.parse(decoder.decode(error.response.data)).detail
+      if (data.code >= 400) {
+        throw new Error('Failed to fetch application build (' + data.code + ')')
       }
     })
 }
 
 async function fetchAppsVersions (uids) {
-  const size = 100
-  const subUids = []
-
-  for (let i = 0; i < Math.ceil(uids.length / size); i++) {
-    subUids[i] = uids.slice(i * size, i * size + size)
-  }
-
   const allVersions = []
-  for (const sliceUids of subUids) {
+
+  if (uids) {
+    const size = 100
+    const subUids = []
+
+    for (let i = 0; i < Math.ceil(uids.length / size); i++) {
+      subUids[i] = uids.slice(i * size, i * size + size)
+    }
+
+    for (const sliceUids of subUids) {
+      await api
+        .post('/1/application/versions', {
+          application_versions: sliceUids,
+          limit: size
+        })
+        .then(({ data }) => allVersions.push(...data))
+    }
+  } else {
     await api
       .post('/1/application/versions', {
-        application_versions: sliceUids,
-        limit: size
+        limit: 500
       })
       .then(({ data }) => allVersions.push(...data))
   }
@@ -187,6 +222,7 @@ export {
   fetchFirmware,
   fetchRegions,
   fetchCategories,
+  fetchPostAppsShort,
   fetchAppsShort,
   fetchAppById,
   fetchAppFap,
