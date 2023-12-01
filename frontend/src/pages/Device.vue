@@ -258,15 +258,15 @@ const stopScreenStream = async () => {
   flags.value.screenStream = false
 }
 const onUpdateStage = (stage) => {
-  mainStore.update(stage)
+  mainStore.onUpdateStage(stage)
   if (stage === 'start') {
     flags.value.updateInProgress = true
     stopScreenStream()
     navigator.serial.addEventListener('connect', () => {
-      mainStore.update('end')
+      mainStore.onUpdateStage('end')
     })
   } else if (stage === 'end') {
-    mainStore.update('end')
+    mainStore.onUpdateStage('end')
   }
 }
 
