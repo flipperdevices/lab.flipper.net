@@ -6,7 +6,7 @@ const qFlipper = {
   spawn (event, args) {
     try {
       const webContents = event.sender
-      const cliProcess = utilityProcess.fork(/* path.join(process.resourcesPath, 'extraResources/qflipper/cli/process.js') */'/Users/slipn3r/Documents/GitHub/lab.flipper.net/frontend/src-electron/extraResources/qflipper/cli/process.js')
+      const cliProcess = utilityProcess.fork(path.resolve(__dirname, 'extraResources/qflipper/cli/process.js'))
       cliProcess.postMessage({ args })
       cliProcess.on('message', data => webContents.send('qFlipper:log', data))
     } catch (error) {

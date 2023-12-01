@@ -1,8 +1,9 @@
 const { spawn } = require('child_process')
+const path = require('path')
 
 process.parentPort.once('message', (e) => {
   const args = e.data.args
-  const qCliProcess = spawn('/Users/slipn3r/Documents/GitHub/lab.flipper.net/frontend/src-electron/extraResources/qflipper/cli/qFlipper-cli', args)// spawn('./qflipper/cli/qFlipper-cli', ['-h'])
+  const qCliProcess = spawn(path.join(__dirname, 'extraResources/qflipper/cli/qFlipper-cli'), args)// spawn('./qflipper/cli/qFlipper-cli', ['-h'])
   const decoder = new TextDecoder()
   qCliProcess.stdout.on('data', (data) => {
     process.parentPort.postMessage({
