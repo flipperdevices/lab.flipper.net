@@ -47,7 +47,7 @@
 
 <script setup>
 import { ref, watch, computed } from 'vue'
-import { fetchAppsShort } from '../util/util'
+import { fetchAppsShort } from 'util/fetch'
 
 import { useAppsStore } from 'src/stores/apps'
 const appsStore = useAppsStore()

@@ -78,7 +78,7 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import Updater from 'components/Updater.vue'
 import asyncSleep from 'simple-async-sleep'
-import { bytesToSize } from '../util/util'
+import { bytesToSize } from 'util/util'
 import { log } from 'composables/useLog'
 import { rpcErrorHandler } from 'composables/useRpcUtils'
 

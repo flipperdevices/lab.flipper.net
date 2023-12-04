@@ -1,14 +1,9 @@
 <template>
   <q-page class="full-width q-pl-md">
     <template v-if="loading">
-      <div class="column items-center">
-        <q-spinner
-          color="primary"
-          size="3em"
-          class="q-mb-md"
-        ></q-spinner>
-        <p>Loading app...</p>
-      </div>
+      <Loading
+        label="Loading app..."
+      />
     </template>
     <template v-else>
       <div class="row items-center q-mb-lg" :class="$q.screen.width > 670 ? 'no-wrap' : ''">
@@ -56,12 +51,12 @@
 
         <q-space />
 
-        <template v-if="action.type">
+        <template v-if="app.action.type">
           <q-linear-progress
-            :value="action.progress"
+            :value="app.action.progress"
             size="56px"
-            :color="actionColors.bar"
-            :track-color="actionColors.track"
+            :color="appsStore.actionColors(app).bar"
+            :track-color="appsStore.actionColors(app).track"
             :class="$q.screen.width > 670 ? 'q-mr-md' : 'q-my-md full-width'"
             style="width: 188px; border-radius: 10px;"
           >
@@ -69,7 +64,7 @@
               <div
                 class="app-progress-label"
                 style="font-size: 40px;"
-              >{{ `${action.progress * 100}%` }}</div>
+              >{{ `${app.action.progress * 100}%` }}</div>
             </div>
           </q-linear-progress>
         </template>
@@ -89,8 +84,9 @@
             style="font-size: 22px; padding: 0 60px; border-radius: 10px;"
             :label="app.actionButton.text"
             class="no-shadow text-pixelated"
-            :class="app.actionButton.class + ' ' + ($q.screen.width > 670 ? 'q-mr-md' : 'q-my-md full-width')"
-            @click="handleAction(app.actionButton.text)"
+            :loading="mainFlags.connected && appsFlags.loadingInstalledApps"
+            :class="mainFlags.connected && appsFlags.loadingInstalledApps ? 'bg-primary' : (app.actionButton.class + ' ' + ($q.screen.width > 670 ? 'q-mr-md' : 'q-my-md full-width'))"
+            @click="appsStore.onAction(app, app.actionButton.text)"
           />
         </template>
       </div>
@@ -227,7 +223,7 @@
               color="negative"
               label="Delete"
               v-close-popup
-              @click="handleAction('delete')"
+              @click="appsStore.onAction(app, 'delete')"
             ></q-btn>
           </q-card-section>
         </q-card>
@@ -287,8 +283,14 @@
 </template>
 
 <script setup>
-import { onUpdated, defineEmits, ref, computed, watch, onUnmounted } from 'vue'
-import { bytesToSize, submitAppReport } from '../util/util'
+import { defineEmits, ref, computed, onUnmounted, onMounted, watch } from 'vue'
+import Loading from 'src/components/Loading.vue'
+import { bytesToSize } from 'util/util'
+import { submitAppReport, fetchAppById } from 'util/fetch'
+
+import { useRoute, useRouter } from 'vue-router'
+const router = useRouter()
+const route = useRoute()
 
 import { useMainStore } from 'stores/main'
 const mainStore = useMainStore()
@@ -298,7 +300,8 @@ const mainFlags = computed(() => mainStore.flags)
 import { useAppsStore } from 'stores/apps'
 const appsStore = useAppsStore()
 
-const action = computed(() => appsStore.action)
+const appsFlags = computed(() => appsStore.flags)
+const sdk = computed(() => appsStore.sdk)
 const app = computed(() => appsStore.currentApp)
 const categories = computed(() => appsStore.categories)
 
@@ -352,32 +355,6 @@ const report = ref({
   description: ''
 })
 
-const actionColors = computed(() => {
-  switch (action.value.type) {
-    case 'delete':
-      return {
-        bar: 'negative',
-        track: 'deep-orange-5'
-      }
-    case 'install':
-      return {
-        bar: 'primary',
-        track: 'orange-6'
-      }
-    default:
-      return {
-        bar: 'positive',
-        track: 'green-6'
-      }
-  }
-})
-
-watch(() => app.value, () => {
-  start()
-}, {
-  deep: true
-})
-
 const setCategory = () => {
   category.value = categories.value.find(category => category.id === app.value.categoryId)
 }
@@ -402,40 +379,52 @@ const animateScroll = (direction) => {
   scrollAreaRef.value.setScrollPosition('horizontal', position.value, 300)
 }
 
-const handleAction = (value) => {
-  let actionType
-  if (value === 'Installed') {
-    actionType = ''
-  } else {
-    actionType = value.toLowerCase()
-  }
-  appsStore.handleAction(app.value, actionType)
-}
-
 const sendReport = async () => {
   await submitAppReport(app.value.id, { description: report.value.description, description_type: report.value.type })
   flags.value.reportSubmitted = true
 }
 
-const start = () => {
-  loading.value = false
+const start = async () => {
+  loading.value = true
+  const path = route.params.path
+  if (!path) {
+    return
+  }
+
+  const appFull = await fetchAppById(path, sdk.value)
+  if (appFull.detail && appFull.detail.status === 'error') {
+    router.push({ name: 'Apps' })
+    return
+  }
+  appsStore.setCurrentApp(appFull)
   const status = app.value.currentVersion.status
   if (mainFlags.value.connected && status === 'READY') {
     currentStatusHint.value = null
   } else {
     currentStatusHint.value = status
   }
+  if (!categories.value.length) {
+    await appsStore.getCategories()
+  }
   setCategory()
+
+  appsStore.updateInstalledApps([app.value])
+
+  loading.value = false
 }
 
-// mounted () {
-//   start()
-// }
+watch(() => mainFlags.value.connected && appsFlags.value.loadingInstalledApps, () => {
+  appsStore.updateInstalledApps([app.value])
+})
 
-onUpdated(() => {
-  if (!loading.value) {
-    start()
+watch(() => mainFlags.value.connected, (condition) => {
+  if (!condition) {
+    appsStore.updateInstalledApps([app.value])
   }
+})
+
+onMounted(() => {
+  start()
 })
 
 onUnmounted(() => {

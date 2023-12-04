@@ -1,57 +1,72 @@
 <template>
   <q-page>
-    <template v-if="apps.length">
-      <div
-        class="row q-mb-lg"
-        :class="`${$q.screen.width > 670 ? 'no-wrap' : 'justify-center'} ${action.type ? 'disabled' : ''}`"
-      >
-        <q-list class="row q-col-gutter-md" :class="$q.screen.width > 670 ? 'col-8 items-center' : 'justify-center q-mb-lg'">
-          <div
-            v-for="category in catalogCategories"
-            :key="category.name"
-            class="col-auto"
+    <div
+      class="row q-mb-lg"
+      :class="`${$q.screen.width > 670 ? 'no-wrap' : 'justify-center'}`"
+    >
+      <q-list class="row q-col-gutter-md" :class="$q.screen.width > 670 ? 'col-8 items-center' : 'justify-center q-mb-lg'">
+        <div
+          v-for="category in catalogCategories"
+          :key="category.name"
+          class="col-auto"
+        >
+          <q-chip
+            class="q-ma-none"
+            :style="`background-color: #${category.color}; opacity: ${currentCategory && currentCategory.name !== category.name ? '0.5' : '1'}`"
+            clickable
+            @click="onSelectCategory(category)"
           >
-            <q-chip
-              class="q-ma-none"
-              :style="`background-color: #${category.color}; opacity: ${currentCategory && currentCategory.name !== category.name ? '0.5' : '1'}`"
-              clickable
-              @click="onSortApps(category)"
-            >
-              <q-icon v-if="category.iconUri" :name="`img:${category.iconUri}`" size="14px" class="q-my-xs q-mr-sm"/>
-              <span class="text-no-wrap">{{ category.name }}</span>
-            </q-chip>
-          </div>
-        </q-list>
-        <q-space v-if="$q.screen.width > 670"/>
-        <div>
-          <div class="row no-wrap justify-end text-grey-7">
-            <q-select
-              v-model="sortModel"
-              :options="sortOptions"
-              dense
-              standout="bg-primary text-white no-shadow"
-              rounded
-              style="min-width: fit-content; border-radius: 20px;"
-            />
-          </div>
+            <q-icon v-if="category.iconUri" :name="`img:${category.iconUri}`" size="14px" class="q-my-xs q-mr-sm"/>
+            <span class="text-no-wrap">{{ category.name }}</span>
+          </q-chip>
+        </div>
+      </q-list>
+      <q-space v-if="$q.screen.width > 670"/>
+      <div>
+        <div class="row no-wrap justify-end text-grey-7">
+          <q-select
+            v-model="sortModel"
+            @update:model-value="onSortApps()"
+            :options="sortOptions"
+            dense
+            standout="bg-primary text-white no-shadow"
+            rounded
+            style="min-width: fit-content; border-radius: 20px;"
+          />
         </div>
       </div>
+    </div>
 
-      <q-list class="apps full-width q-mt-sm">
-        <div
-          v-for="app in filteredSortedApps"
+    <q-infinite-scroll
+      ref="infinityScrollRef"
+      v-if="!flags.loadingCategories"
+      @load="onLoad"
+      :offset="250"
+      class="full-width q-mt-sm"
+    >
+      <div class="apps">
+        <q-intersection
+          v-for="app in apps"
           :key="app.name"
+          once
+          transition="scale"
           class="flex justify-center q-pa-none card-container"
           style="width: fit-content"
-          :class="action.type && action.id !== app.id ? 'disabled' : ''"
         >
           <div
             style="width: calc(256px + 4px + 8px)"
             class="app-card"
             @click="appClicked(app)"
           >
-            <div class="screenshot q-mb-sm">
-              <img :src="app.currentVersion.screenshots[0]" style="width: 256px" />
+            <div
+              class="rounded-borders q-pa-xs q-mb-sm bg-primary"
+              style="border-radius: 6px; border: 2px solid black;"
+            >
+              <q-img
+                :src="app.currentVersion.screenshots[0]"
+                :ratio="256/128"
+                style="image-rendering: pixelated"
+              />
             </div>
 
             <div class="flex justify-between no-wrap" style="padding: 0 4px">
@@ -66,25 +81,25 @@
 
             <div
               style="display: grid;grid-template-columns: 1fr auto;padding-left: 4px;align-items: end;"
-              :style="`padding-right: ${action.type && action.id === app.id ? 0 : 4}px`"
+              :style="`padding-right: ${app.action.type && app.action.id === app.id ? 0 : 4}px`"
             >
               <span class="col-shrink desc text-grey-7" style="margin-bottom: 2px;max-height: 30px;overflow: hidden;display: -webkit-box;-webkit-line-clamp: 2;-webkit-box-orient: vertical;">
                 {{ app.currentVersion.shortDescription }}
               </span>
               <div class="col-shrink" style="width: 80px;">
-                <template v-if="action.type && action.id === app.id">
+                <template v-if="app.action.type && app.action.id === app.id">
                   <q-linear-progress
-                    :value="action.progress"
+                    :value="app.action.progress"
                     size="32px"
-                    :color="actionColors.bar"
-                    :track-color="actionColors.track"
+                    :color="appsStore.actionColors(app).bar"
+                    :track-color="appsStore.actionColors(app).track"
                     style="width: 80px; border-radius: 5px;"
                   >
                     <div class="absolute-full flex flex-center" style="border: 2px solid; border-radius: 5px;">
                       <div
                         class="app-progress-label"
                         style="font-size: 28px;"
-                      >{{ `${action.progress * 100}%` }}</div>
+                      >{{ `${app.action.progress * 100}%` }}</div>
                     </div>
                   </q-linear-progress>
                 </template>
@@ -94,43 +109,52 @@
                   dense
                   color="white"
                   style="margin-left: 5px; padding: 0; border-radius: 5px; font-size: 16px; line-height: 16px;"
+                  :loading="mainFlags.connected && flags.loadingInstalledApps"
+                  :disable="app.actionButton?.disabled || false"
                   :label="app.actionButton?.text"
                   class="fit no-shadow text-pixelated"
-                  :class="app.actionButton?.class"
-                  @click="handleAction(app, app.actionButton?.text)"
+                  :class="mainFlags.connected && flags.loadingInstalledApps ? 'bg-primary' : app.actionButton?.class"
+                  @click.stop="appsStore.onAction(app, app.actionButton?.text)"
                 />
               </div>
             </div>
           </div>
-        </div>
-      </q-list>
-    </template>
-    <template v-else>
-      <div class="column items-center">
-        <q-spinner
-          color="primary"
-          size="3em"
-          class="q-mb-md"
-        ></q-spinner>
-        <p>Loading apps...</p>
+        </q-intersection>
       </div>
-    </template>
+      <template v-slot:loading>
+        <div class="row justify-center q-my-md">
+          <Loading
+            label="Loading apps..."
+          />
+        </div>
+      </template>
+    </q-infinite-scroll>
   </q-page>
 </template>
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
+import Loading from 'src/components/Loading.vue'
 import { useRouter } from 'vue-router'
 const router = useRouter()
+
+import { useMainStore } from 'src/stores/main'
+const mainStore = useMainStore()
+
+const mainFlags = computed(() => mainStore.flags)
 
 import { useAppsStore } from 'stores/apps'
 const appsStore = useAppsStore()
 
-const action = computed(() => appsStore.action)
+const flags = computed(() => appsStore.flags)
 const apps = computed(() => appsStore.apps)
 const categories = computed(() => appsStore.categories)
 
-onMounted(() => {
+const infinityScrollRef = ref(null)
+
+onMounted(async () => {
+  await appsStore.getCategories()
+
   currentCategory.value = appsStore.initialCategory
 })
 
@@ -139,6 +163,58 @@ const initialCategory = computed(() => appsStore.initialCategory)
 watch(initialCategory, (newCategory) => {
   currentCategory.value = newCategory
 })
+
+watch(() => mainFlags.value.connected, (condition) => {
+  appsStore.toggleFlag('fetchEnd', false)
+
+  if (!condition) {
+    appsStore.updateInstalledApps()
+  }
+})
+
+const options = {
+  limit: appsStore.defaultParamsAppsShort.limit,
+  offset: 0
+}
+
+const reLoad = async () => {
+  options.offset = 0
+
+  await infinityScrollRef.value.stop()
+  await infinityScrollRef.value.reset()
+  await infinityScrollRef.value.resume()
+}
+const onLoad = async (index, done) => {
+  if (index > 1) {
+    options.offset += options.limit
+  }
+
+  await getAppsShort(options)
+  done(flags.value.fetchEnd)
+}
+
+const getAppsShort = async (options = {}) => {
+  switch (sortModel.value) {
+    case 'New Updates':
+      options.sort_by = 'updated_at'
+      options.sort_order = -1
+      break
+    case 'Old Updates':
+      options.sort_by = 'updated_at'
+      options.sort_order = 1
+      break
+    case 'New Releases':
+      options.sort_by = 'created_at'
+      options.sort_order = -1
+      break
+    case 'Old Releases':
+      options.sort_by = 'created_at'
+      options.sort_order = 1
+      break
+  }
+
+  await appsStore.getAppsShort(options)
+}
 
 const catalogCategories = computed(() => {
   return [{
@@ -149,60 +225,6 @@ const catalogCategories = computed(() => {
   }, ...categories.value]
 })
 
-const filteredSortedApps = computed(() => {
-  let filtered
-  if (currentCategory.value) {
-    filtered = apps.value.filter(app => app.categoryId === currentCategory.value.id)
-  } else {
-    filtered = apps.value
-  }
-
-  let sortBy = '', direction = -1
-  switch (sortModel.value) {
-    case 'New Updates':
-      sortBy = 'updatedAt'
-      break
-    case 'Old Updates':
-      sortBy = 'updatedAt'
-      direction = 1
-      break
-    case 'New Releases':
-      sortBy = 'createdAt'
-      break
-    case 'Old Releases':
-      sortBy = 'createdAt'
-      direction = 1
-      break
-  }
-
-  return filtered.sort((a, b) => {
-    if (a[sortBy] >= b[sortBy]) {
-      return 1 * direction
-    }
-    return -1 * direction
-  })
-})
-
-const actionColors = computed(() => {
-  switch (action.value.type) {
-    case 'delete':
-      return {
-        bar: 'negative',
-        track: 'deep-orange-5'
-      }
-    case 'install':
-      return {
-        bar: 'primary',
-        track: 'orange-6'
-      }
-    default:
-      return {
-        bar: 'positive',
-        track: 'green-6'
-      }
-  }
-})
-
 const currentCategory = ref(null)
 const sortOptions = [
   'New Updates',
@@ -211,29 +233,29 @@ const sortOptions = [
   'Old Releases'
 ]
 const sortModel = ref('New Updates')
-const actionType = ref(null)
+const onSortApps = () => {
+  appsStore.onClearAppsList()
+  appsStore.toggleFlag('fetchEnd', false)
+  reLoad()
+}
 
 const appClicked = (app) => {
-  if (action.value.type) {
+  if (app.action.type) {
     return
   }
   appsStore.openApp(app)
 }
 
-const handleAction = (app, value) => {
-  if (value === 'Installed') {
-    actionType.value = ''
-  } else {
-    actionType.value = value.toLowerCase()
-  }
-  appsStore.handleAction(app, actionType.value)
-}
+const onSelectCategory = (category) => {
+  appsStore.onClearAppsList()
+  appsStore.toggleFlag('fetchEnd', false)
 
-const onSortApps = (category) => {
   if (category.name === 'All apps') {
     currentCategory.value = null
     appsStore.setInitalCategory(null)
     router.push({ name: 'Apps' })
+
+    reLoad()
 
     return
   }
@@ -241,6 +263,8 @@ const onSortApps = (category) => {
   router.push({ name: 'AppsCategory', params: { path: category.name.toLowerCase() } })
   appsStore.setInitalCategory(category)
   currentCategory.value = category
+
+  reLoad()
 }
 </script>
 
@@ -263,15 +287,6 @@ const onSortApps = (category) => {
     justify-content: center
     padding: 0
     border-radius: 3px
-    .screenshot
-      display: flex
-      justify-content: center
-      padding: 4px
-      background-color: $primary
-      border: 2px solid #000000
-      border-radius: 6px
-      img
-        image-rendering: pixelated
     .text-h6
       line-height: 1.75rem
     .desc
