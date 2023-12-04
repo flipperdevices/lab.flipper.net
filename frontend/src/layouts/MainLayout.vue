@@ -1,7 +1,6 @@
 <template>
-  <q-btn @click="recoveryTest" label="Recovery"/>
   <q-layout view="hhh LpR fff">
-    <q-header>
+    <q-header v-if="!flags.isElectron">
       <q-toolbar>
         <q-btn
           v-if="$q.screen.width <= 900"
@@ -52,6 +51,17 @@
         </template>
       </q-toolbar>
     </q-header>
+    <template v-else>
+      <q-btn
+        v-if="$q.screen.width <= 900"
+        @click="leftDrawer = !leftDrawer"
+        icon="menu"
+        dense
+        flat
+        round
+        class="q-ml-sm q-mt-sm"
+      ></q-btn>
+    </template>
 
     <q-drawer
       v-model="leftDrawer"
@@ -677,10 +687,4 @@ onMounted(async () => {
   }
   logger.setLevel(logger.getLevel())
 })
-
-// ///////////////////////////////////////////////////////////////////////////////////////////////////
-const recoveryTest = async () => {
-  window.qFlipper.onLog(console.log)
-  await window.qFlipper.spawn([])
-}
 </script>

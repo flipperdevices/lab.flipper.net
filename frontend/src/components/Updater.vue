@@ -51,20 +51,38 @@
         <span v-if="info.storage.sdcard.status">Your firmware doesn't support self-update. Install latest release with <a href="https://update.flipperzero.one">qFlipper desktop tool</a>.</span>
         <span v-else>Self-update is impossible without an SD card.</span>
       </template>
+      <q-btn v-if="mainFlags.isElectron" class="q-mt-md" color="primary" label="Recovery" @click="recovery"/>
     </template>
     <template v-else>
-      <p>{{ updateStage }}</p>
-      <q-btn
-        v-if="flags.updateError"
-        outline
-        class="q-mt-md"
-        @click="flags.updateInProgress = false; flags.updateError = false"
-      >Cancel</q-btn>
-      <ProgressBar
-        v-if="write.filename.length > 0"
-        :title="write.filename"
-        :progress="write.progress"
-      />
+      <template v-if="!mainFlags.isElectron">
+        <p>{{ updateStage }}</p>
+        <q-btn
+          v-if="flags.updateError"
+          outline
+          class="q-mt-md"
+          @click="flags.updateInProgress = false; flags.updateError = false"
+        >Cancel</q-btn>
+        <ProgressBar
+          v-if="write.filename.length > 0"
+          :title="write.filename"
+          :progress="write.progress"
+        />
+      </template>
+      <template v-else>
+        <p>{{ updateStage }}</p>
+        <ProgressBar :progress="recoveryProgress" interpolated/>
+        <q-scroll-area
+          style="height: 300px; min-width: 280px; width: calc(min(80vw, 600px));"
+          class="bg-grey-12 q-px-sm q-py-xs rounded-borders text-left"
+        >
+          <code>
+            <span v-for="line in recoveryLogs" :key="line">
+              {{ line }}
+              <br />
+            </span>
+          </code>
+        </q-scroll-area>
+      </template>
     </template>
     <q-dialog v-model="flags.uploadPopup">
       <q-card>
@@ -203,6 +221,71 @@ const update = async (fromFile) => {
       throw error
     })
   // flags.value.updateInProgress = false
+}
+
+const recoveryLogs = ref([])
+const recoveryProgress = ref(0)
+const recovery = () => {
+  flags.value.updateInProgress = true
+  const autoReconnect = mainFlags.value.autoReconnect
+  mainFlags.value.autoReconnect = false
+
+  const updateStages = [
+    {
+      name: 'Set Recovery boot mode',
+      ended: false
+    },
+    {
+      name: 'Co-Processor Firmware Download',
+      ended: false
+    },
+    {
+      name: 'Firmware Download',
+      ended: false
+    },
+    {
+      name: 'Correct Option Bytes',
+      ended: false
+    },
+    {
+      name: 'Assets Download',
+      ended: false
+    },
+    {
+      name: 'Region Provisioning',
+      ended: false
+    }
+  ]
+  let stageIndex = 0
+  updateStage.value = updateStages[stageIndex].name
+
+  emit('update', 'start')
+  const log = (message) => {
+    if (message.type === 'exit') {
+      flags.value.updateInProgress = false
+      mainFlags.value.autoReconnect = autoReconnect
+      emit('update', 'end')
+      return mainStore.start()
+    }
+
+    const lines = message.data.split('\n')
+    lines.forEach(line => {
+      if (line.length > 0) {
+        recoveryLogs.value.push(line)
+        console.log(line)
+        if (line.includes(updateStages[stageIndex]?.name)) {
+          if (line.endsWith('START')) {
+            updateStage.value = updateStages[stageIndex].name
+          } else {
+            updateStages[stageIndex].ended = true
+            stageIndex++
+            recoveryProgress.value = stageIndex / updateStages.length
+          }
+        }
+      }
+    })
+  }
+  mainStore.recovery(log)
 }
 
 const loadFirmware = async (fromFile) => {

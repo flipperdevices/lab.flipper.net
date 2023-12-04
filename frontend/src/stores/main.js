@@ -5,11 +5,14 @@ import useSetProperty from 'composables/useSetProperty'
 import { log } from 'composables/useLog'
 import { rpcErrorHandler } from 'composables/useRpcUtils'
 import { useRouter } from 'vue-router'
+import { Platform } from 'quasar'
+import asyncSleep from 'simple-async-sleep'
 
 export const useMainStore = defineStore('main', () => {
   const router = useRouter()
 
   const flags = ref({
+    isElectron: Platform.is.electron,
     serialSupported: true,
     connectionRequired: true,
     portSelectRequired: false,
@@ -247,6 +250,22 @@ export const useMainStore = defineStore('main', () => {
     }
   }
 
+  const recovery = async (logCallback) => {
+    if (!flags.value.isElectron) {
+      return
+    }
+    if (flags.value.connected) {
+      if (!flags.value.rpcActive) {
+        flipper.value.write('power reboot2dfu')
+      } else {
+        flipper.value.RPC('systemReboot', { mode: 'DFU' })
+      }
+      await asyncSleep(1000)
+    }
+    window.qFlipper.onLog(logCallback || console.log)
+    await window.qFlipper.spawn([])
+  }
+
   const setRpcStatus = (s) => {
     flags.value.rpcActive = s
   }
@@ -285,6 +304,8 @@ export const useMainStore = defineStore('main', () => {
     start,
     setRpcStatus,
     onUpdateStage,
+
+    recovery,
 
     fileToPass,
     openFileIn,

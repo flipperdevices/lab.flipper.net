@@ -73,6 +73,7 @@ async function createWindow () {
     return true
   })
   mainWindow.webContents.session.on('select-serial-port', (event, portList, webContents, callback) => {
+    console.log(event, portList, webContents, callback)
     event.preventDefault()
     const selectedPort = portList.find((device) => {
       return device.vendorId === '1155' && device.productId === '22336'
