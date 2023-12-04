@@ -263,21 +263,43 @@
           v-if="flags.serialSupported && (!flags.connected || info == null || !flags.rpcActive || flags.rpcToggling)"
           class="flex-center column q-my-xl"
         >
-          <q-btn
-            v-if="flags.portSelectRequired || !flags.connected && !flags.portSelectRequired"
-            @click="flags.portSelectRequired ? selectPort() : start(true)"
-            outline
-            class="q-mt-md"
-          >
-            Connect
-          </q-btn>
+          <template v-if="!mainStore.availableFlippers">
+            <q-btn
+              v-if="flags.portSelectRequired || !flags.connected && !flags.portSelectRequired"
+              @click="flags.portSelectRequired ? selectPort() : start(true)"
+              outline
+              class="q-mt-md"
+            >
+              Connect
+            </q-btn>
+            <template v-else>
+              <q-spinner
+                color="primary"
+                size="3em"
+                class="q-mb-md"
+              ></q-spinner>
+              <p>Waiting for Flipper...</p>
+            </template>
+          </template>
           <template v-else>
-            <q-spinner
-              color="primary"
-              size="3em"
-              class="q-mb-md"
-            ></q-spinner>
-            <p>Waiting for Flipper...</p>
+            <q-list class="q-gutter-y-md">
+              <q-item v-for="flipper in mainStore.availableFlippers" :key="flipper.hardware_name">
+                <q-item-section>
+                  <img v-if="flipper.hardware_color === '1'" src="../assets/flipper_black.svg" style="width: 100%"/>
+                  <img v-else-if="flipper.hardware_color === '3'" src="../assets/flipper_transparent.svg" style="width: 100%"/>
+                  <img v-else src="../assets/flipper_white.svg" style="width: 100%"/>
+                </q-item-section>
+                <q-item-section>
+                  <div>
+                    <div class="text-h6">{{ flipper.hardware_name }}</div>
+                    <div class="text-caption">Firmware {{ flipper.firmware_version }}</div>
+                  </div>
+                </q-item-section>
+                <q-item-section>
+                  <q-btn bordered @click="start(true)" label="Connect" />
+                </q-item-section>
+              </q-item>
+            </q-list>
           </template>
         </div>
         <div v-if="!flags.serialSupported" class="column text-center q-px-lg q-py-lg">

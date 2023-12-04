@@ -10,9 +10,12 @@ import asyncSleep from 'simple-async-sleep'
 
 export const useMainStore = defineStore('main', () => {
   const router = useRouter()
+  // todo
+  const availableFlippers = ref([])
 
   const flags = ref({
     isElectron: Platform.is.electron,
+
     serialSupported: true,
     connectionRequired: true,
     portSelectRequired: false,
@@ -73,12 +76,15 @@ export const useMainStore = defineStore('main', () => {
         }
       })
   }
-  const selectPort = async () => {
+  const selectPort = async (start = true) => {
     const filters = [
       { usbVendorId: 0x0483, usbProductId: 0x5740 }
     ]
-    await navigator.serial.requestPort({ filters })
-    return start(true)
+    const port = await navigator.serial.requestPort({ filters })
+    if (start) {
+      return start(true)
+    }
+    return port
   }
   const startRpc = async () => {
     if (!flags.value.connected) {
@@ -236,6 +242,18 @@ export const useMainStore = defineStore('main', () => {
   const start = async (manual) => {
     const ports = await findKnownDevices()
     if (ports && ports.length > 0) {
+      if (!manual && flags.value.isElectron && ports.length > 1) {
+        flags.value.autoReconnect = false
+        const portsVerbose = await window.serial.getPorts()
+        console.log(portsVerbose)
+        for (const port of portsVerbose) {
+          const devInfo = await window.serial.getDeviceInfo(port)
+          availableFlippers.value.push(devInfo)
+        }
+        console.log(availableFlippers.value)
+        return
+      }
+
       await connect()
       setTimeout(async () => {
         await startRpc()
@@ -297,6 +315,8 @@ export const useMainStore = defineStore('main', () => {
   }
 
   return {
+    availableFlippers,
+
     flags,
 
     flipper,

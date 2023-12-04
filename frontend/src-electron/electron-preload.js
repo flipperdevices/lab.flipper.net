@@ -5,6 +5,22 @@ contextBridge.exposeInMainWorld('qFlipper', {
   spawn: (args) => ipcRenderer.send('qFlipper:spawn', args),
   onLog: (callback) => ipcRenderer.on('qFlipper:log', (_event, value) => callback(value))
 })
+
+contextBridge.exposeInMainWorld('serial', {
+  getPorts: () => ipcRenderer.invoke('serial:getPorts'),
+  setPortFilter: filter => ipcRenderer.send('serial:setPortFilter', filter),
+  getDeviceInfo: async port => {
+    const result = await ipcRenderer.invoke('serial:getDeviceInfo', port)
+    const lines = result.split('\r\n')
+    const infoLines = lines.slice(lines.findIndex(e => e.includes('>:')) + 1, lines.findLastIndex(e => e.includes('>:')) - 1)
+    const devInfo = {}
+    infoLines.forEach(e => {
+      const [key, value] = e.split(': ')
+      devInfo[key.trim()] = value
+    })
+    return devInfo
+  }
+})
 /* const { SerialPort } = require('serialport')
 
 let port
