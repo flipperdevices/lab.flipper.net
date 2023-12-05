@@ -9,14 +9,13 @@
     >
       <div
         class="apps-navbar row justify-end items-center full-width q-mb-xl"
-        :class="action.type ? 'disabled' : ''"
       >
         <q-icon
           v-if="currentApp || flags.installedPage"
           name="mdi-chevron-left"
           size="56px"
           class="cursor-pointer q-mr-md"
-          @click="appsStore.toggleFlag('installedPage', false); router.push({ name: 'Apps' })"
+          @click="appsStore.toggleFlag('installedPage', false); !appsStore.initialCategory ? router.push({ name: 'Apps' }) : router.push({ name: 'AppsCategory', params: { path: appsStore.initialCategory.name.toLowerCase() } })"
         ></q-icon>
         <q-icon
           v-else
@@ -36,8 +35,8 @@
           <div>
             <q-btn
               flat
+              rounded
               no-caps
-              dense
               :color="flags.installedPage ? 'primary' : 'black'"
               style="font-weight: 400"
               icon="svguse:common-icons.svg#installed"
@@ -46,18 +45,19 @@
               label="Installed"
             >
               <q-badge
-                v-if="$q.screen.width > 365 && updatableAppsAmount > 0"
+                v-if="$q.screen.width > 365 && flags.updatabledAppsCount > 0"
                 color="positive"
                 floating
                 class="outdated-badge"
-              >{{ updatableAppsAmount }}</q-badge>
+                :label="flags.updatabledAppsCount"
+              />
             </q-btn>
           </div>
           <div class="q-ml-md">
             <q-btn
               flat
+              rounded
               no-caps
-              dense
               color="black"
               style="font-weight: 400"
               icon="mdi-github"
@@ -180,7 +180,6 @@
 import { onMounted, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useQuasar } from 'quasar'
-import { fetchCategories, fetchAppsShort, fetchAppById } from 'util/util'
 import SearchBar from 'components/SearchBar.vue'
 import { log } from 'composables/useLog'
 import { rpcErrorHandler } from 'composables/useRpcUtils'
@@ -197,11 +196,7 @@ const appsStore = useAppsStore()
 
 const flags = computed(() => appsStore.flags)
 const flipperReady = computed(() => appsStore.flipperReady)
-const action = computed(() => appsStore.action)
-const sdk = computed(() => appsStore.sdk)
 const currentApp = computed(() => appsStore.currentApp)
-const apps = computed(() => appsStore.apps)
-const installedApps = computed(() => appsStore.installedApps)
 const categories = computed(() => appsStore.categories)
 
 const router = useRouter()
@@ -215,20 +210,6 @@ onMounted(() => {
   if ($q.platform.is.mobile) {
     appsStore.toggleFlag('mobileAppDialog', true)
   }
-})
-
-const updatableAppsAmount = computed(() => {
-  return apps.value.filter(app => {
-    if (app.isInstalled === true && app.installedVersion && app.currentVersion.status === 'READY') {
-      if (sdk.value.api && app.installedVersion.api !== sdk.value.api) {
-        return true
-      }
-      if (app.installedVersion.isOutdated) {
-        return true
-      }
-    }
-    return false
-  }).length
 })
 
 const startRpc = async () => {
@@ -254,13 +235,12 @@ const startRpc = async () => {
 }
 
 const toggleInstalled = () => {
-  if (flags.value.installedPage) {
-    appsStore.toggleFlag('installedPage', false)
-
-    router.push({ name: 'Apps' })
-  } else {
-    router.push({ name: 'InstalledApps' })
+  if (!mainFlags.value.connected) {
+    appsStore.toggleFlag('connectFlipperDialog', true)
+    return
   }
+
+  router.push({ name: 'InstalledApps' })
 }
 
 const ensureCommonPaths = async () => {
@@ -290,68 +270,26 @@ const ensureCommonPaths = async () => {
 
 const watchParams = async () => {
   const path = route.params.path
-  appsStore.setInitalCategory(null)
 
   if (route.name === 'InstalledApps') {
     appsStore.toggleFlag('installedPage', true)
-
-    if (!mainFlags.value.connected) {
-      appsStore.toggleFlag('connectFlipperDialog', true)
-    }
     return
+  } else {
+    appsStore.toggleFlag('installedPage', false)
   }
   if (!path) {
     return
   }
 
-  appsStore.toggleFlag('installedPage', false)
-
   const normalize = (string) => string.toLowerCase().replaceAll(' ', '-')
   const category = categories.value.find(e => normalize(e.name) === normalize(path))
   if (category) {
     appsStore.setInitalCategory(category)
-  } else {
-    try {
-      const appFull = await fetchAppById(path, sdk.value)
-      if (appFull.detail && appFull.detail.status === 'error') {
-        router.push({ name: 'Apps' })
-        return
-      }
-      appsStore.setCurrentApp(appFull)
-
-      const installed = installedApps.value.find(e => e.id === appsStore.currentApp.id)
-
-      const newCurrentApp = currentApp.value
-      if (installed) {
-        newCurrentApp.isInstalled = true
-        newCurrentApp.installedVersion = installed.installedVersion
-
-        newCurrentApp.installedVersion.isOutdated = currentApp.value.currentVersion.id !== currentApp.value.installedVersion.id
-      }
-      newCurrentApp.actionButton = appsStore.actionButton(newCurrentApp)
-
-      appsStore.setCurrentApp(newCurrentApp)
-      appsStore.setInitalCategory(categories.value.find(e => e.id === appFull.categoryId))
-    } catch (error) {
-      console.error(error)
-    }
   }
 }
 
 const start = async () => {
   appsStore.toggleFlag('rpcActive', mainFlags.value.rpcActive)
-  appsStore.toggleFlag('loadingInitial', true)
-
-  const params = {
-    limit: 500,
-    offset: 0,
-    sort_by: 'updated_at',
-    sort_order: -1,
-    is_latest_release_version: true
-  }
-  const categoryParams = {
-    limit: 500
-  }
 
   if (mainFlags.value.connected) {
     if (!flags.value.rpcActive) {
@@ -367,13 +305,6 @@ const start = async () => {
 
         appsStore.setPropertySdk({ api })
         appsStore.setPropertySdk({ target })
-
-        params.api = api
-        params.target = target
-        delete params.is_latest_release_version
-
-        categoryParams.target = params.target
-        categoryParams.api = params.api
       } catch (error) {
         appsStore.toggleFlag('outdatedFirmwareDialogPersistent', true)
       }
@@ -388,22 +319,7 @@ const start = async () => {
     mainStore.start()
   }
 
-  appsStore.setCategories(await fetchCategories(categoryParams))
-
   await watchParams()
-  appsStore.toggleFlag('loadingInitial', false)
-
-  let newApps = [], allApps = []
-  do {
-    newApps = await fetchAppsShort(params)
-    allApps = allApps.concat(newApps)
-    if (newApps.length === params.limit) {
-      params.offset += params.limit
-    }
-  } while (newApps.length === params.limit)
-  appsStore.setApps(allApps)
-
-  await appsStore.updateInstalledApps(installedApps.value)
 }
 
 watch(flipperReady, () => {
@@ -413,6 +329,16 @@ watch(flipperReady, () => {
 
 watch(route, async () => {
   await watchParams()
+})
+
+watch(() => mainFlags.value.connected, (condition) => {
+  if (condition) {
+    appsStore.toggleFlag('loadingInstalledApps', true)
+  }
+
+  if (!condition) {
+    appsStore.onClearInstalledAppsList()
+  }
 })
 </script>
 
@@ -424,12 +350,14 @@ watch(route, async () => {
     height: 40px
 
 .outdated-badge
+  width: 17px
   height: 17px !important
-  position: relative
-  top: -11px
-  left: -72px
+  position: absolute
+  top: -3px
+  left: 32px
   font-size: 10px
   border: 1px #ffffff solid
   border-radius: 17px
+  padding: 5px
 </style>
 src/composables/useLog

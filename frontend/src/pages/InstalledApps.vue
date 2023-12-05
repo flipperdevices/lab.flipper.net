@@ -1,14 +1,18 @@
 <template>
   <q-page class="column full-width">
     <template v-if="loadingInstalledApps">
-      <div class="column items-center">
-        <q-spinner
-          color="primary"
-          size="3em"
-          class="q-mb-md"
-        ></q-spinner>
-        <p>Loading installed app...</p>
-      </div>
+      <Loading
+        label="Loading installed app..."
+      />
+    </template>
+    <template v-else-if="!mainFlags.connected">
+      <q-card flat>
+        <q-card-section class="q-pa-none q-ma-md" align="center">
+          <q-icon name="mdi-alert-circle" color="primary" size="64px" />
+          <div class="text-h6 q-my-sm">Flipper disconnected</div>
+          <p>Plug in your Flipper and click the button below.</p>
+        </q-card-section>
+      </q-card>
     </template>
     <template v-else-if="!info?.storage.sdcard.status.isInstalled">
       <div class="column items-center">
@@ -35,10 +39,10 @@
       <div v-if="updatableApps.length" style="width: 140px">
         <template v-if="batch.totalCount">
           <q-linear-progress
-            :value="batch.doneCount / batch.totalCount + action.progress / batch.totalCount"
+            :value="batch.doneCount / batch.totalCount + batch.action.progress / batch.totalCount"
             size="32px"
-            :color="actionColors.bar"
-            :track-color="actionColors.track"
+            :color="appsStore.actionColors(batch).bar"
+            :track-color="appsStore.actionColors(batch).track"
             style="border-radius: 5px;"
           >
             <div class="absolute-full flex flex-center" style="border: 2px solid; border-radius: 5px;">
@@ -65,162 +69,213 @@
 
       <div v-if="batch.failed.length" class="text-negative">
         Update failed for
-        <span v-for="app, index in batch.failed" :key="app.id">"{{ app.currentVersion.name }}"<span v-if="batch.failed[index + 1]">, </span></span>
+        <span v-for="app, index in batch.failed" :key="app.id">"{{ app.installedVersion.name }}"<span v-if="batch.failed[index + 1]">, </span></span>
       </div>
 
       <div class="column full-width" :class="batch.totalCount ? 'disabled' : ''">
-        <div
+        <q-intersection
           v-for="app in updatableApps"
           :key="app.currentVersion.name"
-          class="flex no-wrap items-center q-my-md"
-          :class="action.type === 'delete' && action.id === app.id ? 'disabled' : ''"
+          once
+          transition="scale"
         >
-          <div class="flex no-wrap items-center cursor-pointer" @click="appClicked(app)">
-            <div class="app-icon q-mr-md">
-              <q-img :src="app.currentVersion.iconUri" style="image-rendering: pixelated; width: 38px"/>
+          <div
+            class="flex no-wrap items-center q-my-md"
+            :class="app.action.type === 'delete' ? 'disabled' : ''"
+          >
+            <div class="flex no-wrap items-center cursor-pointer" @click="appClicked(app)">
+              <div class="app-icon q-mr-md">
+                <q-img :src="app.currentVersion.iconUri" style="image-rendering: pixelated; width: 38px"/>
+              </div>
+              <div class="col-10">
+                <div class="text-h6" style="line-height: 1.5em; margin-bottom: 0.25rem;">{{ app.currentVersion.name }}</div>
+                <div class="text-grey-7" style="margin-right: 80px;">{{ app.currentVersion.shortDescription }}</div>
+              </div>
             </div>
-            <div class="col-10">
-              <div class="text-h6" style="line-height: 1.5em; margin-bottom: 0.25rem;">{{ app.currentVersion.name }}</div>
-              <div class="text-grey-7" style="margin-right: 80px;">{{ app.currentVersion.shortDescription }}</div>
+
+            <q-space />
+
+            <div v-if="app.installedVersion?.version" class="column items-end q-ml-md">
+              <span class="text-grey-7">Version:</span>
+              <b>{{ app.installedVersion.version }}</b>
             </div>
-          </div>
-
-          <q-space />
-
-          <div class="column items-end q-ml-md">
-            <span class="text-grey-7">Version:</span>
-            <b>{{ app.installedVersion.version }}</b>
-          </div>
-          <div class="q-ml-md" style="width: 80px;">
-            <template v-if="action.type && action.id === app.id">
-              <q-linear-progress
-                :value="action.progress"
-                size="32px"
-                :color="actionColors.bar"
-                :track-color="actionColors.track"
-                style="width: 80px; border-radius: 5px;"
-                class="q-ml-xs"
-              >
-                <div class="absolute-full flex flex-center" style="border: 2px solid; border-radius: 5px;">
-                  <div
-                    class="app-progress-label"
-                    style="font-size: 28px;"
-                  >{{ `${action.progress * 100}%` }}</div>
-                </div>
-              </q-linear-progress>
-            </template>
+            <div class="q-ml-md" style="width: 80px;">
+              <template v-if="app.action.type">
+                <q-linear-progress
+                  :value="app.action.progress"
+                  size="32px"
+                  :color="appsStore.actionColors(app).bar"
+                  :track-color="appsStore.actionColors(app).track"
+                  style="width: 80px; border-radius: 5px;"
+                  class="q-ml-xs"
+                >
+                  <div class="absolute-full flex flex-center" style="border: 2px solid; border-radius: 5px;">
+                    <div
+                      class="app-progress-label"
+                      style="font-size: 28px;"
+                    >{{ `${app.action.progress * 100}%` }}</div>
+                  </div>
+                </q-linear-progress>
+              </template>
+              <q-btn
+                v-else
+                flat
+                dense
+                color="white"
+                style="margin-left: 5px; padding: 0; border-radius: 5px; font-size: 16px; line-height: 16px;"
+                label="Update"
+                class="fit no-shadow text-pixelated bg-positive"
+                @click="appsStore.onAction(app, 'update')"
+              />
+            </div>
             <q-btn
-              v-else
               flat
+              round
               dense
-              color="white"
-              style="margin-left: 5px; padding: 0; border-radius: 5px; font-size: 16px; line-height: 16px;"
-              label="Update"
-              class="fit no-shadow text-pixelated bg-positive"
-              @click="handleAction(app, 'update')"
+              color="negative"
+              icon="svguse:common-icons.svg#delete"
+              class="q-ml-md"
+              @click="appToDelete = app; flags.deleteConfirmationDialog = true"
             />
           </div>
-          <q-btn
-            flat
-            round
-            dense
-            color="negative"
-            icon="svguse:common-icons.svg#delete"
-            class="q-ml-md"
-            @click="appToDelete = app; flags.deleteConfirmationDialog = true"
-          />
-        </div>
+        </q-intersection>
 
         <q-separator v-if="updatableApps.length && upToDateApps.length" class="q-my-lg" />
 
-        <div
+        <q-intersection
           v-for="app in upToDateApps"
-          :key="app.currentVersion.name"
-          class="flex no-wrap items-center q-my-md"
-          :class="action.type === 'delete' && action.id === app.id ? 'disabled' : ''"
+          :key="app.installedVersion.name"
+          once
+          transition="scale"
         >
-          <div class="flex no-wrap items-center cursor-pointer" @click="appClicked(app)">
-            <div class="app-icon q-mr-md">
-              <q-img :src="app.currentVersion.iconUri" style="image-rendering: pixelated; width: 38px"/>
+          <div
+            class="flex no-wrap items-center q-my-md"
+            :class="app.action.type === 'delete' ? 'disabled' : ''"
+          >
+            <div class="flex no-wrap items-center cursor-pointer" @click="appClicked(app)">
+              <div class="app-icon q-mr-md">
+                <q-img :src="app.installedVersion.iconUri" style="image-rendering: pixelated; width: 38px"/>
+              </div>
+              <div class="col-10">
+                <div class="text-h6" style="line-height: 1.5em; margin-bottom: 0.25rem;">{{ app.installedVersion.name }}</div>
+                <div class="text-grey-7" style="margin-right: 80px;">{{ app.installedVersion.shortDescription }}</div>
+              </div>
             </div>
-            <div class="col-10">
-              <div class="text-h6" style="line-height: 1.5em; margin-bottom: 0.25rem;">{{ app.currentVersion.name }}</div>
-              <div class="text-grey-7" style="margin-right: 80px;">{{ app.currentVersion.shortDescription }}</div>
+
+            <q-space />
+
+            <div v-if="app.installedVersion?.version" class="column items-end q-ml-md">
+              <span class="text-grey-7">Version:</span>
+              <b>{{ app.installedVersion.version }}</b>
             </div>
-          </div>
-
-          <q-space />
-
-          <div class="column items-end q-ml-md">
-            <span class="text-grey-7">Version:</span>
-            <b>{{ app.currentVersion.version }}</b>
-          </div>
-          <div class="q-ml-md" style="width: 80px;">
+            <div class="q-ml-md" style="width: 80px;">
+              <template v-if="app.action.type">
+                <q-linear-progress
+                  :value="app.action.progress"
+                  size="32px"
+                  :color="appsStore.actionColors(app).bar"
+                  :track-color="appsStore.actionColors(app).track"
+                  style="width: 80px; border-radius: 5px;"
+                  class="q-ml-xs"
+                >
+                  <div class="absolute-full flex flex-center" style="border: 2px solid; border-radius: 5px;">
+                    <div
+                      class="app-progress-label"
+                      style="font-size: 28px;"
+                    >{{ `${app.action.progress * 100}%` }}</div>
+                  </div>
+                </q-linear-progress>
+              </template>
+              <q-btn
+                v-else
+                flat
+                dense
+                color="white"
+                style="margin-left: 5px; padding: 0; border-radius: 5px; font-size: 16px; line-height: 16px;"
+                label="Installed"
+                class="fit no-shadow text-pixelated bg-grey-6"
+              />
+            </div>
             <q-btn
               flat
+              round
               dense
-              color="white"
-              style="margin-left: 5px; padding: 0; border-radius: 5px; font-size: 16px; line-height: 16px;"
-              label="Installed"
-              class="fit no-shadow text-pixelated bg-grey-6"
+              color="negative"
+              icon="svguse:common-icons.svg#delete"
+              class="q-ml-md"
+              @click="appToDelete = app; flags.deleteConfirmationDialog = true"
             />
           </div>
-          <q-btn
-            flat
-            round
-            dense
-            color="negative"
-            icon="svguse:common-icons.svg#delete"
-            class="q-ml-md"
-            @click="appToDelete = app; flags.deleteConfirmationDialog = true"
-          />
-        </div>
+        </q-intersection>
 
-        <div
+        <q-intersection
           v-for="app in unsupportedApps"
           :key="app.name"
-          class="flex no-wrap items-center q-my-md"
-          :class="action.type === 'delete' && action.id === app.id ? 'disabled' : ''"
+          once
+          transition="scale"
         >
-          <div class="flex no-wrap items-center cursor-pointer" @click="$router.push(`/apps/${app.id}`)">
-            <div class="app-icon q-mr-md">
-              <q-img :src="`data:image/png;base64,${app.icon}`" style="image-rendering: pixelated; width: 38px"/>
-            </div>
-            <div class="col-10">
-              <div class="flex justify-start items-center">
-                <div class="text-h6 q-mr-sm" style="line-height: 1.5em; margin-bottom: 0.25rem;">{{ app.name }}</div>
-                <q-chip color="deep-orange-2" icon="mdi-alert-circle-outline" label="Outdated app" size="12px" dense class="q-px-sm"/>
+          <div
+            class="flex no-wrap items-center q-my-md"
+            :class="app.action?.type === 'delete' ? 'disabled' : ''"
+          >
+            <div class="flex no-wrap items-center cursor-pointer" @click="$router.push(`/apps/${app.id}`)">
+              <div class="app-icon q-mr-md">
+                <q-img :src="`data:image/png;base64,${app.icon}`" style="image-rendering: pixelated; width: 38px"/>
               </div>
-              <div class="text-grey-7">{{ app.installedVersion.shortDescription }}</div>
+              <div class="col-10">
+                <div class="flex justify-start items-center">
+                  <div class="text-h6 q-mr-sm" style="line-height: 1.5em; margin-bottom: 0.25rem;">{{ app.name }}</div>
+                  <q-chip color="deep-orange-2" icon="mdi-alert-circle-outline" label="Outdated app" size="12px" dense class="q-px-sm"/>
+                </div>
+                <div class="text-grey-7">{{ app.installedVersion.shortDescription }}</div>
+              </div>
             </div>
-          </div>
 
-          <q-space />
+            <q-space />
 
-          <div class="column items-end q-ml-md">
-            <span v-if="app.installedVersion.version" class="text-grey-7">Version:</span>
-            <b>{{ app.installedVersion.version }}</b>
-          </div>
-          <div class="q-ml-md" style="width: 80px;">
+            <div v-if="app.installedVersion.version" class="column items-end q-ml-md">
+              <span class="text-grey-7">Version:</span>
+              <b>{{ app.installedVersion.version }}</b>
+            </div>
+            <div class="q-ml-md" style="width: 80px;">
+              <template v-if="app.action.type">
+                <q-linear-progress
+                  :value="app.action.progress"
+                  size="32px"
+                  :color="appsStore.actionColors(app).bar"
+                  :track-color="appsStore.actionColors(app).track"
+                  style="width: 80px; border-radius: 5px;"
+                  class="q-ml-xs"
+                >
+                  <div class="absolute-full flex flex-center" style="border: 2px solid; border-radius: 5px;">
+                    <div
+                      class="app-progress-label"
+                      style="font-size: 28px;"
+                    >{{ `${app.action.progress * 100}%` }}</div>
+                  </div>
+                </q-linear-progress>
+              </template>
+              <q-btn
+                v-else
+                flat
+                dense
+                color="white"
+                style="margin-left: 5px; padding: 0; border-radius: 5px; font-size: 16px; line-height: 16px;"
+                label="Installed"
+                class="fit no-shadow text-pixelated bg-grey-6"
+              />
+            </div>
             <q-btn
               flat
+              round
               dense
-              color="white"
-              style="margin-left: 5px; padding: 0; border-radius: 5px; font-size: 16px; line-height: 16px;"
-              label="Installed"
-              class="fit no-shadow text-pixelated bg-grey-6"
+              color="negative"
+              icon="svguse:common-icons.svg#delete"
+              class="q-ml-md"
+              @click="appToDelete = app; flags.deleteConfirmationDialog = true"
             />
           </div>
-          <q-btn
-            flat
-            round
-            dense
-            color="negative"
-            icon="svguse:common-icons.svg#delete"
-            class="q-ml-md"
-            @click="appToDelete = app; flags.deleteConfirmationDialog = true"
-          />
-        </div>
+        </q-intersection>
       </div>
 
       <q-dialog v-model="flags.deleteConfirmationDialog">
@@ -246,7 +301,7 @@
                 </template>
                 <template v-else>
                   <div class="text-h6" style="line-height: 1.5em; margin-bottom: 0.25rem;">{{ appToDelete.name }}</div>
-                  <div class="text-grey-7"><b>v{{ appToDelete.installedVersion.version }}</b></div>
+                  <div v-if="appToDelete.installedVersion.version" class="text-grey-7"><b>v{{ appToDelete.installedVersion.version }}</b></div>
                 </template>
               </div>
             </div>
@@ -265,7 +320,7 @@
               color="negative"
               label="Delete"
               v-close-popup
-              @click="handleAction(appToDelete, 'delete')"
+              @click="appsStore.onAction(appToDelete, 'delete')"
             ></q-btn>
           </q-card-section>
         </q-card>
@@ -276,110 +331,66 @@
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
+import Loading from 'src/components/Loading.vue'
 // import semver from 'semver'
 
 import { useMainStore } from 'src/stores/main'
 const mainStore = useMainStore()
 
+const mainFlags = computed(() => mainStore.flags)
 const info = computed(() => mainStore.info)
 
 import { useAppsStore } from 'stores/apps'
 const appsStore = useAppsStore()
 
-const sdk = computed(() => appsStore.sdk)
-const action = computed(() => appsStore.action)
 const batch = computed(() => appsStore.batch)
-const apps = computed(() => appsStore.apps)
-const loadingInstalledApps = computed(() => appsStore.loadingInstalledApps)
+const loadingInstalledApps = computed(() => appsStore.flags.loadingInstalledApps)
 const installedApps = computed(() => appsStore.installedApps)
+const categories = computed(() => appsStore.categories)
 
 const flags = ref({
   deleteConfirmationDialog: false
 })
 const appToDelete = ref(null)
-const actionType = ref('')
 
 watch(() => info.value?.storage.sdcard.status.isInstalled, () => {
-  appsStore.toggleLoadingInstalledApps(false)
+  appsStore.toggleFlag('loadingInstalledApps', false)
 })
 
 onMounted(async () => {
-  if (installedApps.value.length === 0) {
-    await appsStore.getInstalledApps()
+  if (!mainFlags.value.connected) {
+    appsStore.toggleFlag('loadingInstalledApps', false)
+    return
+  }
+
+  if (!categories.value.length) {
+    await appsStore.getCategories()
   }
 })
 
 const updatableApps = computed(() => {
-  return apps.value.filter(app => {
-    if (app.isInstalled === true && app.installedVersion && app.currentVersion.status === 'READY') {
-      if (sdk.value.api && app.installedVersion.api !== sdk.value.api) {
-        return true
-      }
-      if (app.installedVersion.isOutdated) {
-        return true
-      }
-    }
-    return false
+  return installedApps.value.filter(installedApp => {
+    return installedApp.updatable === true
   })
 })
 
 const upToDateApps = computed(() => {
-  return apps.value.filter(app => {
-    if (app.isInstalled === true && app.installedVersion) {
-      if (sdk.value.api && app.installedVersion.api !== sdk.value.api) {
-        return false
-      }
-      if (!app.installedVersion.isOutdated && app.currentVersion.status === 'READY') {
-        return true
-      }
-    }
-    return false
+  return installedApps.value.filter(installedApp => {
+    return installedApp.isInstalled === true
   })
 })
 
 const unsupportedApps = computed(() => {
   return installedApps.value.filter(installedApp => {
-    if (!apps.value.find(app => app.id === installedApp.id)) {
-      return true
-    }
-    return false
+    return installedApp.unsupported === true
   })
 })
 
-const actionColors = computed(() => {
-  switch (action.value.type) {
-    case 'delete':
-      return {
-        bar: 'negative',
-        track: 'deep-orange-5'
-      }
-    case 'install':
-      return {
-        bar: 'primary',
-        track: 'orange-6'
-      }
-    default:
-      return {
-        bar: 'positive',
-        track: 'green-6'
-      }
-  }
-})
-
 const appClicked = (app) => {
-  if (action.value.type) {
+  if (app.action.type) {
     return
   }
   appsStore.openApp(app)
-}
-
-const handleAction = (app, value) => {
-  if (value === 'Installed') {
-    actionType.value = ''
-  } else {
-    actionType.value = value.toLowerCase()
-  }
-  appsStore.handleAction(app, actionType.value)
 }
 </script>
 

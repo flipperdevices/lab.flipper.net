@@ -122,7 +122,8 @@
 <script setup>
 import { ref, defineEmits, watch, onMounted, computed } from 'vue'
 import ProgressBar from './ProgressBar.vue'
-import { fetchChannels, fetchFirmware, fetchRegions, unpack } from '../util/util'
+import { unpack } from 'util/util'
+import { fetchChannels, fetchFirmware, fetchRegions } from 'util/fetch'
 import semver from 'semver'
 import asyncSleep from 'simple-async-sleep'
 import { PB } from '../flipper-js/protobufCompiled'

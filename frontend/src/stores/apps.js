@@ -1,12 +1,15 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
-import { fetchAppsVersions, fetchAppFap } from 'util/util'
+import { useRoute, useRouter } from 'vue-router'
+import { fetchAppsVersions, fetchAppFap, fetchPostAppsShort, fetchAppsShort, fetchCategories } from 'util/fetch'
 import asyncSleep from 'simple-async-sleep'
 import { log } from 'composables/useLog'
 import showNotif from 'composables/useShowNotif'
 import useSetProperty from 'composables/useSetProperty'
 import { rpcErrorHandler } from 'composables/useRpcUtils'
+import promiseQueue from 'composables/usePromiseQueue'
+const actionQueue = promiseQueue()
+import { axios } from 'boot/axios'
 
 import { useMainStore } from 'stores/main'
 
@@ -19,6 +22,7 @@ export const useAppsStore = defineStore('apps', () => {
   const info = computed(() => mainStore.info)
 
   const router = useRouter()
+  const route = useRoute()
 
   const flags = ref({
     restarting: false,
@@ -29,43 +33,71 @@ export const useAppsStore = defineStore('apps', () => {
     outdatedFirmwareDialog: false,
     outdatedAppDialog: false,
     connectFlipperDialog: false,
+    updatabledAppsCount: 0,
     mobileAppDialog: false,
-    loadingInitial: true
+    fetchEnd: false,
+    loadingCategories: true,
+    loadingInitial: true,
+    loadingInstalledApps: true
   })
 
   const flipperReady = computed(() => mainFlags.value.rpcActive && info.value !== null && info.value.doneReading)
 
-  const action = ref({
-    type: '',
-    progress: 0,
-    id: ''
-  })
-  const handleAction = (app, actionType) => {
-    if (!mainFlags.value.connected) {
-      action.value.type = actionType
-      flags.value.connectFlipperDialog = true
+  const api = computed(() => `${info.value.firmware.api.major}.${info.value.firmware.api.minor}`)
+  const target = computed(() => `f${info.value.firmware.target}`)
 
-      setTimeout(() => {
-        action.value.type = ''
-      }, 300)
+  const actionColors = (app) => {
+    switch (app.action.type) {
+      case 'delete':
+        return {
+          bar: 'negative',
+          track: 'deep-orange-5'
+        }
+      case 'install':
+        return {
+          bar: 'primary',
+          track: 'orange-6'
+        }
+      default:
+        return {
+          bar: 'positive',
+          track: 'green-6'
+        }
+    }
+  }
+  const onAction = (app, value) => {
+    const actionType = value === 'Installed' ? '' : value.toLowerCase()
+    if (!mainFlags.value.connected) {
+      flags.value.connectFlipperDialog = true
       return
     }
+
+    app.action.type = actionType
+    app.action.progress = 0
+    app.action.id = app.id
+
+    const action = async (app, actionType) => {
+      await handleAction(app, actionType)
+
+      return Promise.resolve()
+    }
+
+    actionQueue.addToQueue(action, [app, actionType])
+  }
+  const handleAction = (app, actionType) => {
     if (!info.value.storage.sdcard.status.isInstalled) {
-      action.value.type = actionType
+      app.action.type = actionType
       mainStore.toggleFlag('microSDcardMissingDialog', true)
       setTimeout(() => {
-        action.value.type = ''
+        app.action.type = ''
       }, 300)
       return
     }
     if (!actionType) {
       return
     }
-    action.value.type = actionType
-    action.value.progress = 0
-    action.value.id = app.id
 
-    switch (action.value.type) {
+    switch (app.action.type) {
       case 'install':
         return installApp(app)
       case 'update':
@@ -74,20 +106,48 @@ export const useAppsStore = defineStore('apps', () => {
         return deleteApp(app)
     }
   }
+  const actionButton = (app) => {
+    if (!sdk.value.api) {
+      return { text: 'Install', class: 'bg-primary' }
+    }
+    if (app.isInstalled && app.installedVersion) {
+      if (app.installedVersion.api !== sdk.value.api) {
+        if (app.currentVersion.status === 'READY') {
+          return { text: 'Update', class: 'bg-positive' }
+        }
+        return { text: 'Installed', class: 'bg-grey-6', disabled: true }
+      } else {
+        if (app.installedVersion.isOutdated) {
+          return { text: 'Update', class: 'bg-positive' }
+        } else {
+          return { text: 'Installed', class: 'bg-grey-6', disabled: true }
+        }
+      }
+    }
+    return {
+      text: 'Install',
+      class: 'bg-primary'
+    }
+  }
 
   const batch = ref({
     totalCount: 0,
     doneCount: 0,
-    failed: []
+    failed: [],
+    action: {
+      type: '',
+      progress: 0
+    }
   })
   const batchUpdate = async (apps) => {
     batch.value.totalCount = apps.length
     batch.value.doneCount = 0
 
-    action.value.type = 'update'
+    batch.value.action.type = 'update'
 
     for (const app of apps) {
       try {
+        app.action.type = 'update'
         await updateApp(app)
         batch.value.doneCount++
       } catch (error) {
@@ -107,46 +167,24 @@ export const useAppsStore = defineStore('apps', () => {
     sdk.value = useSetProperty(sdk.value, options)
   }
 
-  const initialCategory = ref(null)
-  const setInitalCategory = (category) => {
-    initialCategory.value = category
+  const installedApps = ref([])
+  const setInstalledApps = (newInstalledApps) => {
+    installedApps.value = newInstalledApps
   }
-
-  const actionButton = (app) => {
-    if (!sdk.value.api) {
-      return { text: 'Install', class: 'bg-primary' }
-    }
-    if (app.isInstalled && app.installedVersion) {
-      if (app.installedVersion.api !== sdk.value.api) {
-        if (app.currentVersion.status === 'READY') {
-          return { text: 'Update', class: 'bg-positive' }
-        }
-        return { text: 'Installed', class: 'bg-grey-6' }
-      } else {
-        if (app.installedVersion.isOutdated) {
-          return { text: 'Update', class: 'bg-positive' }
-        } else {
-          return { text: 'Installed', class: 'bg-grey-6' }
-        }
-      }
-    }
-    return {
-      text: 'Install',
-      class: 'bg-primary'
-    }
-  }
-
-  const loadingInstalledApps = ref(true)
-  const toggleLoadingInstalledApps = (condition) => {
-    loadingInstalledApps.value = condition
+  const onClearInstalledAppsList = () => {
+    installedApps.value = []
+    flags.value.updatabledApps = 0
   }
   const getInstalledApps = async () => {
-    const installed = []
+    if (!installedApps.value.length) {
+      flags.value.loadingInstalledApps = true
+    }
+    let installed = []
     if (flipperReady.value) {
       const manifestsList = await flipper.value.RPC('storageList', { path: '/ext/apps_manifests' })
         .catch(error => rpcErrorHandler(componentName, error, 'storageList'))
       const decoder = new TextDecoder()
-      for (const file of manifestsList) {
+      for await (const file of manifestsList) {
         const manifestFile = await flipper.value.RPC('storageRead', { path: `/ext/apps_manifests/${file.name}` })
           .catch(error => rpcErrorHandler(componentName, error, 'storageRead'))
         const manifest = decoder.decode(manifestFile)
@@ -160,7 +198,7 @@ export const useAppsStore = defineStore('apps', () => {
           },
           path: ''
         }
-        for (const line of manifest.replaceAll('\r', '').split('\n')) {
+        for await (const line of manifest.replaceAll('\r', '').split('\n')) {
           const key = line.slice(0, line.indexOf(': '))
           const value = line.slice(line.indexOf(': ') + 2)
           switch (key) {
@@ -186,8 +224,6 @@ export const useAppsStore = defineStore('apps', () => {
         }
         installed.push(app)
       }
-
-      toggleLoadingInstalledApps(false)
     }
 
     const versions = await fetchAppsVersions(installed.map(app => app.installedVersion.id))
@@ -197,13 +233,108 @@ export const useAppsStore = defineStore('apps', () => {
         app.installedVersion = { ...app.installedVersion, ...version }
       }
     }
-    setInstalledApps(installed)
-  }
-  const updateInstalledApps = async (installed) => {
-    if (!installed) {
-      await getInstalledApps()
+
+    const params = {
+      limit: 500,
+      is_latest_release_version: true
     }
-    for (const app of apps.value) {
+
+    if (flipperReady.value) {
+      params.api = api.value
+      params.target = target.value
+      delete params.is_latest_release_version
+    }
+
+    // NOTE: Actual — latest compatible
+    let actualApps = []
+    do {
+      actualApps = await fetchPostAppsShort({
+        ...params,
+        applications: installed.map(app => app.id)
+      })
+    } while (actualApps.length === params.limit)
+
+    // HACK: Bind the past action state to the new list
+    installed = installed.map(installedApp => {
+      const lastInstalledApp = installedApps.value.find(actualApp => actualApp.id === installedApp.id)
+
+      if (lastInstalledApp) {
+        installedApp.action = lastInstalledApp.action
+      }
+
+      return installedApp
+    })
+
+    const updatableApps = installed.filter(installedApp => {
+      const app = actualApps.find(actualApp => actualApp.id === installedApp.id)
+
+      if (app) {
+        if (!installedApp.action) {
+          installedApp.action = app.action
+        }
+        installedApp.categoryId = app.categoryId
+        installedApp.currentVersion = app.currentVersion
+        installedApp.alias = app.alias
+
+        if (sdk.value.api && installedApp.installedVersion.api !== sdk.value.api) {
+          installedApp.updatable = true
+          return true
+        }
+        if (app.currentVersion.id !== installedApp.installedVersion.id) {
+          installedApp.updatable = true
+          return true
+        }
+      }
+      installedApp.updatable = false
+      return false
+    })
+
+    flags.value.updatabledAppsCount = updatableApps.length
+
+    const upToDateApps = installed.filter(installedApp => {
+      const app = actualApps.find(actualApp => actualApp.id === installedApp.id)
+
+      if (app) {
+        if (sdk.value.api && installedApp.installedVersion.api !== sdk.value.api) {
+          installedApp.isInstalled = false
+          return false
+        }
+
+        if (app.currentVersion.id === installedApp.installedVersion.id && app.currentVersion.status === 'READY') {
+          installedApp.isInstalled = true
+          return true
+        }
+      }
+      installedApp.isInstalled = false
+      return false
+    })
+
+    const unsupportedApps = installed.filter(installedApp => {
+      if (!installedApp.action) {
+        installedApp.action = {
+          type: '',
+          progress: 0,
+          id: installedApp.id
+        }
+      }
+      if (!actualApps.find(app => app.id === installedApp.id)) {
+        installedApp.unsupported = true
+        return true
+      }
+      installedApp.unsupported = false
+      return false
+    })
+
+    setInstalledApps([...updatableApps, ...upToDateApps, ...unsupportedApps])
+
+    updateInstalledApps()
+    flags.value.loadingInstalledApps = false
+  }
+  const updateInstalledApps = (newApps) => {
+    if (!newApps) {
+      newApps = apps.value
+    }
+    for (const app of newApps) {
       const installed = installedApps.value.find(e => e.id === app.id)
       if (installed) {
         app.isInstalled = true
@@ -258,11 +389,15 @@ export const useAppsStore = defineStore('apps', () => {
       })
     })
     if (!fap) {
-      action.value.type = ''
-      action.value.progress = 0
+      app.action.type = ''
+      batch.value.progress = 0
+      app.action.progress = 0
       return
     }
-    action.value.progress = 0.33
+    app.action.progress = 0.33
+    if (app.action.type === 'update') {
+      batch.value.progress = 0.33
+    }
     await asyncSleep(300)
     log({
       level: 'debug',
@@ -270,20 +405,22 @@ export const useAppsStore = defineStore('apps', () => {
     })
 
     // generate manifest
-    function urlContentToDataUri (url) {
-      return fetch(url)
-        .then(response => response.blob())
-        .then(blob => new Promise(resolve => {
+    async function urlContentToDataUri (url) {
+      return await axios.get(url, { responseType: 'blob' })
+        .then(({ data }) => new Promise(resolve => {
           const reader = new FileReader()
           reader.onload = function () { resolve(this.result) }
-          reader.readAsDataURL(blob)
+          reader.readAsDataURL(data)
         }))
     }
     const dataUri = await urlContentToDataUri(app.currentVersion.iconUri)
     const base64Icon = dataUri.split(',')[1]
     const manifestText = `Filetype: Flipper Application Installation Manifest\r\nVersion: 1\r\nFull Name: ${app.currentVersion.name}\r\nIcon: ${base64Icon}\r\nVersion Build API: ${info.value.firmware.api.major}.${info.value.firmware.api.minor}\r\nUID: ${app.id}\r\nVersion UID: ${app.currentVersion.id}\r\nPath: ${paths.appDir}/${app.alias}.fap`
     const manifestFile = new TextEncoder().encode(manifestText)
-    action.value.progress = 0.45
+    app.action.progress = 0.45
+    if (app.action.type === 'update') {
+      batch.value.progress = 0.45
+    }
     await asyncSleep(300)
 
     // upload manifest to temp
@@ -295,7 +432,10 @@ export const useAppsStore = defineStore('apps', () => {
         })
       })
       .catch(error => rpcErrorHandler(componentName, error, 'storageWrite'))
-    action.value.progress = 0.5
+    app.action.progress = 0.5
+    if (app.action.type === 'update') {
+      batch.value.progress = 0.5
+    }
     await asyncSleep(300)
 
     // upload fap to temp
@@ -307,7 +447,10 @@ export const useAppsStore = defineStore('apps', () => {
         })
       })
       .catch(error => rpcErrorHandler(componentName, error, 'storageWrite'))
-    action.value.progress = 0.75
+    app.action.progress = 0.75
+    if (app.action.type === 'update') {
+      batch.value.progress = 0.75
+    }
     await asyncSleep(300)
 
     // move manifest and fap
@@ -333,7 +476,10 @@ export const useAppsStore = defineStore('apps', () => {
         })
       })
       .catch(error => rpcErrorHandler(componentName, error, 'storageRename'))
-    action.value.progress = 0.8
+    app.action.progress = 0.8
+    if (app.action.type === 'update') {
+      batch.value.progress = 0.8
+    }
     await asyncSleep(300)
 
     dirList = await flipper.value.RPC('storageList', { path: paths.appDir })
@@ -358,14 +504,20 @@ export const useAppsStore = defineStore('apps', () => {
         })
       })
       .catch(error => rpcErrorHandler(componentName, error, 'storageRename'))
-    action.value.progress = 1
+    app.action.progress = 1
+    if (app.action.type === 'update') {
+      batch.value.progress = 1
+    }
     await asyncSleep(300)
 
     // post-install
-    await updateInstalledApps()
+    await getInstalledApps()
 
-    action.value.type = ''
-    action.value.progress = 0
+    app.action.type = ''
+    app.action.progress = 0
+    if (app.action.type === 'update') {
+      batch.value.progress = 0
+    }
   }
 
   const deleteApp = async (app) => {
@@ -396,7 +548,7 @@ export const useAppsStore = defineStore('apps', () => {
         })
         .catch(error => rpcErrorHandler(componentName, error, 'storageRemove'))
     }
-    action.value.progress = 0.5
+    app.action.progress = 0.5
 
     // remove manifest
     dirList = await flipper.value.RPC('storageList', { path: paths.manifestDir })
@@ -412,13 +564,13 @@ export const useAppsStore = defineStore('apps', () => {
         })
         .catch(error => rpcErrorHandler(componentName, error, 'storageRemove'))
     }
-    action.value.progress = 1
+    app.action.progress = 1
 
     // post-delete
-    await updateInstalledApps()
+    await getInstalledApps()
 
-    action.value.type = ''
-    action.value.progress = 0
+    app.action.type = ''
+    app.action.progress = 0
   }
 
   const currentApp = ref(null)
@@ -430,10 +582,92 @@ export const useAppsStore = defineStore('apps', () => {
   const setApps = (newApps) => {
     apps.value = newApps
   }
+  const onClearAppsList = () => {
+    apps.value = []
+  }
+  const defaultParamsAppsShort = {
+    limit: 48,
+    is_latest_release_version: true
+  }
+  const getAppsShort = async (options = {}) => {
+    flags.value.loadingInitial = true
 
-  const installedApps = ref([])
-  const setInstalledApps = (newInstalledApps) => {
-    installedApps.value = newInstalledApps
+    const params = {
+      ...defaultParamsAppsShort,
+      ...options
+    }
+
+    if (initialCategory.value) {
+      params.category_id = initialCategory.value.id
+    }
+
+    if (flipperReady.value) {
+      params.api = api.value
+      params.target = target.value
+      delete params.is_latest_release_version
+    }
+
+    let newApps = []
+    if (!flags.value.fetchEnd) {
+      await fetchAppsShort(params).then((res) => {
+        if (!res) {
+          flags.value.fetchEnd = true
+          return
+        }
+        newApps = res
+
+        if (!newApps.length) {
+          flags.value.fetchEnd = true
+        } else {
+          if (params.offset === 0) {
+            setApps(newApps)
+          } else {
+            setApps(apps.value.concat(newApps))
+          }
+        }
+
+        updateInstalledApps(newApps)
+
+        if (newApps.length < params.limit) {
+          flags.value.fetchEnd = true
+        }
+
+        flags.value.loadingInitial = false
+      })
+    } else {
+      flags.value.loadingInitial = false
+    }
+  }
+
+  const initialCategory = ref(null)
+  const setInitalCategory = (category) => {
+    initialCategory.value = category
+  }
+  const getCategories = async () => {
+    flags.value.loadingCategories = true
+
+    const categoryParams = {
+      limit: 500
+    }
+
+    if (flipperReady.value) {
+      categoryParams.api = api.value
+      categoryParams.target = target.value
+    }
+
+    setCategories(await fetchCategories(categoryParams))
+
+    const path = route.params.path
+    if (path) {
+      const normalize = (string) => string.toLowerCase().replaceAll(' ', '-')
+
+      const category = categories.value.find(e => normalize(e.name) === normalize(path))
+      if (category) {
+        setInitalCategory(category)
+      }
+    }
+
+    flags.value.loadingCategories = false
   }
 
   const categories = ref([])
@@ -463,8 +697,10 @@ export const useAppsStore = defineStore('apps', () => {
     flags,
     flipperReady,
 
-    action,
+    actionColors,
     handleAction,
+    onAction,
+    actionButton,
 
     batch,
     batchUpdate,
@@ -472,15 +708,11 @@ export const useAppsStore = defineStore('apps', () => {
     sdk,
     setPropertySdk,
 
-    initialCategory,
-    setInitalCategory,
-
-    loadingInstalledApps,
-    toggleLoadingInstalledApps,
+    installedApps,
+    setInstalledApps,
+    onClearInstalledAppsList,
     getInstalledApps,
     updateInstalledApps,
-
-    actionButton,
 
     openApp,
     installApp,
@@ -492,12 +724,16 @@ export const useAppsStore = defineStore('apps', () => {
 
     apps,
     setApps,
+    onClearAppsList,
+    defaultParamsAppsShort,
+    getAppsShort,
 
-    installedApps,
-    setInstalledApps,
+    initialCategory,
+    setInitalCategory,
 
     categories,
     setCategory,
-    setCategories
+    setCategories,
+    getCategories
   }
 })
