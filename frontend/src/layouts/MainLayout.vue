@@ -571,7 +571,7 @@ const toggleCatalogChannel = () => {
 const checkConnectionRequirement = (path) => {
   mainStore.toggleFlag('connectionRequired', true)
   for (const link of canLoadWithoutFlipper) {
-    if ((path && path.includes(link)) || location.pathname.includes(link)) {
+    if ((path && path.includes(link)) || route.path.includes(link)) {
       mainStore.toggleFlag('connectionRequired', false)
       break
     }
