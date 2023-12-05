@@ -137,8 +137,15 @@ async function fetchPostAppsShort (params) {
     }))
 }
 
+let controller = null
 async function fetchAppsShort (params) {
-  return await api.get('/0/application', { params }).then(({ data }) => {
+  if (controller) controller.abort()
+  controller = new AbortController()
+
+  return await api.get('/0/application', {
+    params,
+    signal: controller.signal
+  }).then(({ data }) => {
     return data.map((app) => {
       app.action = defaultAction
       return camelCaseDeep(app)

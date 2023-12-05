@@ -610,7 +610,12 @@ export const useAppsStore = defineStore('apps', () => {
     let newApps = []
     if (!flags.value.fetchEnd) {
       await fetchAppsShort(params).then((res) => {
+        if (!res) {
+          flags.value.fetchEnd = true
+          return
+        }
         newApps = res
+
         if (!newApps.length) {
           flags.value.fetchEnd = true
         } else {
@@ -623,10 +628,9 @@ export const useAppsStore = defineStore('apps', () => {
 
         updateInstalledApps(newApps)
 
-        // FIXME: Bring me back when they fix the request
-        // if (newApps.length < params.limit) {
-        //   flags.value.fetchEnd = true
-        // }
+        if (newApps.length < params.limit) {
+          flags.value.fetchEnd = true
+        }
 
         flags.value.loadingInitial = false
       })
