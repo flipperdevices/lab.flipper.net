@@ -102,6 +102,7 @@ async function createWindow () {
     height: 600,
     useContentSize: true,
     sandbox: false,
+    show: false,
     webPreferences: {
       contextIsolation: true,
       preload: path.resolve(__dirname, process.env.QUASAR_ELECTRON_PRELOAD)
@@ -117,6 +118,10 @@ async function createWindow () {
       mainWindow.webContents.closeDevTools()
     })
   }
+
+  mainWindow.once('ready-to-show', () => {
+    mainWindow.showInactive()
+  })
 
   mainWindow.on('closed', () => {
     mainWindow = null
