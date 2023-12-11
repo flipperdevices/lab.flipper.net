@@ -79,17 +79,18 @@
           once
           transition="scale"
         >
-          <div
-            class="flex no-wrap items-center q-my-md"
+          <q-card
+            flat
+            class="row no-wrap items-center q-my-md"
             :class="app.action.type === 'delete' ? 'disabled' : ''"
           >
-            <div class="flex no-wrap items-center cursor-pointer" @click="appClicked(app)">
+            <div class="flex no-wrap items-center cursor-pointer col-8" @click="appClicked(app)">
               <div class="app-icon q-mr-md">
                 <q-img :src="app.currentVersion.iconUri" style="image-rendering: pixelated; width: 38px"/>
               </div>
-              <div class="col-10">
+              <div>
                 <div class="text-h6" style="line-height: 1.5em; margin-bottom: 0.25rem;">{{ app.currentVersion.name }}</div>
-                <div class="text-grey-7" style="margin-right: 80px;">{{ app.currentVersion.shortDescription }}</div>
+                <div class="text-grey-7">{{ app.currentVersion.shortDescription }}</div>
               </div>
             </div>
 
@@ -137,7 +138,7 @@
               class="q-ml-md"
               @click="appToDelete = app; flags.deleteConfirmationDialog = true"
             />
-          </div>
+          </q-card>
         </q-intersection>
 
         <q-separator v-if="updatableApps.length && upToDateApps.length" class="q-my-lg" />
@@ -148,17 +149,18 @@
           once
           transition="scale"
         >
-          <div
-            class="flex no-wrap items-center q-my-md"
+          <q-card
+            flat
+            class="row no-wrap items-center q-my-md"
             :class="app.action.type === 'delete' ? 'disabled' : ''"
           >
-            <div class="flex no-wrap items-center cursor-pointer" @click="appClicked(app)">
+            <div class="flex no-wrap items-center cursor-pointer col-8" @click="appClicked(app)">
               <div class="app-icon q-mr-md">
                 <q-img :src="app.installedVersion.iconUri" style="image-rendering: pixelated; width: 38px"/>
               </div>
-              <div class="col-10">
+              <div>
                 <div class="text-h6" style="line-height: 1.5em; margin-bottom: 0.25rem;">{{ app.installedVersion.name }}</div>
-                <div class="text-grey-7" style="margin-right: 80px;">{{ app.installedVersion.shortDescription }}</div>
+                <div class="text-grey-7">{{ app.installedVersion.shortDescription }}</div>
               </div>
             </div>
 
@@ -205,7 +207,7 @@
               class="q-ml-md"
               @click="appToDelete = app; flags.deleteConfirmationDialog = true"
             />
-          </div>
+          </q-card>
         </q-intersection>
 
         <q-intersection
@@ -214,15 +216,16 @@
           once
           transition="scale"
         >
-          <div
-            class="flex no-wrap items-center q-my-md"
+          <q-card
+            flat
+            class="row no-wrap items-center q-my-md"
             :class="app.action?.type === 'delete' ? 'disabled' : ''"
           >
-            <div class="flex no-wrap items-center cursor-pointer" @click="$router.push(`/apps/${app.id}`)">
+            <div class="flex no-wrap items-center cursor-pointer col-8" @click="$router.push(`/apps/${app.id}`)">
               <div class="app-icon q-mr-md">
                 <q-img :src="`data:image/png;base64,${app.icon}`" style="image-rendering: pixelated; width: 38px"/>
               </div>
-              <div class="col-10">
+              <div>
                 <div class="flex justify-start items-center">
                   <div class="text-h6 q-mr-sm" style="line-height: 1.5em; margin-bottom: 0.25rem;">{{ app.name }}</div>
                   <q-chip color="deep-orange-2" icon="mdi-alert-circle-outline" label="Outdated app" size="12px" dense class="q-px-sm"/>
@@ -274,7 +277,7 @@
               class="q-ml-md"
               @click="appToDelete = app; flags.deleteConfirmationDialog = true"
             />
-          </div>
+          </q-card>
         </q-intersection>
       </div>
 
