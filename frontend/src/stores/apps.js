@@ -179,156 +179,160 @@ export const useAppsStore = defineStore('apps', () => {
     if (!installedApps.value.length) {
       flags.value.loadingInstalledApps = true
     }
-    let installed = []
-    if (flipperReady.value) {
-      const manifestsList = await flipper.value.RPC('storageList', { path: '/ext/apps_manifests' })
-        .catch(error => rpcErrorHandler(componentName, error, 'storageList'))
-      const decoder = new TextDecoder()
-      for await (const file of manifestsList) {
-        const manifestFile = await flipper.value.RPC('storageRead', { path: `/ext/apps_manifests/${file.name}` })
-          .catch(error => rpcErrorHandler(componentName, error, 'storageRead'))
-        const manifest = decoder.decode(manifestFile)
-        const app = {
-          id: '',
-          name: '',
-          icon: '',
-          installedVersion: {
+    try {
+      let installed = []
+      if (flipperReady.value) {
+        const manifestsList = await flipper.value.RPC('storageList', { path: '/ext/apps_manifests' })
+          .catch(error => rpcErrorHandler(componentName, error, 'storageList'))
+        const decoder = new TextDecoder()
+        for await (const file of manifestsList) {
+          const manifestFile = await flipper.value.RPC('storageRead', { path: `/ext/apps_manifests/${file.name}` })
+            .catch(error => rpcErrorHandler(componentName, error, 'storageRead'))
+          const manifest = decoder.decode(manifestFile)
+          const app = {
             id: '',
-            api: ''
-          },
-          path: ''
+            name: '',
+            icon: '',
+            installedVersion: {
+              id: '',
+              api: ''
+            },
+            path: ''
+          }
+          for await (const line of manifest.replaceAll('\r', '').split('\n')) {
+            const key = line.slice(0, line.indexOf(': '))
+            const value = line.slice(line.indexOf(': ') + 2)
+            switch (key) {
+              case 'UID':
+                app.id = value
+                break
+              case 'Full Name':
+                app.name = value
+                break
+              case 'Icon':
+                app.icon = value
+                break
+              case 'Version UID':
+                app.installedVersion.id = value
+                break
+              case 'Version Build API':
+                app.installedVersion.api = value
+                break
+              case 'Path':
+                app.path = value
+                break
+            }
+          }
+          installed.push(app)
         }
-        for await (const line of manifest.replaceAll('\r', '').split('\n')) {
-          const key = line.slice(0, line.indexOf(': '))
-          const value = line.slice(line.indexOf(': ') + 2)
-          switch (key) {
-            case 'UID':
-              app.id = value
-              break
-            case 'Full Name':
-              app.name = value
-              break
-            case 'Icon':
-              app.icon = value
-              break
-            case 'Version UID':
-              app.installedVersion.id = value
-              break
-            case 'Version Build API':
-              app.installedVersion.api = value
-              break
-            case 'Path':
-              app.path = value
-              break
+      }
+
+      const versions = await fetchAppsVersions(installed.map(app => app.installedVersion.id))
+      for (const version of versions) {
+        const app = installed.find(app => app.id === version.applicationId)
+        if (app) {
+          app.installedVersion = { ...app.installedVersion, ...version }
+        }
+      }
+
+      const params = {
+        limit: 500,
+        is_latest_release_version: true
+      }
+
+      if (flipperReady.value) {
+        params.api = api.value
+        params.target = target.value
+        delete params.is_latest_release_version
+      }
+
+      // NOTE: Actual — latest compatible
+      let actualApps = []
+      do {
+        actualApps = await fetchPostAppsShort({
+          ...params,
+          applications: installed.map(app => app.id)
+        })
+      } while (actualApps.length === params.limit)
+
+      // HACK: Bind the past action state to the new list
+      installed = installed.map(installedApp => {
+        const lastInstalledApp = installedApps.value.find(actualApp => actualApp.id === installedApp.id)
+
+        if (lastInstalledApp) {
+          installedApp.action = lastInstalledApp.action
+        }
+
+        return installedApp
+      })
+
+      const updatableApps = installed.filter(installedApp => {
+        const app = actualApps.find(actualApp => actualApp.id === installedApp.id)
+
+        if (app) {
+          if (!installedApp.action) {
+            installedApp.action = app.action
+          }
+          installedApp.categoryId = app.categoryId
+          installedApp.currentVersion = app.currentVersion
+          installedApp.alias = app.alias
+
+          if (sdk.value.api && installedApp.installedVersion.api !== sdk.value.api) {
+            installedApp.updatable = true
+            return true
+          }
+          if (app.currentVersion.id !== installedApp.installedVersion.id) {
+            installedApp.updatable = true
+            return true
           }
         }
-        installed.push(app)
-      }
-    }
-
-    const versions = await fetchAppsVersions(installed.map(app => app.installedVersion.id))
-    for (const version of versions) {
-      const app = installed.find(app => app.id === version.applicationId)
-      if (app) {
-        app.installedVersion = { ...app.installedVersion, ...version }
-      }
-    }
-
-    const params = {
-      limit: 500,
-      is_latest_release_version: true
-    }
-
-    if (flipperReady.value) {
-      params.api = api.value
-      params.target = target.value
-      delete params.is_latest_release_version
-    }
-
-    // NOTE: Actual — latest compatible
-    let actualApps = []
-    do {
-      actualApps = await fetchPostAppsShort({
-        ...params,
-        applications: installed.map(app => app.id)
+        installedApp.updatable = false
+        return false
       })
-    } while (actualApps.length === params.limit)
 
-    // HACK: Bind the past action state to the new list
-    installed = installed.map(installedApp => {
-      const lastInstalledApp = installedApps.value.find(actualApp => actualApp.id === installedApp.id)
+      flags.value.updatabledAppsCount = updatableApps.length
 
-      if (lastInstalledApp) {
-        installedApp.action = lastInstalledApp.action
-      }
+      const upToDateApps = installed.filter(installedApp => {
+        const app = actualApps.find(actualApp => actualApp.id === installedApp.id)
 
-      return installedApp
-    })
+        if (app) {
+          if (sdk.value.api && installedApp.installedVersion.api !== sdk.value.api) {
+            installedApp.isInstalled = false
+            return false
+          }
 
-    const updatableApps = installed.filter(installedApp => {
-      const app = actualApps.find(actualApp => actualApp.id === installedApp.id)
+          if (app.currentVersion.id === installedApp.installedVersion.id && app.currentVersion.status === 'READY') {
+            installedApp.isInstalled = true
+            return true
+          }
+        }
+        installedApp.isInstalled = false
+        return false
+      })
 
-      if (app) {
+      const unsupportedApps = installed.filter(installedApp => {
         if (!installedApp.action) {
-          installedApp.action = app.action
+          installedApp.action = {
+            type: '',
+            progress: 0,
+            id: installedApp.id
+          }
         }
-        installedApp.categoryId = app.categoryId
-        installedApp.currentVersion = app.currentVersion
-        installedApp.alias = app.alias
-
-        if (sdk.value.api && installedApp.installedVersion.api !== sdk.value.api) {
-          installedApp.updatable = true
+        if (!actualApps.find(app => app.id === installedApp.id)) {
+          installedApp.unsupported = true
           return true
         }
-        if (app.currentVersion.id !== installedApp.installedVersion.id) {
-          installedApp.updatable = true
-          return true
-        }
-      }
-      installedApp.updatable = false
-      return false
-    })
+        installedApp.unsupported = false
+        return false
+      })
 
-    flags.value.updatabledAppsCount = updatableApps.length
+      setInstalledApps([...updatableApps, ...upToDateApps, ...unsupportedApps])
 
-    const upToDateApps = installed.filter(installedApp => {
-      const app = actualApps.find(actualApp => actualApp.id === installedApp.id)
-
-      if (app) {
-        if (sdk.value.api && installedApp.installedVersion.api !== sdk.value.api) {
-          installedApp.isInstalled = false
-          return false
-        }
-
-        if (app.currentVersion.id === installedApp.installedVersion.id && app.currentVersion.status === 'READY') {
-          installedApp.isInstalled = true
-          return true
-        }
-      }
-      installedApp.isInstalled = false
-      return false
-    })
-
-    const unsupportedApps = installed.filter(installedApp => {
-      if (!installedApp.action) {
-        installedApp.action = {
-          type: '',
-          progress: 0,
-          id: installedApp.id
-        }
-      }
-      if (!actualApps.find(app => app.id === installedApp.id)) {
-        installedApp.unsupported = true
-        return true
-      }
-      installedApp.unsupported = false
-      return false
-    })
-
-    setInstalledApps([...updatableApps, ...upToDateApps, ...unsupportedApps])
-
-    updateInstalledApps()
-    flags.value.loadingInstalledApps = false
+      updateInstalledApps()
+      flags.value.loadingInstalledApps = false
+    } catch {
+      flags.value.loadingInstalledApps = false
+    }
   }
   const updateInstalledApps = (newApps) => {
     if (!newApps) {
