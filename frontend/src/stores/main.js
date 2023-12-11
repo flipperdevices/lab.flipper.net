@@ -1,12 +1,12 @@
 import { ref } from 'vue'
-import Flipper from 'src/flipper-js/flipper'
 import { defineStore } from 'pinia'
 import useSetProperty from 'composables/useSetProperty'
 import { log } from 'composables/useLog'
 import { rpcErrorHandler } from 'composables/useRpcUtils'
 import { useRouter } from 'vue-router'
-import { Platform } from 'quasar'
 import asyncSleep from 'simple-async-sleep'
+import { Platform } from 'quasar'
+const Flipper = await import(`src/flipper-js/${Platform.is.electron ? 'flipperElectron' : 'flipper'}`).then(m => m.default)
 
 export const useMainStore = defineStore('main', () => {
   const router = useRouter()
@@ -39,10 +39,14 @@ export const useMainStore = defineStore('main', () => {
 
   const connectionStatus = ref('Ready to connect')
   const findKnownDevices = () => {
-    const filters = [
-      { usbVendorId: 0x0483, usbProductId: 0x5740 }
-    ]
-    return navigator.serial.getPorts({ filters })
+    if (!flags.value.isElectron) {
+      const filters = [
+        { usbVendorId: 0x0483, usbProductId: 0x5740 }
+      ]
+      return navigator.serial.getPorts({ filters })
+    } else {
+      return window.serial.list()
+    }
   }
   const connect = async () => {
     await flipper.value.connect()
@@ -74,10 +78,12 @@ export const useMainStore = defineStore('main', () => {
       })
   }
   const selectPort = async () => {
-    const filters = [
-      { usbVendorId: 0x0483, usbProductId: 0x5740 }
-    ]
-    await navigator.serial.requestPort({ filters })
+    if (!flags.value.isElectron) {
+      const filters = [
+        { usbVendorId: 0x0483, usbProductId: 0x5740 }
+      ]
+      await navigator.serial.requestPort({ filters })
+    }
     return start(true)
   }
   const startRpc = async () => {

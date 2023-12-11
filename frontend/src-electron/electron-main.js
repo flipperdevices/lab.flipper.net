@@ -1,6 +1,7 @@
 import { app, BrowserWindow, nativeTheme, utilityProcess, ipcMain } from 'electron'
 import path from 'path'
 import os from 'os'
+import { SerialPort } from 'serialport'
 
 const qFlipper = {
   spawn (event, args) {
@@ -9,6 +10,106 @@ const qFlipper = {
       const cliProcess = utilityProcess.fork(path.resolve(__dirname, 'extraResources/qflipper/cli/process.js'))
       cliProcess.postMessage({ args })
       cliProcess.on('message', data => webContents.send('qFlipper:log', data))
+    } catch (error) {
+      console.error(error)
+    }
+  }
+}
+
+const ports = []
+const serial = {
+  async list (event, filter) {
+    try {
+      const ports = await SerialPort.list()
+      return ports.filter(e => {
+        for (const [key, value] of Object.entries(filter)) {
+          if (e[key] !== value) {
+            return false
+          }
+        }
+        return true
+      })
+    } catch (error) {
+      console.error(error)
+    }
+  },
+  open (event, path) {
+    try {
+      return new Promise((resolve, reject) => {
+        const existingPort = ports.find(e => e.path === path)
+        const port = existingPort || new SerialPort({ path, baudRate: 1, autoOpen: false, endOnClose: true })
+        port.open()
+
+        port.handlers = {
+          onOpen: () => {
+            if (!existingPort) {
+              ports.push(port)
+            }
+            resolve(port.readable)
+          },
+          onData: data => {
+            const webContents = event.sender
+            webContents.send('serial:data', data)
+          },
+          onError: error => {
+            reject(error.message)
+          }
+        }
+        port.on('open', port.handlers.onOpen)
+        port.on('data', port.handlers.onData)
+        port.on('error', port.handlers.onError)
+      })
+    } catch (error) {
+      console.error(error)
+    }
+  },
+  close (event, path) {
+    try {
+      return new Promise((resolve, reject) => {
+        const port = ports.find(e => e.path === path)
+        port.flush()
+        if (!port) {
+          reject('Port not found')
+        }
+        port.removeAllListeners()
+        port.close(error => {
+          if (error) {
+            reject(error.message)
+          }
+          resolve(true)
+        })
+      })
+    } catch (error) {
+      console.error(error)
+    }
+  },
+  write (event, { path, message }) {
+    try {
+      return new Promise((resolve, reject) => {
+        const port = ports.find(e => e.path === path)
+        if (!port) {
+          reject('Port not found')
+        }
+        port.write(message, error => {
+          if (error) {
+            reject(error.message)
+          }
+          resolve(true)
+        })
+      })
+    } catch (error) {
+      console.error(error)
+    }
+  },
+  isOpen (event, path) {
+    try {
+      return new Promise((resolve, reject) => {
+        const port = ports.find(e => e.path === path)
+        if (!port) {
+          reject('Port not found')
+        }
+        resolve(port.isOpen)
+      })
     } catch (error) {
       console.error(error)
     }
@@ -61,7 +162,7 @@ async function createWindow () {
     mainWindow = null
   })
 
-  mainWindow.webContents.session.setPermissionCheckHandler((webContents, permission, requestingOrigin, details) => {
+  /* mainWindow.webContents.session.setPermissionCheckHandler((webContents, permission, requestingOrigin, details) => {
     if (permission === 'serial') {
       return true
     }
@@ -89,12 +190,17 @@ async function createWindow () {
     } else {
       callback(selectedPort.portId)
     }
-  })
+  }) */
 }
 
 app.whenReady()
   .then(() => {
     ipcMain.on('qFlipper:spawn', qFlipper.spawn)
+    ipcMain.handle('serial:list', serial.list)
+    ipcMain.handle('serial:open', serial.open)
+    ipcMain.handle('serial:close', serial.close)
+    ipcMain.handle('serial:write', serial.write)
+    ipcMain.handle('serial:isOpen', serial.isOpen)
     createWindow()
   })
 

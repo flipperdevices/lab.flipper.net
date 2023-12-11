@@ -1,58 +1,22 @@
-// const { contextBridge, utilityProcess } = require('electron')
 import { contextBridge, ipcRenderer } from 'electron'
 
 contextBridge.exposeInMainWorld('qFlipper', {
-  spawn: (args) => ipcRenderer.send('qFlipper:spawn', args),
-  onLog: (callback) => ipcRenderer.on('qFlipper:log', (_event, value) => callback(value))
+  spawn: args => ipcRenderer.send('qFlipper:spawn', args),
+  onLog: callback => ipcRenderer.on('qFlipper:log', (_event, value) => callback(value))
 })
-/* const { SerialPort } = require('serialport')
 
-let port
-
-contextBridge.exposeInMainWorld('bridge', {
-  getPorts: async () => {
-    const ports = await SerialPort.list()
-    return ports.filter(e => e.manufacturer === 'Flipper Devices Inc.')
+contextBridge.exposeInMainWorld('serial', {
+  list: (filter = { manufacturer: 'Flipper Devices Inc.' }) => ipcRenderer.invoke('serial:list', filter),
+  open: path => ipcRenderer.invoke('serial:open', path),
+  close: path => {
+    ipcRenderer.removeAllListeners()
+    return ipcRenderer.invoke('serial:close', path)
   },
-  createPort: (path) => {
-    port = new SerialPort({ path, baudRate: 1, autoOpen: false })
-    port.on('readable', () => {
-      const buffer = port.read()
-      window.postMessage({
-        type: 'read',
-        buffer
-      }, '*')
-    })
-    port.on('error', error => {
-      window.postMessage({
-        type: 'error',
-        error
-      }, '*')
+  onData: callback => {
+    return ipcRenderer.on('serial:data', (_event, value) => {
+      callback(value)
     })
   },
-  connect: () => {
-    return new Promise((resolve, reject) => {
-      port.open(error => {
-        if (error) {
-          reject(error)
-        }
-        console.log('port opened')
-        resolve()
-      })
-    })
-  },
-  disconnect: () => {
-    return new Promise((resolve, reject) => {
-      port.close(error => {
-        if (error) {
-          reject(error)
-        }
-        console.log('port closed')
-        resolve()
-      })
-    })
-  },
-  write: (data) => {
-    port.write(data)
-  }
-}) */
+  write: ({ path, message }) => ipcRenderer.invoke('serial:write', { path, message }),
+  isOpen: path => ipcRenderer.invoke('serial:isOpen', path)
+})
