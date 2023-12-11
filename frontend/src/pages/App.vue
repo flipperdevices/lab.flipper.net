@@ -85,6 +85,7 @@
             :label="app.actionButton.text"
             class="no-shadow text-pixelated"
             :loading="mainFlags.connected && appsFlags.loadingInstalledApps"
+            :disable="app.actionButton?.disabled || false"
             :class="mainFlags.connected && appsFlags.loadingInstalledApps ? 'bg-primary' : (app.actionButton.class + ' ' + ($q.screen.width > 670 ? 'q-mr-md' : 'q-my-md full-width'))"
             @click="appsStore.onAction(app, app.actionButton.text)"
           />
