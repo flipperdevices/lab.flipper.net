@@ -189,6 +189,7 @@ async function fetchAppFap (params) {
 
 async function fetchAppsVersions (uids) {
   const allVersions = []
+  uids = uids.filter(u => u)
 
   if (uids) {
     const size = 100
