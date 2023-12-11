@@ -1,6 +1,7 @@
 import semver from 'semver'
 import { axios, api } from 'boot/axios'
 import { camelCaseDeep, unpack } from 'util/util'
+import { Notify } from 'quasar'
 
 const defaultAction = {
   type: '',
@@ -163,6 +164,15 @@ async function fetchAppById (id, params) {
   return await api.get(`/application/${id}`, { params }).then(({ data }) => {
     data.action = defaultAction
     return camelCaseDeep(data)
+  }).catch((err) => {
+    const data = err.response.data
+
+    Notify.create({
+      type: 'negative',
+      message: data.detail.details
+    })
+
+    return data
   })
 }
 
