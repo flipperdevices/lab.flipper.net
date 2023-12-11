@@ -13,14 +13,15 @@
         <div :class="$q.screen.width > 350 ? 'q-mr-md' : ''">
           <div class="text-h6" style="line-height: 1.5em; margin-bottom: 0.25rem;">{{ app.currentVersion.name }}</div>
           <div class="row q-gutter-md">
-            <div
-              :style="`background-color: #${category.color};`"
+            <router-link
+              :to="{ name: 'AppsCategory', params: { path: category.name.toLowerCase() }}"
+              :style="`background-color: #${category.color}; text-decoration: none;`"
               style="border-radius: 20px; padding: 4px 13px; width: fit-content;"
-              class="row no-wrap items-center q-py-xs q-px-md"
+              class="row no-wrap items-center q-py-xs q-px-md cursor-pointer text-black"
             >
               <q-icon v-if="category.iconUri" :name="`img:${category.iconUri}`" size="14px" class="q-my-xs q-mr-sm"/>
               <span style="white-space: nowrap;">{{ category.name }}</span>
-            </div>
+            </router-link>
             <div class="flex items-center q-ml-md">
               <span class="text-grey-7">Version:</span>
               <b class="q-ml-xs">{{ app.currentVersion.version }}</b>
