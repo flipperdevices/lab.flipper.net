@@ -154,12 +154,12 @@
         ></q-markdown>
         <div class="text-h6 q-my-sm">Developer</div>
         <p>
-          <a class="text-grey-7" :href="app.currentVersion.links.manifestUri" style="text-decoration: none;">
+          <a class="text-grey-7" :href="app.currentVersion.links.manifestUri" target="_blank" style="text-decoration: none;">
             <q-icon name="mdi-github" color="grey-7" size="20px"/>
             <span class="q-ml-xs" style="text-decoration: underline;">Manifest</span>
           </a>
           <br />
-          <a class="text-grey-7" :href="app.currentVersion.links.sourceCode.uri" style="text-decoration: none;">
+          <a class="text-grey-7" :href="app.currentVersion.links.sourceCode.uri" target="_blank" style="text-decoration: none;">
             <q-icon name="mdi-github" color="grey-7" size="20px"/>
             <span class="q-ml-xs" style="text-decoration: underline;">Repository</span>
           </a>
@@ -276,6 +276,7 @@
               label="View on Github"
               v-close-popup
               :href="app.currentVersion.links.manifestUri"
+              target="_blank"
             ></q-btn>
           </q-card-section>
         </q-card>

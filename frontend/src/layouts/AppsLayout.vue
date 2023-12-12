@@ -64,6 +64,7 @@
               label="Contribute"
               :stack="$q.screen.width <= 365"
               href="https://github.com/flipperdevices/flipper-application-catalog"
+              target="_blank"
             />
           </div>
         </div>
@@ -127,6 +128,7 @@
               color="primary"
               label="View on GitHub"
               :href="currentApp.currentVersion.links.manifestUri"
+              target="_blank"
             ></q-btn>
           </q-card-section>
         </q-card>
@@ -168,6 +170,7 @@
               color="primary"
               label="Download app"
               href="https://flpr.app"
+              target="_blank"
             ></q-btn>
           </q-card-section>
         </q-card>
