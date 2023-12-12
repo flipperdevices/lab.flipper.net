@@ -151,6 +151,13 @@ async function fetchAppsShort (params) {
       app.action = defaultAction
       return camelCaseDeep(app)
     })
+  }).catch((error) => {
+    if (error.code !== 'ERR_CANCELED') {
+      const data = error.response.data.detail
+      if (data.code >= 400) {
+        throw new Error('Failed to fetch resources (' + data.code + ')')
+      }
+    }
   })
 }
 
