@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { Platform } from 'quasar'
 import { useRoute, useRouter } from 'vue-router'
 import { fetchAppsVersions, fetchAppFap, fetchPostAppsShort, fetchAppsShort, fetchCategories } from 'util/fetch'
 import asyncSleep from 'simple-async-sleep'
@@ -67,6 +68,14 @@ export const useAppsStore = defineStore('apps', () => {
   }
   const onAction = (app, value) => {
     const actionType = value === 'Installed' ? '' : value.toLowerCase()
+    if (Platform.is.mobile) {
+      flags.value.mobileAppDialog = true
+      return
+    }
+    if (!('serial' in navigator)) {
+      mainStore.toggleFlag('serialUnsupportedDialog', true)
+      return
+    }
     if (!mainFlags.value.connected) {
       flags.value.connectFlipperDialog = true
       return

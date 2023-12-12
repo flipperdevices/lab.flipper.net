@@ -207,9 +207,6 @@ const componentName = 'Apps'
 
 onMounted(() => {
   start()
-  if ($q.platform.is.mobile) {
-    appsStore.toggleFlag('mobileAppDialog', true)
-  }
 })
 
 const startRpc = async () => {
