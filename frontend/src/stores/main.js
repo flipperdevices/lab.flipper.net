@@ -14,6 +14,7 @@ export const useMainStore = defineStore('main', () => {
   const flags = ref({
     isElectron: Platform.is.electron,
     serialSupported: true,
+    serialUnsupportedDialog: false,
     connectionRequired: true,
     portSelectRequired: false,
     connected: false,

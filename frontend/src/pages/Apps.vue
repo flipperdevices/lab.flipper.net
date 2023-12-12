@@ -41,7 +41,7 @@
       ref="infinityScrollRef"
       v-if="!flags.loadingCategories"
       @load="onLoad"
-      :offset="250"
+      :offset="500"
       class="full-width q-mt-sm"
     >
       <div class="apps">

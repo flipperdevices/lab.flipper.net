@@ -13,14 +13,15 @@
         <div :class="$q.screen.width > 350 ? 'q-mr-md' : ''">
           <div class="text-h6" style="line-height: 1.5em; margin-bottom: 0.25rem;">{{ app.currentVersion.name }}</div>
           <div class="row q-gutter-md">
-            <div
-              :style="`background-color: #${category.color};`"
+            <router-link
+              :to="{ name: 'AppsCategory', params: { path: category.name.toLowerCase() }}"
+              :style="`background-color: #${category.color}; text-decoration: none;`"
               style="border-radius: 20px; padding: 4px 13px; width: fit-content;"
-              class="row no-wrap items-center q-py-xs q-px-md"
+              class="row no-wrap items-center q-py-xs q-px-md cursor-pointer text-black"
             >
               <q-icon v-if="category.iconUri" :name="`img:${category.iconUri}`" size="14px" class="q-my-xs q-mr-sm"/>
               <span style="white-space: nowrap;">{{ category.name }}</span>
-            </div>
+            </router-link>
             <div class="flex items-center q-ml-md">
               <span class="text-grey-7">Version:</span>
               <b class="q-ml-xs">{{ app.currentVersion.version }}</b>
@@ -85,6 +86,7 @@
             :label="app.actionButton.text"
             class="no-shadow text-pixelated"
             :loading="mainFlags.connected && appsFlags.loadingInstalledApps"
+            :disable="app.actionButton?.disabled || false"
             :class="mainFlags.connected && appsFlags.loadingInstalledApps ? 'bg-primary' : (app.actionButton.class + ' ' + ($q.screen.width > 670 ? 'q-mr-md' : 'q-my-md full-width'))"
             @click="appsStore.onAction(app, app.actionButton.text)"
           />
@@ -152,12 +154,12 @@
         ></q-markdown>
         <div class="text-h6 q-my-sm">Developer</div>
         <p>
-          <a class="text-grey-7" :href="app.currentVersion.links.manifestUri" style="text-decoration: none;">
+          <a class="text-grey-7" :href="app.currentVersion.links.manifestUri" target="_blank" style="text-decoration: none;">
             <q-icon name="mdi-github" color="grey-7" size="20px"/>
             <span class="q-ml-xs" style="text-decoration: underline;">Manifest</span>
           </a>
           <br />
-          <a class="text-grey-7" :href="app.currentVersion.links.sourceCode.uri" style="text-decoration: none;">
+          <a class="text-grey-7" :href="app.currentVersion.links.sourceCode.uri" target="_blank" style="text-decoration: none;">
             <q-icon name="mdi-github" color="grey-7" size="20px"/>
             <span class="q-ml-xs" style="text-decoration: underline;">Repository</span>
           </a>
@@ -274,6 +276,7 @@
               label="View on Github"
               v-close-popup
               :href="app.currentVersion.links.manifestUri"
+              target="_blank"
             ></q-btn>
           </q-card-section>
         </q-card>

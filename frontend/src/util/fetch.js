@@ -1,6 +1,7 @@
 import semver from 'semver'
 import { axios, api } from 'boot/axios'
 import { camelCaseDeep, unpack } from 'util/util'
+import { Notify } from 'quasar'
 
 const defaultAction = {
   type: '',
@@ -150,6 +151,13 @@ async function fetchAppsShort (params) {
       app.action = defaultAction
       return camelCaseDeep(app)
     })
+  }).catch((error) => {
+    if (error.code !== 'ERR_CANCELED') {
+      const data = error.response.data.detail
+      if (data.code >= 400) {
+        throw new Error('Failed to fetch resources (' + data.code + ')')
+      }
+    }
   })
 }
 
@@ -163,6 +171,15 @@ async function fetchAppById (id, params) {
   return await api.get(`/application/${id}`, { params }).then(({ data }) => {
     data.action = defaultAction
     return camelCaseDeep(data)
+  }).catch((err) => {
+    const data = err.response.data
+
+    Notify.create({
+      type: 'negative',
+      message: data.detail.details
+    })
+
+    return data
   })
 }
 
@@ -189,6 +206,7 @@ async function fetchAppFap (params) {
 
 async function fetchAppsVersions (uids) {
   const allVersions = []
+  uids = uids.filter(u => u)
 
   if (uids) {
     const size = 100
