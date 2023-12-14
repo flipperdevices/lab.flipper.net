@@ -646,6 +646,9 @@ export const useAppsStore = defineStore('apps', () => {
         }
 
         flags.value.loadingInitial = false
+      }).catch(() => {
+        flags.value.loadingInitial = false
+        flags.value.fetchEnd = true
       })
     } else {
       flags.value.loadingInitial = false
