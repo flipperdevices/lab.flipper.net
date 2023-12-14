@@ -129,6 +129,15 @@
         </div>
       </template>
     </q-infinite-scroll>
+    <template v-if="!apps.length && !flags.loadingInitial">
+      <q-card flat>
+        <q-card-section class="q-pa-none q-ma-md" align="center">
+          <q-icon name="mdi-alert-circle" color="primary" size="64px" />
+          <div class="text-h6 q-my-sm">Not Compatible with your Firmware</div>
+          <p>To access this category, install the latest firmware version from <span class="text-positive">Release</span> Channel on your Flipper</p>
+        </q-card-section>
+      </q-card>
+    </template>
   </q-page>
 </template>
 

@@ -153,9 +153,8 @@ async function fetchAppsShort (params) {
     })
   }).catch((error) => {
     if (error.code !== 'ERR_CANCELED') {
-      const data = error.response.data.detail
-      if (data.code >= 400) {
-        throw new Error('Failed to fetch resources (' + data.code + ')')
+      if (error.response.status >= 400) {
+        throw new Error('Failed to fetch resources (' + error.response.status + ')')
       }
     }
   })
