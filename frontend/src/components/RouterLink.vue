@@ -8,9 +8,14 @@
     <q-item-section
       v-if="icon"
       avatar
-      style="min-width: initial;"
+      class="items-center"
     >
-      <q-icon :name="icon"/>
+      <q-avatar
+        size="sm"
+        square
+      >
+        <q-icon :name="icon" size="24px"/>
+      </q-avatar>
     </q-item-section>
 
     <q-item-section>

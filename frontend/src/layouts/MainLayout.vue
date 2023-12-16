@@ -80,17 +80,22 @@
             v-for="link in routes"
             :key="link.title"
             v-bind="link"
-            class="q-px-lg q-py-md"
+            class="q-pa-md"
           />
 
           <div :class="$q.screen.height > 545 ? 'absolute-bottom' : ''" style="width: 175px">
             <q-item
               clickable
-              class="q-px-lg q-py-md"
+              class="q-pa-md"
               @click="flags.settingsView = true"
             >
-              <q-item-section avatar style="min-width: initial;">
-                <q-icon name="svguse:common-icons.svg#settings"/>
+              <q-item-section avatar class="items-center">
+                <q-avatar
+                  size="sm"
+                  square
+                >
+                  <q-icon name="svguse:common-icons.svg#settings" size="24px"/>
+                </q-avatar>
               </q-item-section>
 
               <q-item-section>
@@ -104,8 +109,14 @@
               class="q-px-md q-py-sm"
               @click="flags.portSelectRequired ? selectPort() : start(true)"
             >
-              <q-item-section avatar style="min-width: initial; position: relative; right: -3px;">
-                <q-icon name="svguse:common-icons.svg#connect" size="32px"/>
+              <q-item-section avatar class="items-center">
+                <q-avatar
+                  size="md"
+                  square
+                >
+                  <q-icon name="svguse:common-icons.svg#connect" size="32px"/>
+                </q-avatar>
+
               </q-item-section>
 
               <q-item-section>
@@ -118,8 +129,14 @@
               class="q-px-md q-py-sm"
               @click="disconnect"
             >
-              <q-item-section avatar style="min-width: initial; position: relative; right: -3px;">
-                <q-icon name="svguse:common-icons.svg#connected" size="32px"/>
+              <q-item-section avatar class="items-center">
+                <q-avatar
+                  size="md"
+                  square
+                >
+                  <q-icon name="svguse:common-icons.svg#connected" size="32px"/>
+                </q-avatar>
+
               </q-item-section>
 
               <q-item-section>
@@ -132,8 +149,14 @@
               class="q-px-md q-py-sm"
               @click="flags.portSelectRequired ? selectPort() : start(true)"
             >
-              <q-item-section avatar style="min-width: initial; position: relative; right: -3px;">
-                <q-icon name="svguse:common-icons.svg#connect" size="32px"/>
+              <q-item-section avatar class="items-center">
+                <q-avatar
+                  size="md"
+                  square
+                >
+                  <q-icon name="svguse:common-icons.svg#connect" size="32px"/>
+                </q-avatar>
+
               </q-item-section>
 
               <q-item-section>
