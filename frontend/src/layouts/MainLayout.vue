@@ -547,8 +547,8 @@ const internalUsed = computed(() => {
   }
 })
 
-watch(route, (to) => {
-  checkConnectionRequirement(to.path)
+watch(route, () => {
+  checkConnectionRequirement()
 })
 
 const selectPort = async () => {
@@ -625,11 +625,10 @@ const toggleCatalogChannel = () => {
   location.reload()
 }
 
-const checkConnectionRequirement = (path) => {
+const checkConnectionRequirement = () => {
   mainStore.toggleFlag('connectionRequired', true)
-  for (const link of canLoadWithoutFlipper) {
-    if ((path && path.includes(link)) || route.path.includes(link)) {
-      mainStore.toggleFlag('connectionRequired', false)
+  if (route.meta?.canLoadWithoutFlipper) {
+    mainStore.toggleFlag('connectionRequired', false)
       break
     }
   }

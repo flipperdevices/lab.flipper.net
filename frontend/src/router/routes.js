@@ -22,7 +22,10 @@ const routes = [
           { name: 'AppsPath', path: ':path', component: () => import('pages/App.vue') }
         ]
       }
-    ]
+    ],
+    meta: {
+      canLoadWithoutFlipper: true
+    }
   },
   {
     path: '/archive',
@@ -50,7 +53,10 @@ const routes = [
     component: () => import('layouts/MainLayout.vue'),
     children: [
       { name: 'PulsePlotter', path: '', component: () => import('pages/Pulseplot.vue') }
-    ]
+    ],
+    meta: {
+      canLoadWithoutFlipper: true
+    }
   },
   {
     path: '/nfc-tools',
@@ -61,7 +67,10 @@ const routes = [
   },
   {
     path: '/:catchAll(.*)*',
-    component: () => import('pages/Error404.vue')
+    component: () => import('pages/Error404.vue'),
+    meta: {
+      canLoadWithoutFlipper: true
+    }
   }
 ]
 
