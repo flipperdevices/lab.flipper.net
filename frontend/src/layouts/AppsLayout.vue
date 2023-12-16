@@ -322,9 +322,15 @@ const start = async () => {
   await watchParams()
 }
 
-watch(flipperReady, () => {
+watch(flipperReady, (condition) => {
   appsStore.toggleFlag('connectFlipperDialog', false)
-  start()
+  if (condition) {
+    start()
+  }
+
+  if (!condition) {
+    appsStore.setInstalledApps([])
+  }
 })
 
 watch(route, async () => {
