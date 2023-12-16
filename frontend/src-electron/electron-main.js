@@ -33,6 +33,39 @@ const serial = {
       console.error(error)
     }
   },
+  getDeviceInfo (event, port) {
+    try {
+      const serialPort = new SerialPort({ path: port.path, baudRate: 1, autoOpen: false })
+      return new Promise((resolve, reject) => {
+        let result = ''
+        const decoder = new TextDecoder()
+
+        serialPort.open(error => {
+          if (error) {
+            reject(error)
+          }
+          serialPort.write('!\r', error => {
+            if (error) {
+              reject(error)
+            }
+            serialPort.on('readable', () => {
+              const buffer = serialPort.read()
+              result += decoder.decode(buffer)
+            })
+          })
+        })
+
+        setTimeout(() => {
+          try {
+            serialPort.close()
+          } catch {}
+          resolve(result)
+        }, 1000)
+      })
+    } catch (error) {
+      console.error(error)
+    }
+  },
   open (event, path) {
     try {
       return new Promise((resolve, reject) => {
@@ -197,6 +230,7 @@ app.whenReady()
   .then(() => {
     ipcMain.on('qFlipper:spawn', qFlipper.spawn)
     ipcMain.handle('serial:list', serial.list)
+    ipcMain.handle('serial:getDeviceInfo', serial.getDeviceInfo)
     ipcMain.handle('serial:open', serial.open)
     ipcMain.handle('serial:close', serial.close)
     ipcMain.handle('serial:write', serial.write)
