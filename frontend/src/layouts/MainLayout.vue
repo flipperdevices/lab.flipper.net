@@ -104,10 +104,28 @@
             </q-item>
             <q-separator style="width: 85%; margin: auto;"/>
             <q-item
+              v-if="flags.multiflipper && info"
+              clickable
+              class="q-px-md q-py-sm"
+              @click="onSwitchFlipper"
+            >
+              <q-item-section avatar class="items-center">
+                <q-avatar
+                  size="md"
+                  square
+                >
+                  <q-icon name="svguse:common-icons.svg#switch" size="32px"/>
+                </q-avatar>
+              </q-item-section>
+              <q-item-section>
+                <q-item-label>Switch</q-item-label>
+              </q-item-section>
+            </q-item>
+            <q-item
               v-if="flags.portSelectRequired || !flags.connected && !flags.portSelectRequired"
               clickable
               class="q-px-md q-py-sm"
-              @click="flags.portSelectRequired ? selectPort() : start(true)"
+              @click="flags.portSelectRequired ? selectPort(true) : start(flags.multiflipper && info, undefined, true)"
             >
               <q-item-section avatar class="items-center">
                 <q-avatar
@@ -140,14 +158,13 @@
               </q-item-section>
 
               <q-item-section>
-                <q-item-label>Connected</q-item-label>
+                <q-item-label>Disconnect</q-item-label>
               </q-item-section>
             </q-item>
             <q-item
               v-else
               clickable
               class="q-px-md q-py-sm"
-              @click="flags.portSelectRequired ? selectPort() : start(true)"
             >
               <q-item-section avatar class="items-center">
                 <q-avatar
@@ -288,7 +305,7 @@
         >
           <q-btn
             v-if="flags.portSelectRequired || !flags.connected && !flags.portSelectRequired"
-            @click="flags.portSelectRequired ? selectPort() : start(true)"
+            @click="flags.portSelectRequired ? selectPort(true) : start(flags.multiflipper && info, undefined, true)"
             outline
             class="q-mt-md"
           >
@@ -411,6 +428,49 @@
           </q-card-section>
         </q-card>
       </q-dialog>
+      <q-dialog v-model="flags.dialogMultiflipper">
+        <q-card>
+          <q-card-section
+            v-if="!mainStore.availableFlippers.length"
+            class="q-pa-none q-ma-md"
+            align="center"
+          >
+            <div class="text-h6 q-my-sm">This is where your flippers will be shown</div>
+          </q-card-section>
+          <q-card-section v-else class="row items-center" style="min-width: 506px;">
+            <q-list class="q-gutter-y-md">
+              <q-item v-for="flipper in mainStore.availableFlippers" :key="flipper.hardware_name">
+                <q-item-section>
+                  <img v-if="flipper.hardware_color === '1'" src="../assets/flipper_black.svg" style="width: 100%"/>
+                  <img v-else-if="flipper.hardware_color === '3'" src="../assets/flipper_transparent.svg" style="width: 100%"/>
+                  <img v-else src="../assets/flipper_white.svg" style="width: 100%"/>
+                </q-item-section>
+                <q-item-section>
+                  <div>
+                    <div class="text-h6">{{ flipper.hardware_name }}</div>
+                    <div class="text-caption">Firmware {{ flipper.firmware_version }}</div>
+                  </div>
+                </q-item-section>
+                <q-item-section v-if="info?.hardware.uid === flipper.hardware_uid">
+                  <q-btn color="positive" @click="disconnect" bordered label="Disconnect" />
+                </q-item-section>
+                <q-item-section v-else>
+                  <q-btn bordered @click="onConnectFlipper(true, flipper.port.path)" label="Connect" />
+                </q-item-section>
+              </q-item>
+            </q-list>
+            <div
+              v-if="flags.loadingMultiflipper"
+              class="row items-center full-width"
+            >
+              <Loading
+                class="col"
+                label="Reading flippers..."
+              />
+            </div>
+          </q-card-section>
+        </q-card>
+      </q-dialog>
     </q-page-container>
   </q-layout>
 </template>
@@ -420,6 +480,7 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import { useRoute, useRouter } from 'vue-router'
 import ExternalLink from 'components/ExternalLink.vue'
+import Loading from 'src/components/Loading.vue'
 import RouterLink from 'components/RouterLink.vue'
 import { logger, history, log } from 'composables/useLog'
 import showNotif from 'composables/useShowNotif'
@@ -503,11 +564,6 @@ const extLinks = [
     link: 'https://forum.flipperzero.one/'
   }
 ]
-const canLoadWithoutFlipper = [
-  'remote-cli',
-  'pulse-plotter',
-  'apps'
-]
 
 const leftDrawer = ref(true)
 const linksMenu = ref(false)
@@ -551,15 +607,18 @@ watch(route, () => {
   checkConnectionRequirement()
 })
 
-const selectPort = async () => {
-  const filters = [
-    { usbVendorId: 0x0483, usbProductId: 0x5740 }
-  ]
-  await navigator.serial.requestPort({ filters })
-  return start(true)
+const selectPort = async (onShowDialog) => {
+  mainStore.selectPort(onShowDialog)
 }
-const disconnect = () => {
-  flipper.value.disconnect()
+const onConnectFlipper = async (manual, path) => {
+  if (flipper.value.path && path !== flipper.value.path) {
+    await disconnect()
+  }
+  mainStore.toggleFlag('dialogMultiflipper', false)
+  start(manual, path)
+}
+const disconnect = async () => {
+  await flipper.value.disconnect()
     .then(() => {
       connectionStatus.value = 'Disconnected'
       mainStore.toggleFlag('connected', false)
@@ -576,6 +635,9 @@ const disconnect = () => {
       })
       connectionStatus.value = error.toString()
     })
+}
+const onSwitchFlipper = () => {
+  mainStore.toggleFlag('dialogMultiflipper', true)
 }
 
 const findKnownDevices = () => {
@@ -629,13 +691,11 @@ const checkConnectionRequirement = () => {
   mainStore.toggleFlag('connectionRequired', true)
   if (route.meta?.canLoadWithoutFlipper) {
     mainStore.toggleFlag('connectionRequired', false)
-      break
-    }
   }
 
   if (flags.value.catalogEnabled !== true) {
     routes.value = routes.filter(e => e.link !== '/apps')
-    if (location.pathname === '/apps') {
+    if (route.name === 'Apps') {
       router.push({ name: 'Device' })
     }
   }
@@ -655,8 +715,8 @@ const downloadLogs = () => {
   dl.remove()
 }
 
-const start = async (manual) => {
-  await mainStore.start(manual)
+const start = async (manual, path, onShowDialog) => {
+  await mainStore.start(manual, path, onShowDialog)
 }
 
 onMounted(async () => {
@@ -664,6 +724,8 @@ onMounted(async () => {
     leftDrawer.value = false
   }
   if ('serial' in navigator) {
+    checkConnectionRequirement()
+
     if (localStorage.getItem('connectOnStart') !== 'false') {
       mainStore.toggleFlag('connectOnStart', true)
       if (flags.value.connectionRequired) {
@@ -704,7 +766,6 @@ onMounted(async () => {
   } else {
     mainStore.toggleFlag('serialSupported', false)
   }
-  checkConnectionRequirement()
 
   navigator.serial.addEventListener('disconnect', (e) => {
     if (!flags.value.updateInProgress) {

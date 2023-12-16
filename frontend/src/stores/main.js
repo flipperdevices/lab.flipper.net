@@ -3,16 +3,22 @@ import { defineStore } from 'pinia'
 import useSetProperty from 'composables/useSetProperty'
 import { log } from 'composables/useLog'
 import { rpcErrorHandler } from 'composables/useRpcUtils'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import asyncSleep from 'simple-async-sleep'
 import { Platform } from 'quasar'
 const Flipper = await import(`src/flipper-js/${Platform.is.electron ? 'flipperElectron' : 'flipper'}`).then(m => m.default)
 
 export const useMainStore = defineStore('main', () => {
   const router = useRouter()
+  const route = useRoute()
 
   const flags = ref({
     isElectron: Platform.is.electron,
+
+    multiflipper: false,
+    loadingMultiflipper: false,
+    dialogMultiflipper: false,
+
     serialSupported: true,
     serialUnsupportedDialog: false,
     connectionRequired: true,
@@ -38,6 +44,8 @@ export const useMainStore = defineStore('main', () => {
   const flipper = ref(new Flipper())
   const componentName = 'Main'
 
+  const availableFlippers = ref([])
+
   const connectionStatus = ref('Ready to connect')
   const findKnownDevices = () => {
     if (!flags.value.isElectron) {
@@ -49,8 +57,8 @@ export const useMainStore = defineStore('main', () => {
       return window.serial.list()
     }
   }
-  const connect = async () => {
-    await flipper.value.connect()
+  const connect = async (path) => {
+    await flipper.value.connect(path)
       .then(() => {
         connectionStatus.value = 'Flipper connected'
 
@@ -78,14 +86,14 @@ export const useMainStore = defineStore('main', () => {
         }
       })
   }
-  const selectPort = async () => {
+  const selectPort = async (onShowDialog) => {
     if (!flags.value.isElectron) {
       const filters = [
         { usbVendorId: 0x0483, usbProductId: 0x5740 }
       ]
       await navigator.serial.requestPort({ filters })
     }
-    return start(true)
+    return start(true, undefined, onShowDialog)
   }
   const startRpc = async () => {
     if (!flags.value.connected) {
@@ -240,21 +248,62 @@ export const useMainStore = defineStore('main', () => {
       })
       .catch(error => rpcErrorHandler(componentName, error, 'systemSetDatetime'))
   }
-  const start = async (manual) => {
-    const ports = await findKnownDevices()
-    if (ports && ports.length > 0) {
-      await connect()
-      setTimeout(async () => {
-        await startRpc()
-        await readInfo()
-        await setTime()
-      }, 500)
-    } else {
-      flags.value.portSelectRequired = true
-      if (manual) {
-        return selectPort()
+  const start = async (manual, path, onShowDialog) => {
+    if (!path) {
+      const ports = await findKnownDevices()
+
+      if (!ports || ports.length === 0) {
+        flags.value.portSelectRequired = true
+
+        if (flags.value.isElectron) {
+          if (onShowDialog) {
+            flags.value.dialogMultiflipper = true
+          }
+          // open dialog ваши флипперы будут здесь
+          return
+        }
+
+        if (manual) {
+          return selectPort()
+        }
+        return
+      }
+
+      if (ports.length === 1) {
+        path = ports[0].path
+      } else {
+        flags.value.multiflipper = true
+
+        if (!route.meta?.canLoadWithoutFlipper || onShowDialog) {
+          flags.value.dialogMultiflipper = true
+        }
+        flags.value.loadingMultiflipper = true
+
+        flags.value.autoReconnect = false
+
+        try {
+          for await (const port of ports) {
+            const devInfo = await window.serial.getDeviceInfo(port)
+            devInfo.port = port
+            if (!availableFlippers.value.some(f => f.port.path === devInfo.port.path)) {
+              availableFlippers.value.push(devInfo)
+            }
+          }
+        } catch (error) {
+          console.error(error.message)
+          flags.value.loadingMultiflipper = false
+        }
+        flags.value.loadingMultiflipper = false
+        return
       }
     }
+
+    await connect(path)
+    setTimeout(async () => {
+      await startRpc()
+      await readInfo()
+      await setTime()
+    }, 500)
   }
 
   const recovery = async (logCallback) => {
@@ -307,7 +356,9 @@ export const useMainStore = defineStore('main', () => {
     flags,
 
     flipper,
+    availableFlippers,
 
+    selectPort,
     start,
     setRpcStatus,
     onUpdateStage,
