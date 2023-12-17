@@ -54,7 +54,7 @@
       <q-btn v-if="mainFlags.isElectron" class="q-mt-md" color="primary" label="Recovery" @click="recovery"/>
     </template>
     <template v-else>
-      <template v-if="!mainFlags.isElectron">
+      <template v-if="!(mainFlags.isElectron && flags.recovery)">
         <p>{{ updateStage }}</p>
         <q-btn
           v-if="flags.updateError"
@@ -153,7 +153,8 @@ const flags = ref({
   updateError: false,
   uploadEnabled: true,
   uploadPopup: false,
-  overrideDevRegion: false
+  overrideDevRegion: false,
+  recovery: false
 })
 const channels = ref({})
 const fwOptions = ref([
@@ -227,7 +228,9 @@ const update = async (fromFile) => {
 const recoveryLogs = ref([])
 const recoveryProgress = ref(0)
 const recovery = () => {
+  const path = flipper.value.path
   flags.value.updateInProgress = true
+  flags.value.recovery = true
   const autoReconnect = mainFlags.value.autoReconnect
   mainFlags.value.autoReconnect = false
 
@@ -264,9 +267,10 @@ const recovery = () => {
   const log = (message) => {
     if (message.type === 'exit') {
       flags.value.updateInProgress = false
+      flags.value.recovery = false
       mainFlags.value.autoReconnect = autoReconnect
       emit('update', 'end')
-      return mainStore.start()
+      return mainStore.start(false, path)
     }
 
     const lines = message.data.split('\n')

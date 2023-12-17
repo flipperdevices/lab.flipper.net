@@ -16,7 +16,7 @@ const qFlipper = {
   }
 }
 
-const ports = []
+let ports = []
 const serial = {
   async list (event, filter) {
     try {
@@ -57,7 +57,9 @@ const serial = {
 
         setTimeout(() => {
           try {
-            serialPort.close()
+            if (result.length) {
+              serialPort.close()
+            }
           } catch {}
           resolve(result)
         }, 1000)
@@ -68,6 +70,7 @@ const serial = {
   },
   open (event, path) {
     try {
+      const webContents = event.sender
       return new Promise((resolve, reject) => {
         const existingPort = ports.find(e => e.path === path)
         const port = existingPort || new SerialPort({ path, baudRate: 1, autoOpen: false, endOnClose: true })
@@ -78,11 +81,14 @@ const serial = {
             if (!existingPort) {
               ports.push(port)
             }
+            webContents.send('serial:onOpen', path)
             resolve(port.readable)
           },
+          onClose: () => {
+            webContents.send('serial:onClose', path)
+          },
           onData: data => {
-            const webContents = event.sender
-            webContents.send('serial:data', data)
+            webContents.send('serial:onData', data)
           },
           onError: error => {
             reject(error.message)
@@ -91,6 +97,7 @@ const serial = {
         port.on('open', port.handlers.onOpen)
         port.on('data', port.handlers.onData)
         port.on('error', port.handlers.onError)
+        port.on('close', port.handlers.onClose)
       })
     } catch (error) {
       console.error(error)
@@ -100,15 +107,16 @@ const serial = {
     try {
       return new Promise((resolve, reject) => {
         const port = ports.find(e => e.path === path)
-        port.flush()
         if (!port) {
           reject('Port not found')
         }
         port.removeAllListeners()
+        // port.removeListener('data', port.handlers.onData)
         port.close(error => {
           if (error) {
             reject(error.message)
           }
+          ports = ports.filter(e => e.path !== path)
           resolve(true)
         })
       })
@@ -192,38 +200,13 @@ async function createWindow () {
   })
 
   mainWindow.on('closed', () => {
+    ports.filter(port => port.isOpen).forEach(port => {
+      port.removeAllListeners()
+      port.close()
+    })
+    ports = []
     mainWindow = null
   })
-
-  /* mainWindow.webContents.session.setPermissionCheckHandler((webContents, permission, requestingOrigin, details) => {
-    if (permission === 'serial') {
-      return true
-    }
-    return false
-  })
-  mainWindow.webContents.session.setDevicePermissionHandler((details) => {
-    if (details.deviceType === 'serial') {
-      if (details.device.vendorId === 1155 && details.device.productId === 22336) {
-        console.log(details.device)
-        // Always allow this type of device (this allows skipping the call to `navigator.serial.requestPort` first)
-        return true
-      }
-    }
-    return true
-  })
-  mainWindow.webContents.session.on('select-serial-port', (event, portList, webContents, callback) => {
-    console.log(event, portList, webContents, callback)
-    event.preventDefault()
-    const selectedPort = portList.find((device) => {
-      return device.vendorId === '1155' && device.productId === '22336'
-    })
-    if (!selectedPort) {
-      // eslint-disable-next-line node/no-callback-literal
-      callback('')
-    } else {
-      callback(selectedPort.portId)
-    }
-  }) */
 }
 
 app.whenReady()

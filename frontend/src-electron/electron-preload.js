@@ -6,7 +6,7 @@ contextBridge.exposeInMainWorld('qFlipper', {
 })
 
 contextBridge.exposeInMainWorld('serial', {
-  list: (filter = { manufacturer: 'Flipper Devices Inc.' }) => ipcRenderer.invoke('serial:list', filter),
+  list: (filter = { productId: '5740', vendorId: '0483' }) => ipcRenderer.invoke('serial:list', filter),
   getDeviceInfo: async port => {
     const result = await ipcRenderer.invoke('serial:getDeviceInfo', port)
     const lines = result.split('\r\n')
@@ -23,11 +23,9 @@ contextBridge.exposeInMainWorld('serial', {
     ipcRenderer.removeAllListeners()
     return ipcRenderer.invoke('serial:close', path)
   },
-  onData: callback => {
-    return ipcRenderer.on('serial:data', (_event, value) => {
-      callback(value)
-    })
-  },
+  onOpen: callback => ipcRenderer.on('serial:onOpen', (_event, value) => callback(value)),
+  onClose: callback => ipcRenderer.on('serial:onClose', (_event, value) => callback(value)),
+  onData: callback => ipcRenderer.on('serial:onData', (_event, value) => callback(value)),
   write: ({ path, message }) => ipcRenderer.invoke('serial:write', { path, message }),
   isOpen: path => ipcRenderer.invoke('serial:isOpen', path)
 })

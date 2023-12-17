@@ -75,9 +75,8 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import Updater from 'components/Updater.vue'
-import asyncSleep from 'simple-async-sleep'
 import { bytesToSize } from 'util/util'
 import { log } from 'composables/useLog'
 import { rpcErrorHandler } from 'composables/useRpcUtils'
@@ -262,9 +261,13 @@ const onUpdateStage = (stage) => {
   if (stage === 'start') {
     flags.value.updateInProgress = true
     stopScreenStream()
-    navigator.serial.addEventListener('connect', () => {
-      mainStore.onUpdateStage('end')
-    })
+    if (window.serial) {
+      window.serial.onOpen(e => mainStore.onUpdateStage('end'))
+    } else {
+      navigator.serial.addEventListener('connect', () => {
+        mainStore.onUpdateStage('end')
+      })
+    }
   } else if (stage === 'end') {
     mainStore.onUpdateStage('end')
   }
@@ -290,16 +293,17 @@ onMounted(() => {
   if (info.value !== null && info.value.doneReading && mainFlags.value.connected) {
     start()
   }
-  navigator.serial.addEventListener('disconnect', e => {
+
+  function onDisconnect () {
     flags.value.rpcActive = false
     flags.value.rpcToggling = false
     mainStore.setRpcStatus(false)
     flags.value.screenStream = false
-  })
-})
-
-onBeforeUnmount(async () => {
-  await stopScreenStream()
-  await asyncSleep(3000)
+  }
+  if (window.serial) {
+    window.serial.onClose(path => onDisconnect(path))
+  } else {
+    navigator.serial.addEventListener('disconnect', e => onDisconnect(e))
+  }
 })
 </script>

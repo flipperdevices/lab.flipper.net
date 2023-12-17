@@ -45,6 +45,7 @@ export const useMainStore = defineStore('main', () => {
   const componentName = 'Main'
 
   const availableFlippers = ref([])
+  const reconnectLoop = ref(null)
 
   const connectionStatus = ref('Ready to connect')
   const findKnownDevices = () => {
@@ -248,6 +249,30 @@ export const useMainStore = defineStore('main', () => {
       })
       .catch(error => rpcErrorHandler(componentName, error, 'systemSetDatetime'))
   }
+
+  const autoReconnect = (path) => {
+    console.log('autoReconnect', path)
+    if (reconnectLoop.value) {
+      clearInterval(reconnectLoop.value)
+      reconnectLoop.value = null
+    }
+    if (flags.value.autoReconnect) {
+      reconnectLoop.value = setInterval(async () => {
+        if (flags.value.autoReconnect) {
+          const ports = await findKnownDevices()
+          if (ports && ports.length > 0 && ports.find(e => e.path === path)) {
+            clearInterval(reconnectLoop.value)
+            reconnectLoop.value = null
+            return await start(false, path)
+          }
+        } else {
+          clearInterval(reconnectLoop.value)
+          reconnectLoop.value = null
+        }
+      }, 1000)
+    }
+  }
+
   const start = async (manual, path, onShowDialog) => {
     if (!path) {
       const ports = await findKnownDevices()
@@ -299,8 +324,13 @@ export const useMainStore = defineStore('main', () => {
     }
 
     await connect(path)
+    function catchOnClose (path) {
+      flags.value.connected = false
+      autoReconnect(path)
+    }
     setTimeout(async () => {
       await startRpc()
+      window.serial.onClose(catchOnClose)
       await readInfo()
       await setTime()
     }, 500)
@@ -318,7 +348,12 @@ export const useMainStore = defineStore('main', () => {
       }
       await asyncSleep(1000)
     }
-    window.qFlipper.onLog(logCallback || console.log)
+    if (!logCallback) {
+      logCallback = (data) => {
+        console.log(data)
+      }
+    }
+    window.qFlipper.onLog(logCallback)
     await window.qFlipper.spawn([])
   }
 

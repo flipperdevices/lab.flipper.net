@@ -435,7 +435,7 @@
             class="q-pa-none q-ma-md"
             align="center"
           >
-            <div class="text-h6 q-my-sm">This is where your flippers will be shown</div>
+            <div class="q-my-sm">Your Flippers will appear here...</div>
           </q-card-section>
           <q-card-section v-else class="row items-center" style="min-width: 506px;">
             <q-list class="q-gutter-y-md">
@@ -452,10 +452,10 @@
                   </div>
                 </q-item-section>
                 <q-item-section v-if="info?.hardware.uid === flipper.hardware_uid">
-                  <q-btn color="positive" @click="disconnect" bordered label="Disconnect" />
+                  <q-btn unelevated color="positive" @click="disconnect" bordered label="Disconnect" />
                 </q-item-section>
                 <q-item-section v-else>
-                  <q-btn bordered @click="onConnectFlipper(true, flipper.port.path)" label="Connect" />
+                  <q-btn outline @click="onConnectFlipper(true, flipper.port.path)" label="Connect" />
                 </q-item-section>
               </q-item>
             </q-list>
@@ -465,9 +465,12 @@
             >
               <Loading
                 class="col"
-                label="Reading flippers..."
+                label="Reading Flippers..."
               />
             </div>
+          </q-card-section>
+          <q-card-section align="center">
+            <q-btn unelevated color="primary" label="Recovery" @click="mainStore.recovery()"/>
           </q-card-section>
         </q-card>
       </q-dialog>
@@ -567,7 +570,6 @@ const extLinks = [
 
 const leftDrawer = ref(true)
 const linksMenu = ref(false)
-const reconnectLoop = ref(null)
 const connectionStatus = ref('Ready to connect')
 
 const batteryIcon = computed(() => {
@@ -640,35 +642,6 @@ const onSwitchFlipper = () => {
   mainStore.toggleFlag('dialogMultiflipper', true)
 }
 
-const findKnownDevices = () => {
-  const filters = [
-    { usbVendorId: 0x0483, usbProductId: 0x5740 }
-  ]
-  return navigator.serial.getPorts({ filters })
-}
-
-const autoReconnect = () => {
-  if (reconnectLoop.value) {
-    clearInterval(reconnectLoop.value)
-    reconnectLoop.value = null
-  }
-  if (flags.value.autoReconnect) {
-    reconnectLoop.value = setInterval(async () => {
-      if (flags.value.autoReconnect) {
-        const ports = await findKnownDevices()
-        if (ports && ports.length > 0) {
-          clearInterval(reconnectLoop.value)
-          reconnectLoop.value = null
-          return await start()
-        }
-      } else {
-        clearInterval(reconnectLoop.value)
-        reconnectLoop.value = null
-      }
-    }, 3000)
-  }
-}
-
 const toggleConnectOnStart = () => {
   localStorage.setItem('connectOnStart', flags.value.connectOnStart)
 }
@@ -726,6 +699,14 @@ onMounted(async () => {
   if ('serial' in navigator) {
     checkConnectionRequirement()
 
+    /* if (window.serial) {
+      window.serial.onClose(path => autoReconnect(path))
+    } else {
+      navigator.serial.addEventListener('disconnect', e => {
+        autoReconnect()
+      })
+    } */
+
     if (localStorage.getItem('connectOnStart') !== 'false') {
       mainStore.toggleFlag('connectOnStart', true)
       if (flags.value.connectionRequired) {
@@ -739,6 +720,29 @@ onMounted(async () => {
     }
     if (localStorage.getItem('installFromFile') === 'true') {
       mainStore.toggleFlag('installFromFile', true)
+    }
+
+    const onDisconnect = path => {
+      console.log('onDisconnect')
+      if (!flags.value.updateInProgress) {
+        showNotif({
+          message: 'Flipper has been disconnected'
+        })
+        mainStore.toggleFlag('connected', false)
+        mainStore.toggleFlag('portSelectRequired', true)
+      }
+      log({
+        level: 'info',
+        message: `${componentName}: Flipper has been disconnected`
+      })
+    }
+    if (window.serial) {
+      /* window.serial.onOpen(path => {
+        console.log('onOpen', path)
+        console.log(window.serial.onClose(path => onDisconnect(path)))
+      }) */
+    } else {
+      navigator.serial.addEventListener('disconnect', e => onDisconnect(e))
     }
 
     const isProd = process.env.PRODUCTION
@@ -759,27 +763,9 @@ onMounted(async () => {
 
       mainStore.toggleFlag('catalogCanSwitchChannel', true)
     }
-
-    navigator.serial.addEventListener('disconnect', e => {
-      autoReconnect()
-    })
   } else {
     mainStore.toggleFlag('serialSupported', false)
   }
-
-  navigator.serial.addEventListener('disconnect', (e) => {
-    if (!flags.value.updateInProgress) {
-      showNotif({
-        message: 'Flipper has been disconnected'
-      })
-      mainStore.toggleFlag('connected', false)
-      mainStore.toggleFlag('portSelectRequired', true)
-    }
-    log({
-      level: 'info',
-      message: `${componentName}: Flipper has been disconnected`
-    })
-  })
 
   logger.setLevel('info', true)
   const originalFactory = logger.methodFactory
