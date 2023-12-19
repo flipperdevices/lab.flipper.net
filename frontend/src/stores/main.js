@@ -132,25 +132,37 @@ export const useMainStore = defineStore('main', () => {
         internal: {}
       }
     })
-    await flipper.value.RPC('propertyGet', { key: 'devinfo' })
-      .then(devInfo => {
-        log({
-          level: 'debug',
-          message: `${componentName}: propertyGet: OK`
+    const protobufVersion = await flipper.value.RPC('systemProtobufVersion')
+    if (protobufVersion.major === 0 && protobufVersion.minor < 14) { // major при 0
+      await flipper.value.RPC('systemDeviceInfo')
+        .then(devInfo => {
+          log({
+            level: 'debug',
+            message: `${componentName}: deviceInfo: OK`
+          })
+          setInfo({ ...info.value, ...devInfo })
         })
-        setInfo({ ...info.value, ...devInfo })
-      })
-      .catch(error => rpcErrorHandler(componentName, error, 'propertyGet'))
+    } else {
+      await flipper.value.RPC('propertyGet', { key: 'devinfo' })
+        .then(devInfo => {
+          log({
+            level: 'debug',
+            message: `${componentName}: propertyGet: OK`
+          })
+          setInfo({ ...info.value, ...devInfo })
+        })
+        .catch(error => rpcErrorHandler(componentName, error, 'propertyGet'))
 
-    await flipper.value.RPC('propertyGet', { key: 'pwrinfo' })
-      .then(powerInfo => {
-        log({
-          level: 'debug',
-          message: `${componentName}: propertyGet: OK`
+      await flipper.value.RPC('propertyGet', { key: 'pwrinfo' })
+        .then(powerInfo => {
+          log({
+            level: 'debug',
+            message: `${componentName}: propertyGet: OK`
+          })
+          setPropertyInfo({ power: powerInfo })
         })
-        setPropertyInfo({ power: powerInfo })
-      })
-      .catch(error => rpcErrorHandler(componentName, error, 'propertyGet'))
+        .catch(error => rpcErrorHandler(componentName, error, 'propertyGet'))
+    }
 
     const ext = await flipper.value.RPC('storageList', { path: '/ext' })
       .then(list => {
@@ -330,7 +342,9 @@ export const useMainStore = defineStore('main', () => {
     }
     setTimeout(async () => {
       await startRpc()
-      window.serial.onClose(catchOnClose)
+      if (flags.value.isElectron) {
+        window.serial.onClose(catchOnClose)
+      }
       await readInfo()
       await setTime()
     }, 500)
