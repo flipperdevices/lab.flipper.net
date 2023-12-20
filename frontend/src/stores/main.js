@@ -392,6 +392,7 @@ export const useMainStore = defineStore('main', () => {
   const path = ref('')
   const autoReconnectCondition = ref(null)
   const resetRecovery = () => {
+    path.value = ''
     stageIndex.value = 0
     recoveryProgress.value = 0
     updateStages.value.forEach(stage => {
@@ -400,9 +401,9 @@ export const useMainStore = defineStore('main', () => {
   }
   const logCallback = (message) => {
     if (message.type === 'exit') {
+      flags.value.recovery = false
+
       if (!recoveryRestart.value) {
-        flags.value.updateInProgress = false
-        flags.value.recovery = false
         resetRecovery()
 
         if (!flags.value.showRecoveryLog) {
@@ -413,6 +414,7 @@ export const useMainStore = defineStore('main', () => {
         return start(false, path.value)
       }
 
+      onUpdateStage('end')
       recoveryRestart.value = false
     }
 
@@ -442,7 +444,6 @@ export const useMainStore = defineStore('main', () => {
   const recovery = async (logCallback) => {
     flags.value.dialogRecovery = true
     path.value = flipper.value.path
-    flags.value.updateInProgress = true
     flags.value.recovery = true
     autoReconnectCondition.value = flags.value.autoReconnect
     flags.value.autoReconnect = false
