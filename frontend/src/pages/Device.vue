@@ -55,9 +55,7 @@
             </div>
           </div>
         </div>
-        <Updater
-          @update="onUpdateStage"
-        />
+        <Updater/>
       </div>
       <div
         v-if="!flags.updateInProgress && (!mainFlags.connected || info == null || !flags.rpcActive || flags.rpcToggling)"
@@ -244,33 +242,6 @@ const startScreenStream = async () => {
       unbindStop()
     })
   })
-}
-const stopScreenStream = async () => {
-  await flipper.value.RPC('guiStopScreenStream')
-    .catch(error => rpcErrorHandler(componentName, error, 'guiStopScreenStream'))
-    .finally(() => {
-      log({
-        level: 'debug',
-        message: `${componentName}: guiStopScreenStream: OK`
-      })
-    })
-  flags.value.screenStream = false
-}
-const onUpdateStage = (stage) => {
-  mainStore.onUpdateStage(stage)
-  if (stage === 'start') {
-    flags.value.updateInProgress = true
-    stopScreenStream()
-    if (window.serial) {
-      window.serial.onOpen(e => mainStore.onUpdateStage('end'))
-    } else {
-      navigator.serial.addEventListener('connect', () => {
-        mainStore.onUpdateStage('end')
-      })
-    }
-  } else if (stage === 'end') {
-    mainStore.onUpdateStage('end')
-  }
 }
 
 const start = async () => {

@@ -19,6 +19,10 @@ export const useMainStore = defineStore('main', () => {
     loadingMultiflipper: false,
     dialogMultiflipper: false,
 
+    dialogRecovery: false,
+    recovery: false,
+    showRecoveryLog: false,
+
     serialSupported: true,
     serialUnsupportedDialog: false,
     connectionRequired: true,
@@ -350,7 +354,103 @@ export const useMainStore = defineStore('main', () => {
     }, 500)
   }
 
+  const updateStage = ref('')
+  const setUpdateStage = (str) => {
+    updateStage.value = str
+  }
+  const recoveryLogs = ref([])
+  const recoveryProgress = ref(0)
+  const updateStages = ref([
+    {
+      name: 'Set Recovery boot mode',
+      ended: false
+    },
+    {
+      name: 'Co-Processor Firmware Download',
+      ended: false
+    },
+    {
+      name: 'Firmware Download',
+      ended: false
+    },
+    {
+      name: 'Correct Option Bytes',
+      ended: false
+    },
+    {
+      name: 'Assets Download',
+      ended: false
+    },
+    {
+      name: 'Region Provisioning',
+      ended: false
+    }
+  ])
+  const stageIndex = ref(0)
+  const recoveryRestart = ref(false)
+
+  const path = ref('')
+  const autoReconnectCondition = ref(null)
+  const resetRecovery = () => {
+    stageIndex.value = 0
+    recoveryProgress.value = 0
+    updateStages.value.forEach(stage => {
+      stage.ended = false
+    })
+  }
+  const logCallback = (message) => {
+    if (message.type === 'exit') {
+      if (!recoveryRestart.value) {
+        flags.value.updateInProgress = false
+        flags.value.recovery = false
+        resetRecovery()
+
+        if (!flags.value.showRecoveryLog) {
+          flags.value.dialogRecovery = false
+        }
+        flags.value.autoReconnect = autoReconnectCondition.value
+        onUpdateStage('end')
+        return start(false, path.value)
+      }
+
+      recoveryRestart.value = false
+    }
+
+    const lines = message.data.split('\n')
+    lines.forEach(line => {
+      if (line.length > 0) {
+        recoveryLogs.value.push(line)
+        console.log(line)
+        if (line.includes(updateStages.value[stageIndex.value]?.name)) {
+          if (line.endsWith('START')) {
+            setUpdateStage(updateStages.value[stageIndex.value].name)
+          } else {
+            updateStages.value[stageIndex.value].ended = true
+            stageIndex.value++
+            recoveryProgress.value = stageIndex.value / updateStages.value.length
+          }
+        } else if (!recoveryRestart.value && (line.toLowerCase().includes('failed') || line.includes('ERROR'))) {
+          recoveryRestart.value = true
+
+          resetRecovery()
+
+          recovery(logCallback)
+        }
+      }
+    })
+  }
   const recovery = async (logCallback) => {
+    flags.value.dialogRecovery = true
+    path.value = flipper.value.path
+    flags.value.updateInProgress = true
+    flags.value.recovery = true
+    autoReconnectCondition.value = flags.value.autoReconnect
+    flags.value.autoReconnect = false
+
+    updateStage.value = updateStages.value[stageIndex.value].name
+
+    onUpdateStage('start')
+
     if (!flags.value.isElectron) {
       return
     }
@@ -374,9 +474,30 @@ export const useMainStore = defineStore('main', () => {
   const setRpcStatus = (s) => {
     flags.value.rpcActive = s
   }
+
+  const stopScreenStream = async () => {
+    await flipper.value.RPC('guiStopScreenStream')
+      .catch(error => rpcErrorHandler(componentName, error, 'guiStopScreenStream'))
+      .finally(() => {
+        log({
+          level: 'debug',
+          message: `${componentName}: guiStopScreenStream: OK`
+        })
+      })
+    flags.value.screenStream = false
+  }
   const onUpdateStage = (stage) => {
     if (stage === 'start') {
       flags.value.updateInProgress = true
+
+      stopScreenStream()
+      if (window.serial) {
+        window.serial.onOpen(e => onUpdateStage('end'))
+      } else {
+        navigator.serial.addEventListener('connect', () => {
+          flags.value.updateInProgress = false
+        })
+      }
     } else if (stage === 'end') {
       flags.value.updateInProgress = false
     }
@@ -410,8 +531,13 @@ export const useMainStore = defineStore('main', () => {
     selectPort,
     start,
     setRpcStatus,
+
+    updateStage,
     onUpdateStage,
 
+    recoveryLogs,
+    recoveryProgress,
+    logCallback,
     recovery,
 
     fileToPass,

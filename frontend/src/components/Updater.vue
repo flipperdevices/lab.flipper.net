@@ -51,10 +51,10 @@
         <span v-if="info.storage.sdcard.status">Your firmware doesn't support self-update. Install latest release with <a href="https://update.flipperzero.one" target="_blank">qFlipper desktop tool</a>.</span>
         <span v-else>Self-update is impossible without an SD card.</span>
       </template>
-      <q-btn v-if="mainFlags.isElectron" class="q-mt-md" color="primary" label="Recovery" @click="recovery"/>
+      <q-btn v-if="mainFlags.isElectron" class="q-mt-md" color="primary" label="Repair" @click="recovery"/>
     </template>
     <template v-else>
-      <template v-if="!(mainFlags.isElectron && flags.recovery)">
+      <template v-if="!(mainFlags.isElectron && mainFlags.recovery)">
         <p>{{ updateStage }}</p>
         <q-btn
           v-if="flags.updateError"
@@ -67,21 +67,6 @@
           :title="write.filename"
           :progress="write.progress"
         />
-      </template>
-      <template v-else>
-        <p>{{ updateStage }}</p>
-        <ProgressBar :progress="recoveryProgress" interpolated/>
-        <q-scroll-area
-          style="height: 300px; min-width: 280px; width: calc(min(80vw, 600px));"
-          class="bg-grey-12 q-px-sm q-py-xs rounded-borders text-left"
-        >
-          <code>
-            <span v-for="line in recoveryLogs" :key="line">
-              {{ line }}
-              <br />
-            </span>
-          </code>
-        </q-scroll-area>
       </template>
     </template>
     <q-dialog v-model="flags.uploadPopup">
@@ -120,7 +105,7 @@
 </template>
 
 <script setup>
-import { ref, defineEmits, watch, onMounted, computed } from 'vue'
+import { ref, watch, onMounted, computed } from 'vue'
 import ProgressBar from './ProgressBar.vue'
 import { unpack } from 'util/util'
 import { fetchChannels, fetchFirmware, fetchRegions } from 'util/fetch'
@@ -138,8 +123,6 @@ const mainFlags = computed(() => mainStore.flags)
 const flipper = computed(() => mainStore.flipper)
 
 const info = computed(() => mainStore.info)
-
-const emit = defineEmits(['update'])
 
 const componentName = 'Updater'
 const flags = ref({
@@ -186,7 +169,7 @@ const update = async (fromFile) => {
     return
   }
   flags.value.updateInProgress = true
-  emit('update', 'start')
+  mainStore.onUpdateStage('start')
   log({
     level: 'info',
     message: `${componentName}: Update started`
@@ -194,12 +177,12 @@ const update = async (fromFile) => {
   if (fromFile) {
     if (!uploadedFile.value) {
       flags.value.updateError = true
-      emit('update', 'end')
+      mainStore.onUpdateStage('end')
       updateStage.value = 'No file selected'
       throw new Error('No file selected')
     } else if (!uploadedFile.value.name.endsWith('.tgz')) {
       flags.value.updateError = true
-      emit('update', 'end')
+      mainStore.onUpdateStage('end')
       updateStage.value = 'Wrong file format'
       throw new Error('Wrong file format')
     }
@@ -225,72 +208,8 @@ const update = async (fromFile) => {
   // flags.value.updateInProgress = false
 }
 
-const recoveryLogs = ref([])
-const recoveryProgress = ref(0)
 const recovery = () => {
-  const path = flipper.value.path
-  flags.value.updateInProgress = true
-  flags.value.recovery = true
-  const autoReconnect = mainFlags.value.autoReconnect
-  mainFlags.value.autoReconnect = false
-
-  const updateStages = [
-    {
-      name: 'Set Recovery boot mode',
-      ended: false
-    },
-    {
-      name: 'Co-Processor Firmware Download',
-      ended: false
-    },
-    {
-      name: 'Firmware Download',
-      ended: false
-    },
-    {
-      name: 'Correct Option Bytes',
-      ended: false
-    },
-    {
-      name: 'Assets Download',
-      ended: false
-    },
-    {
-      name: 'Region Provisioning',
-      ended: false
-    }
-  ]
-  let stageIndex = 0
-  updateStage.value = updateStages[stageIndex].name
-
-  emit('update', 'start')
-  const log = (message) => {
-    if (message.type === 'exit') {
-      flags.value.updateInProgress = false
-      flags.value.recovery = false
-      mainFlags.value.autoReconnect = autoReconnect
-      emit('update', 'end')
-      return mainStore.start(false, path)
-    }
-
-    const lines = message.data.split('\n')
-    lines.forEach(line => {
-      if (line.length > 0) {
-        recoveryLogs.value.push(line)
-        console.log(line)
-        if (line.includes(updateStages[stageIndex]?.name)) {
-          if (line.endsWith('START')) {
-            updateStage.value = updateStages[stageIndex].name
-          } else {
-            updateStages[stageIndex].ended = true
-            stageIndex++
-            recoveryProgress.value = stageIndex / updateStages.length
-          }
-        }
-      }
-    })
-  }
-  mainStore.recovery(log)
+  mainStore.recovery(mainStore.logCallback)
 }
 
 const loadFirmware = async (fromFile) => {

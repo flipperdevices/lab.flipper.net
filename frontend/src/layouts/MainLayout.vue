@@ -470,7 +470,38 @@
             </div>
           </q-card-section>
           <q-card-section align="center">
-            <q-btn unelevated color="primary" label="Recovery" @click="mainStore.recovery()"/>
+            <q-btn unelevated color="primary" label="Recovery" @click="recovery"/>
+          </q-card-section>
+        </q-card>
+      </q-dialog>
+      <q-dialog v-model="flags.dialogRecovery" :persistent="flags.recovery">
+        <q-card
+          style="min-width: 280px; width: calc(min(80vw, 600px));"
+        >
+          <q-card-section class="row items-center">
+            <div class="text-h6">Recovery</div>
+          </q-card-section>
+          <q-card-section class="row items-center">
+            <p>{{ updateStage }}</p>
+            <ProgressBar :progress="recoveryProgress" interpolated/>
+            <q-expansion-item
+              v-model="flags.showRecoveryLog"
+              class="full-width"
+              icon="svguse:common-icons.svg#logs"
+              label="View logs"
+            >
+              <q-scroll-area
+                style="height: 300px;"
+                class="full-width bg-grey-12 q-mt-md q-px-sm q-py-xs rounded-borders text-left"
+              >
+                <code>
+                  <span v-for="line in recoveryLogs" :key="line">
+                    {{ line }}
+                    <br />
+                  </span>
+                </code>
+              </q-scroll-area>
+            </q-expansion-item>
           </q-card-section>
         </q-card>
       </q-dialog>
@@ -483,7 +514,8 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import { useRoute, useRouter } from 'vue-router'
 import ExternalLink from 'components/ExternalLink.vue'
-import Loading from 'src/components/Loading.vue'
+import Loading from 'components/Loading.vue'
+import ProgressBar from 'components/ProgressBar.vue'
 import RouterLink from 'components/RouterLink.vue'
 import { logger, history, log } from 'composables/useLog'
 import showNotif from 'composables/useShowNotif'
@@ -494,6 +526,9 @@ const mainStore = useMainStore()
 const flags = computed(() => mainStore.flags)
 const flipper = computed(() => mainStore.flipper)
 const info = computed(() => mainStore.info)
+const updateStage = computed(() => mainStore.updateStage)
+const recoveryLogs = computed(() => mainStore.recoveryLogs)
+const recoveryProgress = computed(() => mainStore.recoveryProgress)
 
 const $q = useQuasar()
 $q.screen.setSizes({ md: 900 })
@@ -686,6 +721,10 @@ const downloadLogs = () => {
   document.body.append(dl)
   dl.click()
   dl.remove()
+}
+
+const recovery = () => {
+  mainStore.recovery(mainStore.logCallback)
 }
 
 const start = async (manual, path, onShowDialog) => {
