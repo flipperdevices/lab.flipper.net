@@ -196,6 +196,8 @@ export default class Flipper {
           break
         }
 
+        console.log(value, done)
+
         if (this.readingMode.transform === 'protobuf') {
           if (value.content && value.content === 'guiScreenFrame') {
             this.emitter.emit('screenStream/frame', value.guiScreenFrame.data, value.guiScreenFrame.orientation)

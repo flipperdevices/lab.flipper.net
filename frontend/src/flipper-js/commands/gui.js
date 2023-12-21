@@ -52,6 +52,7 @@ function startVirtualDisplay (firstFrame) {
     )
     args[firstFrame] = data
   }
+  args.sendInput = true
   return createRPCPromise.bind(this)('guiStartVirtualDisplayRequest', args)
 }
 
