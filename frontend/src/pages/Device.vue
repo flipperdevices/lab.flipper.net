@@ -2,60 +2,62 @@
   <q-page class="flex-center column full-width">
     <div class="flex-center column">
       <div v-show="flags.updateInProgress || (mainFlags.connected && info !== null && info.doneReading && flags.rpcActive)" class="device-screen column">
-        <div class="flex">
-          <div class="info">
-            <p>
-              <span>Firmware:</span>
-              <span>{{ info.firmware.version !== 'unknown' ? info.firmware.version : info.firmware.commit }}</span>
-            </p>
-            <p>
-              <span>Build date:</span>
-              <span>{{ info.firmware.build.date }}</span>
-            </p>
-            <p>
-              <span>SD card:</span>
-              <span>{{ sdCardUsage }}</span>
-            </p>
-            <p>
-              <span>Databases:</span>
-              <span>{{ info.storage.databases.status }}</span>
-            </p>
-            <p>
-              <span>Hardware:</span>
-              <span>{{ info.hardware.ver + '.F' + info.hardware.target + 'B' + info.hardware.body + 'C' + info.hardware.connect }}</span>
-            </p>
-            <p>
-              <span>Radio FW:</span>
-              <span>{{ info.radio.alive !== false ? info.radio.stack.major + '.' + info.radio.stack.minor + '.' + info.radio.stack.sub : 'corrupt' }}</span>
-            </p>
-            <p>
-              <span>Radio stack:</span>
-              <span>{{ radioStackType }}</span>
-            </p>
-          </div>
-          <div class="column items-center">
-            <h5>{{ info.hardware.name }}</h5>
-            <div
-              class="flipper"
-              :class="flipperBodyClass"
-            >
-              <canvas
-                v-show="flags.screenStream"
-                :width="128 * screenScale"
-                :height="64 * screenScale"
-                style="image-rendering: pixelated;"
-                :style="`rotate: ${flags.leftHanded ? 180 : 0}deg`"
-                ref="screenStreamCanvas"
-              ></canvas>
-              <img
-                v-if="flags.updateInProgress"
-                src="../assets/flipper-screen-updating.png"
-                style="image-rendering: pixelated; position: relative; top: -2px;"
-              />
+        <template v-if="info">
+          <div class="flex">
+            <div class="info">
+              <p>
+                <span>Firmware:</span>
+                <span>{{ info.firmware.version !== 'unknown' ? info.firmware.version : info.firmware.commit }}</span>
+              </p>
+              <p>
+                <span>Build date:</span>
+                <span>{{ info.firmware.build.date }}</span>
+              </p>
+              <p>
+                <span>SD card:</span>
+                <span>{{ sdCardUsage }}</span>
+              </p>
+              <p>
+                <span>Databases:</span>
+                <span>{{ info.storage.databases.status }}</span>
+              </p>
+              <p>
+                <span>Hardware:</span>
+                <span>{{ info.hardware.ver + '.F' + info.hardware.target + 'B' + info.hardware.body + 'C' + info.hardware.connect }}</span>
+              </p>
+              <p>
+                <span>Radio FW:</span>
+                <span>{{ info.radio.alive !== false ? info.radio.stack.major + '.' + info.radio.stack.minor + '.' + info.radio.stack.sub : 'corrupt' }}</span>
+              </p>
+              <p>
+                <span>Radio stack:</span>
+                <span>{{ radioStackType }}</span>
+              </p>
+            </div>
+            <div class="column items-center">
+              <h5>{{ info.hardware.name }}</h5>
+              <div
+                class="flipper"
+                :class="flipperBodyClass"
+              >
+                <canvas
+                  v-show="flags.screenStream"
+                  :width="128 * screenScale"
+                  :height="64 * screenScale"
+                  style="image-rendering: pixelated;"
+                  :style="`rotate: ${flags.leftHanded ? 180 : 0}deg`"
+                  ref="screenStreamCanvas"
+                ></canvas>
+                <img
+                  v-if="flags.updateInProgress"
+                  src="../assets/flipper-screen-updating.png"
+                  style="image-rendering: pixelated; position: relative; top: -2px;"
+                />
+              </div>
             </div>
           </div>
-        </div>
-        <Updater/>
+          <Updater/>
+        </template>
       </div>
       <div
         v-if="!flags.updateInProgress && (!mainFlags.connected || info == null || !flags.rpcActive || flags.rpcToggling)"
