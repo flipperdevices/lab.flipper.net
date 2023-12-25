@@ -108,10 +108,9 @@ export const useMainStore = defineStore('main', () => {
 
     await flipper.value.startRPCSession()
       .catch(error => {
-        console.error(error)
         log({
           level: 'error',
-          message: `${componentName}: Error while starting RPC: ${error.toString()}`
+          message: `${componentName}: Failed to start RPC: ${error.toString()}`
         })
       })
     flags.value.rpcActive = true
@@ -340,15 +339,20 @@ export const useMainStore = defineStore('main', () => {
     }
 
     await connect(path)
-    function catchOnClose (path) {
-      flags.value.connected = false
-      autoReconnect(path)
+    if (flags.value.isElectron) {
+      function catchOnClose (path) {
+        flags.value.connected = false
+        autoReconnect(path)
+        unbind()
+      }
+      const unbind = flipper.value.emitter.on('disconnect', path => catchOnClose(path))
     }
+
     setTimeout(async () => {
       await startRpc()
-      if (flags.value.isElectron) {
+      /* if (flags.value.isElectron) {
         window.serial.onClose(catchOnClose)
-      }
+      } */
       await readInfo()
       await setTime()
     }, 500)
@@ -531,6 +535,7 @@ export const useMainStore = defineStore('main', () => {
 
     selectPort,
     start,
+    startRpc,
     setRpcStatus,
 
     updateStage,
