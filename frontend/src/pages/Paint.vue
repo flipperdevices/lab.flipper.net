@@ -8,7 +8,6 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import PixelEditor from 'src/components/PixelEditor.vue'
 import { imageDataToXBM } from '../util/pixeleditor/xbm'
-import { log } from 'composables/useLog'
 import showNotif from 'composables/useShowNotif'
 import { rpcErrorHandler } from 'composables/useRpcUtils'
 
@@ -33,25 +32,6 @@ const autoStreaming = ref({
 })
 let backlightInterval = null
 const editor = ref(null)
-
-const startRpc = async () => {
-  flags.value.rpcToggling = true
-  await flipper.value.startRPCSession()
-    .catch(error => {
-      console.error(error)
-      log({
-        level: 'error',
-        message: `${componentName}: Error while starting RPC: ${error.toString()}`
-      })
-    })
-  flags.value.rpcActive = true
-  mainStore.setRpcStatus(true)
-  flags.value.rpcToggling = false
-  log({
-    level: 'info',
-    message: `${componentName}: RPC started`
-  })
-}
 
 const startVirtualDisplay = async () => {
   await flipper.value.RPC('guiStartVirtualDisplay')
@@ -98,16 +78,16 @@ const autoStream = () => {
   }
 }
 
-const start = () => {
+const start = async () => {
   flags.value.rpcActive = mainFlags.value.rpcActive
   if (!mainFlags.value.rpcActive) {
-    startRpc()
+    await mainStore.startRpc()
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
   if (mainFlags.value.connected && info.value !== null && info.value.doneReading) {
-    start()
+    await start()
   }
 
   startVirtualDisplay()
