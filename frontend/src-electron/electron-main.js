@@ -2,12 +2,13 @@ import { app, BrowserWindow, nativeTheme, utilityProcess, ipcMain } from 'electr
 import path from 'path'
 import os from 'os'
 import { SerialPort } from 'serialport'
+const extraResourcesPath = process.env.WEBPACK_SERVE === 'true' ? 'extraResources' : '../extraResources'
 
 const qFlipper = {
   spawn (event, args) {
     try {
       const webContents = event.sender
-      const cliProcess = utilityProcess.fork(path.resolve(__dirname, 'extraResources/qflipper/cli/process.js'))
+      const cliProcess = utilityProcess.fork(path.resolve(__dirname, extraResourcesPath, 'qflipper/cli/process.js'))
       cliProcess.postMessage({ args })
       cliProcess.on('message', data => webContents.send('qFlipper:log', data))
     } catch (error) {
@@ -85,6 +86,7 @@ const serial = {
             resolve(port.readable)
           },
           onClose: () => {
+            // console.log(`onClose ${path}`)
             webContents.send('serial:onClose', path)
           },
           onData: data => {
@@ -110,7 +112,7 @@ const serial = {
         if (!port) {
           reject('Port not found')
         }
-        port.removeAllListeners()
+        // UNCOMMENT IF NEEDED port.removeAllListeners()
         // port.removeListener('data', port.handlers.onData)
         port.close(error => {
           if (error) {
@@ -146,10 +148,7 @@ const serial = {
     try {
       return new Promise((resolve, reject) => {
         const port = ports.find(e => e.path === path)
-        if (!port) {
-          reject('Port not found')
-        }
-        resolve(port.isOpen)
+        resolve(!!port?.isOpen)
       })
     } catch (error) {
       console.error(error)
@@ -190,9 +189,11 @@ async function createWindow () {
   if (process.env.DEBUGGING) {
     mainWindow.webContents.openDevTools()
   } else {
-    mainWindow.webContents.on('devtools-opened', () => {
-      mainWindow.webContents.closeDevTools()
-    })
+    if (process.env.PRODUCTION) {
+      mainWindow.webContents.on('devtools-opened', () => {
+        mainWindow.webContents.closeDevTools()
+      })
+    }
   }
 
   mainWindow.once('ready-to-show', () => {
