@@ -9,7 +9,7 @@ const log = ({ level, message }) => {
   history.push({
     level,
     timestamp,
-    time: `${t.getHours()}:${t.getMinutes()}:${t.getSeconds()}`,
+    time: `${t.getHours().toString().padStart(2, 0)}:${t.getMinutes().toString().padStart(2, 0)}:${t.getSeconds().toString().padStart(2, 0)}`,
     message
   })
   switch (level) {
