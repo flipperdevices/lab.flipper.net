@@ -648,9 +648,9 @@ const selectPort = async (onShowDialog) => {
   mainStore.selectPort(onShowDialog)
 }
 const onConnectFlipper = async (manual, path) => {
-  if (flipper.value.path && path !== flipper.value.path) {
+  /* if (flipper.value.path && path !== flipper.value.path && window.serial.isOpen(flipper.value.path)) {
     await disconnect()
-  }
+  } */
   mainStore.toggleFlag('dialogMultiflipper', false)
   start(manual, path)
 }
@@ -658,6 +658,7 @@ const disconnect = async () => {
   await flipper.value.disconnect()
     .then(() => {
       connectionStatus.value = 'Disconnected'
+      flipper.value.path = null
       mainStore.toggleFlag('connected', false)
       mainStore.setInfo(null)
       log({
