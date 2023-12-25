@@ -1,7 +1,7 @@
 <template>
   <q-page class="flex-center column full-width">
     <div class="flex-center column">
-      <div v-show="flags.updateInProgress || (mainFlags.connected && info !== null && info.doneReading && flags.rpcActive)" class="device-screen column">
+      <div v-show="mainFlags.updateInProgress || (mainFlags.connected && info !== null && info.doneReading && flags.rpcActive)" class="device-screen column">
         <template v-if="info">
           <div class="flex">
             <div class="info">
@@ -37,7 +37,7 @@
             <div class="column items-center">
               <h5>{{ info.hardware.name }}</h5>
               <div
-                class="flipper"
+                class="flipper relative-position"
                 :class="flipperBodyClass"
               >
                 <canvas
@@ -49,9 +49,9 @@
                   ref="screenStreamCanvas"
                 ></canvas>
                 <img
-                  v-if="flags.updateInProgress"
-                  src="../assets/flipper-screen-updating.png"
-                  style="image-rendering: pixelated; position: relative; top: -2px;"
+                  v-if="mainFlags.updateInProgress"
+                  src="~/assets/flipper-screen-updating.png"
+                  style="image-rendering: pixelated;position: absolute;top: 25px;left: 96px;"
                 />
               </div>
             </div>
@@ -60,7 +60,7 @@
         </template>
       </div>
       <div
-        v-if="!flags.updateInProgress && (!mainFlags.connected || info == null || !flags.rpcActive || flags.rpcToggling)"
+        v-if="!mainFlags.updateInProgress && (!mainFlags.connected || info == null || !flags.rpcActive || flags.rpcToggling)"
         class="flex-center column q-my-xl"
       >
         <q-spinner
@@ -94,7 +94,6 @@ const flags = ref({
   rpcActive: false,
   rpcToggling: false,
   screenStream: false,
-  updateInProgress: false,
   leftHanded: false
 })
 const screenScale = ref(1)
@@ -176,24 +175,6 @@ const flipperBodyClass = computed(() => {
   }
 })
 
-const startRpc = async () => {
-  flags.value.rpcToggling = true
-  await flipper.value.startRPCSession()
-    .catch(error => {
-      console.error(error)
-      log({
-        level: 'error',
-        message: `${componentName}: Error while starting RPC: ${error.toString()}`
-      })
-    })
-  flags.value.rpcActive = true
-  mainStore.setRpcStatus(true)
-  flags.value.rpcToggling = false
-  log({
-    level: 'info',
-    message: `${componentName}: RPC started`
-  })
-}
 const startScreenStream = async () => {
   await flipper.value.RPC('guiStartScreenStream')
     .catch(error => rpcErrorHandler(componentName, error, 'guiStartScreenStream'))
@@ -249,7 +230,7 @@ const startScreenStream = async () => {
 const start = async () => {
   flags.value.rpcActive = mainFlags.value.rpcActive
   if (!mainFlags.value.rpcActive) {
-    await startRpc()
+    await mainStore.startRpc()
   }
   if (!flags.value.screenStream) {
     await startScreenStream()
@@ -267,16 +248,19 @@ onMounted(() => {
     start()
   }
 
-  function onDisconnect () {
+  function onDisconnect (unbind) {
     flags.value.rpcActive = false
     flags.value.rpcToggling = false
     mainStore.setRpcStatus(false)
     flags.value.screenStream = false
+    if (unbind) {
+      unbind()
+    }
   }
   if (window.serial) {
-    window.serial.onClose(path => onDisconnect(path))
+    const unbind = flipper.value.emitter.on('disconnect', () => onDisconnect(unbind))
   } else {
-    navigator.serial.addEventListener('disconnect', e => onDisconnect(e))
+    navigator.serial.addEventListener('disconnect', () => onDisconnect())
   }
 })
 </script>
