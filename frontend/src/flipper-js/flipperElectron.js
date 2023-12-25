@@ -1,6 +1,7 @@
 import { LineBreakTransformer, PromptBreakTransformer, ProtobufTransformer } from './transformers'
 import { PB } from './protobufCompiled'
 import { createNanoEvents } from 'nanoevents'
+import asyncSleep from 'simple-async-sleep'
 
 import * as storage from './commands/storage'
 import * as system from './commands/system'
@@ -105,17 +106,15 @@ export default class Flipper {
       path = ports[0].path
     }
     this.path = path
+
     this.readable = new ReadableStream({
-      emitter: null,
       start (controller) {
-        this.emitter = window.serial.onData(data => {
+        window.serial.onData(data => {
           controller.enqueue(data)
         })
-      },
-      cancel () {
-        this.emitter.off()
       }
     })
+
     await window.serial.open(path)
       .catch(async error => {
         if (error.message.endsWith('Port is already open')) {
@@ -123,17 +122,15 @@ export default class Flipper {
           return window.serial.open(path)
         }
       })
+
+    window.serial.onClose(path => this.emitter.emit('disconnect', path))
     return this.getReader()
   }
 
   async disconnect () {
     if (this.reader) {
-      await this.reader.cancel()
-      if (this.readableStreamClosed) {
-        await this.readableStreamClosed.catch(() => {})
-        await this.readable.cancel()
-      }
-      await this.readable.cancel()
+      this.reader.cancel()
+      await this.readableStreamClosed.catch(() => {})
     }
     await window.serial.close(this.path)
   }
@@ -176,24 +173,18 @@ export default class Flipper {
     return window.serial.write({ path: this.path, message })
   }
 
-  async startRPCSession () {
+  async startRPCSession (attempts = 1) {
     await this.setReadingMode('raw', 'protobuf')
-    const startSession = new Promise((resolve, reject) => {
-      setTimeout(() => {
-        this.write('start_rpc_session\r')
-        resolve()
-      }, 300)
-    })
-    await startSession
-    return new Promise((resolve, reject) => {
-      this.RPC('systemPing')
-        .then(() => {
-          resolve()
-        })
-        .catch(error => {
-          reject(error)
-        })
-    })
+    this.write('start_rpc_session\r')
+    await this.RPC('systemPing', { timeout: 1000 })
+      .catch(async error => {
+        if (attempts >= 3) {
+          throw error
+        }
+        console.error(error)
+        await asyncSleep(500)
+        return this.startRPCSession(attempts++)
+      })
   }
 
   encodeRPCRequest (requestType, args, hasNext, commandId) {

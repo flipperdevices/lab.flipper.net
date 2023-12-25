@@ -1,7 +1,7 @@
 import { createRPCPromise, mergeDeep, expand } from '../util'
 
-function ping () {
-  return createRPCPromise.bind(this)('systemPingRequest')
+function ping ({ timeout }) {
+  return createRPCPromise.bind(this)('systemPingRequest', {}, null, null, timeout)
 }
 
 async function reboot ({ mode = 'OS' }) {
