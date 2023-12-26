@@ -1,6 +1,17 @@
 <template>
   <q-page class="column items-center full-width">
-    <PixelEditor ref="editor"/>
+    <div
+      v-if="!mainFlags.connected || !flags.rpcActive || flags.rpcToggling"
+      class="column flex-center q-my-xl"
+    >
+      <q-spinner
+        color="primary"
+        size="3em"
+        class="q-mb-md"
+      ></q-spinner>
+      <p>Waiting for Flipper...</p>
+    </div>
+    <PixelEditor v-else ref="editor"/>
   </q-page>
 </template>
 
@@ -92,6 +103,21 @@ onMounted(async () => {
 
   startVirtualDisplay()
 })
+
+const onDisconnect = (unbind) => {
+  if (autoStreaming.value.interval) {
+    clearInterval(autoStreaming.value.interval)
+  }
+  clearInterval(backlightInterval)
+  if (unbind) {
+    unbind()
+  }
+}
+if (window.serial) {
+  const unbind = flipper.value.emitter.on('disconnect', () => onDisconnect(unbind))
+} else {
+  navigator.serial.addEventListener('disconnect', () => onDisconnect())
+}
 
 onBeforeUnmount(() => {
   if (autoStreaming.value.interval) {
