@@ -1,19 +1,22 @@
 <template>
   <q-page class="column items-center q-pa-md full-width">
     <div class="text-h6 q-py-sm">Mfkey32v2 NFC attack</div>
-    <div class="text-subtitle-1">Crack nonces you've gathered on your Flipper</div>
+      <div class="text-subtitle-1">Crack nonces you've gathered on your Flipper</div>
 
-    <q-btn
-      color="primary"
-      :loading="flags.mfkeyFlipperInProgress"
-      :disable="flags.mfkeyManualInProgress"
-      class="q-mt-lg q-py-sm q-px-lg"
-      label="Give me the keys"
-      @click="mfkeyFlipperStart"
-    />
-    <div class="q-pt-sm q-mb-xl text-subtitle-1">{{ mfkeyStatus }}</div>
+    <template v-if="mainFlags.connected && mainFlags.rpcActive">
+      <q-btn
+        color="primary"
+        :loading="flags.mfkeyFlipperInProgress"
+        :disable="flags.mfkeyManualInProgress"
+        class="q-mt-lg q-py-sm q-px-lg"
+        label="Give me the keys"
+        @click="mfkeyFlipperStart"
+      />
+      <div class="q-pt-sm q-mb-xl text-subtitle-1">{{ mfkeyStatus }}</div>
+    </template>
+    <q-btn v-else outline label="Connect" class="q-mt-lg q-mb-xl" @click="mainStore.start(true)"/>
 
-    <q-card flat bordered class="q-mt-xl">
+    <q-card flat bordered>
       <q-card-section>
         <div class="text-h6">Manual attack</div>
       </q-card-section>

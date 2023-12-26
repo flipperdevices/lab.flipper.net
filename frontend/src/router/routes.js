@@ -63,7 +63,10 @@ const routes = [
     component: () => import('layouts/MainLayout.vue'),
     children: [
       { name: 'NFCTools', path: '', component: () => import('pages/NfcTools.vue') }
-    ]
+    ],
+    meta: {
+      canLoadWithoutFlipper: true
+    }
   },
   {
     path: '/:catchAll(.*)*',
