@@ -52,14 +52,14 @@ export const useMainStore = defineStore('main', () => {
   const reconnectLoop = ref(null)
 
   const connectionStatus = ref('Ready to connect')
-  const findKnownDevices = () => {
+  const findKnownDevices = async () => {
     if (!flags.value.isElectron) {
       const filters = [
         { usbVendorId: 0x0483, usbProductId: 0x5740 }
       ]
       return navigator.serial.getPorts({ filters })
     } else {
-      return window.serial.list()
+      return await window.serial.list()
     }
   }
   const connect = async (path) => {
@@ -266,16 +266,19 @@ export const useMainStore = defineStore('main', () => {
   }
 
   const autoReconnect = (path) => {
-    console.log('autoReconnect', path)
     if (reconnectLoop.value) {
       clearInterval(reconnectLoop.value)
       reconnectLoop.value = null
     }
+
     if (flags.value.autoReconnect) {
       reconnectLoop.value = setInterval(async () => {
         if (flags.value.autoReconnect) {
           const ports = await findKnownDevices()
-          if (ports && ports.length > 0 && ports.find(e => e.path === path)) {
+          if (ports && ports.length > 0) {
+            if (path && !ports.find(e => e.path === path)) {
+              return
+            }
             clearInterval(reconnectLoop.value)
             reconnectLoop.value = null
             return await start(false, path)
@@ -339,13 +342,20 @@ export const useMainStore = defineStore('main', () => {
     }
 
     await connect(path)
+    if (reconnectLoop.value) {
+      clearInterval(reconnectLoop.value)
+      reconnectLoop.value = null
+    }
+    flags.value.autoReconnect = localStorage.getItem('autoReconnect') !== 'false'
     if (flags.value.isElectron) {
-      function catchOnClose (path) {
+      function onDisconnect (path) {
         flags.value.connected = false
-        autoReconnect(path)
+        if (flags.value.autoReconnect) {
+          autoReconnect(path)
+        }
         unbind()
       }
-      const unbind = flipper.value.emitter.on('disconnect', path => catchOnClose(path))
+      const unbind = flipper.value.emitter.on('disconnect', path => onDisconnect(path))
     }
 
     setTimeout(async () => {
@@ -537,6 +547,7 @@ export const useMainStore = defineStore('main', () => {
     start,
     startRpc,
     setRpcStatus,
+    autoReconnect,
 
     updateStage,
     onUpdateStage,
