@@ -1,3 +1,4 @@
+// dependencies: ["./worker-utils.js", "./image-utils.js", "./curve-utils.js"]
 import { MessageStream, message } from './worker-utils.js'
 import { GrayImageF32N0F8 } from './image-utils.js'
 import { hilbertCurveGenerator, weightGenerator } from './curve-utils.js'

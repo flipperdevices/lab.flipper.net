@@ -1,3 +1,4 @@
+// dependencies: ["./costants.js"]
 import { defaults } from './costants.js'
 import {
   getBoundaries,

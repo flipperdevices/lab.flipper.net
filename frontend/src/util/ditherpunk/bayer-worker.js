@@ -1,3 +1,4 @@
+// dependencies: ["./worker-utils.js", "./image-utils.js"]
 import { MessageStream } from './worker-utils.js'
 import { GrayImageF32N0F8 } from './image-utils.js'
 

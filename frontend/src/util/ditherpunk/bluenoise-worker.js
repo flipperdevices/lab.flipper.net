@@ -1,3 +1,4 @@
+// dependencies: ["./image-utils.js"]
 import { GrayImageF32N0F8 } from './image-utils.js'
 
 function pointEqual (p, q) {
