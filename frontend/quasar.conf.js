@@ -4,6 +4,7 @@ const { configure } = require('quasar/wrappers')
 const path = require('node:path')
 
 const { compileProtofiles, moveWorkers } = require('./beforeBuild.js')
+const { cpVendor, packAsar } = require('./afterBuild.js')
 
 module.exports = configure(function (ctx) {
   return {
@@ -36,6 +37,13 @@ module.exports = configure(function (ctx) {
         await compileProtofiles()
         if (quasarConf.ctx.mode.electron) {
           await moveWorkers()
+        }
+      },
+
+      afterBuild: async ({ quasarConf }) => {
+        if (quasarConf.ctx.mode.electron) {
+          await cpVendor()
+          await packAsar()
         }
       },
 
