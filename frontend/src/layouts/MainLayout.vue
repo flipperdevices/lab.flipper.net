@@ -431,7 +431,7 @@
       <q-dialog v-model="flags.dialogMultiflipper">
         <q-card>
           <q-card-section
-            v-if="!mainStore.availableFlippers.length"
+            v-if="!flags.multiflipper"
             class="q-pa-none q-ma-md"
             align="center"
           >
@@ -441,17 +441,17 @@
             <q-list class="q-gutter-y-md">
               <q-item v-for="flipper in mainStore.availableFlippers" :key="flipper.hardware_name">
                 <q-item-section>
-                  <img v-if="flipper.hardware_color === '1'" src="../assets/flipper_black.svg" style="width: 100%"/>
-                  <img v-else-if="flipper.hardware_color === '3'" src="../assets/flipper_transparent.svg" style="width: 100%"/>
+                  <img v-if="flipper.hardware.color === '1'" src="../assets/flipper_black.svg" style="width: 100%"/>
+                  <img v-else-if="flipper.hardware.color === '3'" src="../assets/flipper_transparent.svg" style="width: 100%"/>
                   <img v-else src="../assets/flipper_white.svg" style="width: 100%"/>
                 </q-item-section>
                 <q-item-section>
                   <div>
-                    <div class="text-h6">{{ flipper.hardware_name }}</div>
-                    <div class="text-caption">Firmware {{ flipper.firmware_version }}</div>
+                    <div class="text-h6">{{ flipper.hardware.name }}</div>
+                    <div class="text-caption">Firmware {{ flipper.firmware.version }}</div>
                   </div>
                 </q-item-section>
-                <q-item-section v-if="info?.hardware.uid === flipper.hardware_uid">
+                <q-item-section v-if="info?.hardware?.uid === flipper.hardware.uid">
                   <q-btn unelevated color="positive" @click="disconnect" bordered label="Disconnect" />
                 </q-item-section>
                 <q-item-section v-else>
@@ -651,7 +651,6 @@ const onConnectFlipper = async (manual, path) => {
   /* if (flipper.value.path && path !== flipper.value.path && window.serial.isOpen(flipper.value.path)) {
     await disconnect()
   } */
-  mainStore.toggleFlag('dialogMultiflipper', false)
   start(manual, path)
 }
 const disconnect = async () => {
