@@ -494,9 +494,9 @@ export const useMainStore = defineStore('main', () => {
       flags.value.recovery = false
 
       if (!recoveryRestart.value) {
-        resetRecovery()
-
         if (!flags.value.showRecoveryLog) {
+          resetRecovery()
+
           flags.value.dialogRecovery = false
         }
         flags.value.autoReconnect = autoReconnectCondition.value
@@ -510,9 +510,11 @@ export const useMainStore = defineStore('main', () => {
 
     const lines = message.data.split('\n')
     lines.forEach(line => {
+      let level = 'info'
+
       if (line.length > 0) {
         recoveryLogs.value.push(line)
-        console.log(line)
+
         if (line.includes(updateStages.value[stageIndex.value]?.name)) {
           if (line.endsWith('START')) {
             setUpdateStage(updateStages.value[stageIndex.value].name)
@@ -522,12 +524,19 @@ export const useMainStore = defineStore('main', () => {
             recoveryProgress.value = stageIndex.value / updateStages.value.length
           }
         } else if (!recoveryRestart.value && (line.toLowerCase().includes('failed') || line.includes('ERROR'))) {
+          level = 'error'
+
           recoveryRestart.value = true
 
           resetRecovery()
 
           recovery(logCallback)
         }
+
+        log({
+          level,
+          message: line
+        })
       }
     })
   }
