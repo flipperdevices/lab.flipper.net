@@ -121,6 +121,13 @@ export const useMainStore = defineStore('main', () => {
       message: `${componentName}: RPC started`
     })
   }
+  const getProtobufVersion = async () => {
+    return await flipper.value.RPC('systemProtobufVersion')
+  }
+  const isOldProtobuf = async () => {
+    const protobufVersion = getProtobufVersion()
+    return protobufVersion.major === 0 && protobufVersion.minor < 14
+  }
   const readInfo = async () => {
     if (!flags.value.connected) {
       return
@@ -135,8 +142,7 @@ export const useMainStore = defineStore('main', () => {
         internal: {}
       }
     })
-    const protobufVersion = await flipper.value.RPC('systemProtobufVersion')
-    if (protobufVersion.major === 0 && protobufVersion.minor < 14) { // major при 0
+    if (isOldProtobuf()) {
       await flipper.value.RPC('systemDeviceInfo')
         .then(devInfo => {
           log({
@@ -286,6 +292,36 @@ export const useMainStore = defineStore('main', () => {
         }
       }, 1000)
     }
+  }
+
+  const getDeviceInfo = async (port) => {
+    let info = {
+      doneReading: false,
+      storage: {
+        sdcard: {
+          status: {}
+        },
+        databases: {},
+        internal: {}
+      }
+    }
+    await flipper.value.connect(port.path)
+    await flipper.value.startRPCSession()
+    await asyncSleep(500)
+    if (isOldProtobuf()) {
+      await flipper.value.RPC('systemDeviceInfo')
+        .then(devInfo => {
+          info = { ...info, ...devInfo }
+        })
+    } else {
+      await flipper.value.RPC('propertyGet', { key: 'devinfo' })
+        .then(devInfo => {
+          info = { ...info, ...devInfo }
+        })
+    }
+    info.port = port
+
+    return info
   }
 
   const start = async (manual, path, onShowDialog) => {
