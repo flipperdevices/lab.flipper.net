@@ -121,30 +121,37 @@ export default class Flipper {
   }
 
   async connect (path) {
-    if (!path) {
-      const ports = await window.serial.list()
-      path = ports[0].path
-    }
-    this.path = path
-
-    this.readable = new ReadableStream({
-      start (controller) {
-        window.serial.onData(data => {
-          controller.enqueue(data)
-        })
-      }
-    })
-
-    await window.serial.open(path)
-      .catch(async error => {
-        if (error.message.endsWith('Port is already open')) {
-          await this.disconnect()
-          return window.serial.open(path)
+    return new Promise((resolve, reject) => {
+      (async () => {
+        if (!path) {
+          const ports = await window.serial.list()
+          path = ports[0].path
         }
-      })
+        this.path = path
 
-    window.serial.onClose(path => this.emitter.emit('disconnect', path))
-    return this.getReader()
+        this.readable = new ReadableStream({
+          start (controller) {
+            window.serial.onData(data => {
+              controller.enqueue(data)
+            })
+          }
+        })
+
+        await window.serial.open(path)
+          .catch(async error => {
+            if (error.message.endsWith('Port is already open')) {
+              await this.disconnect()
+              resolve(window.serial.open(path))
+            }
+
+            reject(error)
+          })
+
+        window.serial.onClose(path => this.emitter.emit('disconnect', path))
+
+        resolve(this.getReader())
+      })()
+    })
   }
 
   async disconnect () {
