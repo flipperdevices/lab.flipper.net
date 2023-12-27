@@ -5,7 +5,7 @@ import { log } from 'composables/useLog'
 import { rpcErrorHandler } from 'composables/useRpcUtils'
 import { useRoute, useRouter } from 'vue-router'
 import asyncSleep from 'simple-async-sleep'
-import { Platform } from 'quasar'
+import { Notify, Platform } from 'quasar'
 const Flipper = await import(`src/flipper-js/${Platform.is.electron ? 'flipperElectron' : 'flipper'}`).then(m => m.default)
 
 export const useMainStore = defineStore('main', () => {
@@ -63,33 +63,45 @@ export const useMainStore = defineStore('main', () => {
     }
   }
   const connect = async (path) => {
-    await flipper.value.connect(path)
-      .then(() => {
-        connectionStatus.value = 'Flipper connected'
+    return new Promise((resolve, reject) => {
+      (async () => {
+        await flipper.value.connect(path)
+          .then(() => {
+            connectionStatus.value = 'Flipper connected'
 
-        flags.value.portSelectRequired = false
-        flags.value.connected = true
-        flags.value.flipperOccupiedDialog = false
+            flags.value.portSelectRequired = false
+            flags.value.connected = true
+            flags.value.flipperOccupiedDialog = false
 
-        log({
-          level: 'info',
-          message: `${componentName}: Flipper connected`
-        })
-      })
-      .catch(error => {
-        if (error.toString() === 'Error: No known ports') {
-          flags.value.portSelectRequired = true
-        } else if (error.toString().includes('Failed to open serial port')) {
-          flags.value.portSelectRequired = true
-          flags.value.flipperOccupiedDialog = true
-        } else {
-          log({
-            level: 'error',
-            message: `${componentName}: Failed to connect: ${error}`
+            log({
+              level: 'info',
+              message: `${componentName}: Flipper connected`
+            })
+
+            resolve()
           })
-          connectionStatus.value = error.toString()
-        }
-      })
+          .catch(error => {
+            if (error.toString() === 'Error: No known ports') {
+              flags.value.portSelectRequired = true
+
+              reject([path, { message: 'Error: No known ports' }])
+            } else if (error.toString().includes('Failed to open serial port')) {
+              flags.value.portSelectRequired = true
+              flags.value.flipperOccupiedDialog = true
+
+              reject([path, { message: 'Failed to open serial port' }])
+            } else {
+              log({
+                level: 'error',
+                message: `${componentName}: Failed to connect: ${error}`
+              })
+              connectionStatus.value = error.toString()
+
+              reject([path, { message: `Cannot open ${path}` }])
+            }
+          })
+      })()
+    })
   }
   const selectPort = async (onShowDialog) => {
     if (!flags.value.isElectron) {
@@ -384,23 +396,52 @@ export const useMainStore = defineStore('main', () => {
     }
 
     await connect(path)
-    if (flags.value.isElectron) {
-      function catchOnClose (path) {
-        flags.value.connected = false
-        autoReconnect(path)
-        unbind()
-      }
-      const unbind = flipper.value.emitter.on('disconnect', path => catchOnClose(path))
-    }
+      .then(async () => {
+        flags.value.dialogMultiflipper = false
+        flags.value.autoReconnect = autoReconnectCondition.value
+        localStorage.setItem('autoReconnect', flags.value.autoReconnect)
+        autoReconnectCondition.value = null
 
-    setTimeout(async () => {
-      await startRpc()
-      /* if (flags.value.isElectron) {
-        window.serial.onClose(catchOnClose)
-      } */
-      await readInfo()
-      await setTime()
-    }, 500)
+        function catchOnClose (path) {
+          flags.value.connected = false
+          autoReconnect(path)
+        }
+        if (flags.value.isElectron) {
+          function catchOnClose (path) {
+            flags.value.connected = false
+            autoReconnect(path)
+            unbind()
+          }
+          const unbind = flipper.value.emitter.on('disconnect', path => catchOnClose(path))
+        }
+
+        await startRpc()
+        if (flags.value.isElectron) {
+          window.serial.onClose(catchOnClose)
+        }
+        await readInfo()
+        await setTime()
+      })
+      .catch(([path, error]) => {
+        const index = availableFlippers.value.findIndex((flipper) => flipper.port.path === path)
+        if (index !== -1) {
+          availableFlippers.value.splice(index, 1)
+
+          flags.value.multiflipper = false
+
+          Notify.create({
+            type: 'negative',
+            message: error.message
+          })
+        }
+
+        if (availableFlippers.value.length === 1) {
+          start(false, availableFlippers.value[0].port.path)
+          return
+        }
+
+        start()
+      })
   }
 
   const updateStage = ref('')
