@@ -7,17 +7,6 @@ contextBridge.exposeInMainWorld('qFlipper', {
 
 contextBridge.exposeInMainWorld('serial', {
   list: (filter = { productId: '5740', vendorId: '0483' }) => ipcRenderer.invoke('serial:list', filter),
-  getDeviceInfo: async port => {
-    const result = await ipcRenderer.invoke('serial:getDeviceInfo', port)
-    const lines = result.split('\r\n')
-    const infoLines = lines.slice(lines.findIndex(e => e.includes('>:')) + 1, lines.findLastIndex(e => e.includes('>:')) - 1)
-    const devInfo = {}
-    infoLines.forEach(e => {
-      const [key, value] = e.split(': ')
-      devInfo[key.trim()] = value
-    })
-    return devInfo
-  },
   open: path => ipcRenderer.invoke('serial:open', path),
   close: path => {
     ipcRenderer.removeAllListeners()
