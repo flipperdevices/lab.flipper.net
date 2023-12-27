@@ -67,7 +67,8 @@ const serial = {
         port.on('close', port.handlers.onClose)
       })
     } catch (error) {
-      console.error(error)
+      console.error('error', error)
+      return error
     }
   },
   close (event, path) {
