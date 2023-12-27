@@ -757,7 +757,6 @@ onMounted(async () => {
     }
     if (localStorage.getItem('autoReconnect') !== 'false') {
       mainStore.toggleFlag('autoReconnect', true)
-      mainStore.autoReconnect()
     }
     if (localStorage.getItem('installFromFile') === 'true') {
       mainStore.toggleFlag('installFromFile', true)

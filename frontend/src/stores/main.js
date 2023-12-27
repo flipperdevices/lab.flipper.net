@@ -31,7 +31,7 @@ export const useMainStore = defineStore('main', () => {
     rpcActive: false,
     rpcToggling: false,
     connectOnStart: true,
-    autoReconnect: false,
+    autoReconnect: true,
     updateInProgress: false,
     installFromFile: false,
     logsPopup: false,
@@ -353,6 +353,10 @@ export const useMainStore = defineStore('main', () => {
       flags.value.multiflipper = false
 
       if (!ports || ports.length === 0) {
+        if (flags.value.autoReconnect) {
+          autoReconnect()
+        }
+
         flags.value.portSelectRequired = true
 
         if (flags.value.isElectron) {
