@@ -6,3 +6,7 @@ frontend/package-lock.json
 # Quasar core related directories
 frontend/.quasar
 frontend/dist
+
+# Generated files
+frontend/src/flipper-js/protobufCompiled.js
+frontend/src-electron/extraResources/workers
