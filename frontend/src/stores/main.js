@@ -378,11 +378,6 @@ export const useMainStore = defineStore('main', () => {
         }
         flags.value.loadingMultiflipper = true
 
-        if (localStorage.getItem('autoReconnect') === 'true') {
-          autoReconnectCondition.value = true
-        } else {
-          autoReconnectCondition.value = false
-        }
         flags.value.autoReconnect = false
         localStorage.setItem('autoReconnect', flags.value.autoReconnect)
 
@@ -416,6 +411,12 @@ export const useMainStore = defineStore('main', () => {
         if (reconnectLoop.value) {
           clearInterval(reconnectLoop.value)
           reconnectLoop.value = null
+        }
+
+        if (localStorage.getItem('autoReconnect') !== 'false') {
+          autoReconnectCondition.value = true
+        } else {
+          autoReconnectCondition.value = false
         }
 
         flags.value.dialogMultiflipper = false
