@@ -331,6 +331,9 @@ export const useMainStore = defineStore('main', () => {
     if (!path) {
       const ports = await findKnownDevices()
 
+      availableFlippers.value = []
+      flags.value.multiflipper = false
+
       if (!ports || ports.length === 0) {
         flags.value.portSelectRequired = true
 
@@ -338,7 +341,6 @@ export const useMainStore = defineStore('main', () => {
           if (onShowDialog) {
             flags.value.dialogMultiflipper = true
           }
-          // open dialog ваши флипперы будут здесь
           return
         }
 
@@ -348,7 +350,7 @@ export const useMainStore = defineStore('main', () => {
         return
       }
 
-      if (ports.length === 1) {
+      if (ports.length === 1 || !flags.value.isElectron) {
         path = ports[0].path
       } else {
         flags.value.multiflipper = true
@@ -358,18 +360,25 @@ export const useMainStore = defineStore('main', () => {
         }
         flags.value.loadingMultiflipper = true
 
+        if (localStorage.getItem('autoReconnect') === 'true') {
+          autoReconnectCondition.value = true
+        } else {
+          autoReconnectCondition.value = false
+        }
         flags.value.autoReconnect = false
+        localStorage.setItem('autoReconnect', flags.value.autoReconnect)
 
         try {
           for await (const port of ports) {
-            const devInfo = await window.serial.getDeviceInfo(port)
-            devInfo.port = port
-            if (!availableFlippers.value.some(f => f.port.path === devInfo.port.path)) {
-              availableFlippers.value.push(devInfo)
-            }
+            const devInfo = await getDeviceInfo(port)
+
+            availableFlippers.value.push(devInfo)
+
+            await flipper.value.disconnect()
+            await flipper.value.defaultInfo()
           }
         } catch (error) {
-          console.error(error.message)
+          console.error(error)
           flags.value.loadingMultiflipper = false
         }
         flags.value.loadingMultiflipper = false

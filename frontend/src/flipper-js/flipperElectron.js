@@ -40,6 +40,26 @@ export default class Flipper {
     this.emitter = createNanoEvents()
   }
 
+  defaultInfo () {
+    this.path = null
+    this.readable = null
+    this.reader = null
+    this.readingMode = {
+      type: 'text',
+      transform: 'promptBreak'
+    }
+    // RPC
+    this.commandQueue = [
+      {
+        commandId: 0,
+        requestType: 'unsolicited',
+        chunks: [],
+        error: undefined
+      }
+    ]
+    this.emitter = createNanoEvents()
+  }
+
   getReader () {
     if (this.readingMode.type === 'text') {
       // eslint-disable-next-line no-undef
