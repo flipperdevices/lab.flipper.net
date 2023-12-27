@@ -87,6 +87,8 @@ const moveWorkers = async () => {
   const workersList = result.filter(e => e.endsWith('worker.js')).map(e => e.slice(e.indexOf('frontend/src') + 9))
   const dependencies = new Set()
 
+  await fs.promises.mkdir('src-electron/extraResources/workers/', { recursive: true })
+
   for (const workerPath of workersList) {
     const workerDir = workerPath.slice(0, workerPath.lastIndexOf('/'))
     const fileName = workerPath.slice(workerPath.lastIndexOf('/') + 1)
