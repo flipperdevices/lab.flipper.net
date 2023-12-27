@@ -470,16 +470,16 @@
             </div>
           </q-card-section>
           <q-card-section align="center">
-            <q-btn unelevated color="primary" label="Recovery" @click="recovery"/>
+            <q-btn unelevated color="primary" label="Repair" @click="recovery"/>
           </q-card-section>
         </q-card>
       </q-dialog>
-      <q-dialog v-model="flags.dialogRecovery" :persistent="flags.recovery">
+      <q-dialog v-model="flags.dialogRecovery" :persistent="flags.recovery" @hide="mainStore.resetRecovery(true)">
         <q-card
           style="min-width: 280px; width: calc(min(80vw, 600px));"
         >
           <q-card-section class="row items-center">
-            <div class="text-h6">Recovery</div>
+            <div class="text-h6">Repair</div>
           </q-card-section>
           <q-card-section class="row items-center">
             <p>{{ updateStage }}</p>
@@ -673,8 +673,9 @@ const disconnect = async () => {
       connectionStatus.value = error.toString()
     })
 }
-const onSwitchFlipper = () => {
-  mainStore.toggleFlag('dialogMultiflipper', true)
+const onSwitchFlipper = async () => {
+  // mainStore.toggleFlag('dialogMultiflipper', true)
+  await mainStore.start()
 }
 
 const toggleConnectOnStart = () => {

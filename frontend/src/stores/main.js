@@ -140,11 +140,11 @@ export const useMainStore = defineStore('main', () => {
     const protobufVersion = getProtobufVersion()
     return protobufVersion.major === 0 && protobufVersion.minor < 14
   }
-  const readInfo = async () => {
+  const readInfo = async (path) => {
     if (!flags.value.connected) {
       return
     }
-    setInfo({
+    const defaultInfo = {
       doneReading: false,
       storage: {
         sdcard: {
@@ -153,7 +153,13 @@ export const useMainStore = defineStore('main', () => {
         databases: {},
         internal: {}
       }
-    })
+    }
+    if (path) {
+      defaultInfo.port = {
+        path
+      }
+    }
+    setInfo(defaultInfo)
     if (isOldProtobuf()) {
       await flipper.value.RPC('systemDeviceInfo')
         .then(devInfo => {
@@ -341,7 +347,7 @@ export const useMainStore = defineStore('main', () => {
 
   const start = async (manual, path, onShowDialog) => {
     if (!path) {
-      const ports = await findKnownDevices()
+      let ports = await findKnownDevices()
 
       availableFlippers.value = []
       flags.value.multiflipper = false
@@ -381,13 +387,20 @@ export const useMainStore = defineStore('main', () => {
         localStorage.setItem('autoReconnect', flags.value.autoReconnect)
 
         try {
+          if (info.value?.port?.path) {
+            ports = ports.filter(port => port.path !== info.value.port.path)
+            ports.push({ path: info.value.port.path })
+          }
           for await (const port of ports) {
             const devInfo = await getDeviceInfo(port)
 
             availableFlippers.value.push(devInfo)
 
-            await flipper.value.disconnect()
-            await flipper.value.defaultInfo()
+            // devInfo.hardware.name === info.value.hardware.name
+            if (devInfo.port.path !== info.value?.port?.path) {
+              await flipper.value.disconnect()
+              await flipper.value.defaultInfo()
+            }
           }
         } catch (error) {
           console.error(error)
@@ -422,10 +435,7 @@ export const useMainStore = defineStore('main', () => {
         }
 
         await startRpc()
-        if (flags.value.isElectron) {
-          window.serial.onClose(catchOnClose)
-        }
-        await readInfo()
+        await readInfo(path)
         await setTime()
       })
       .catch(([path, error]) => {
@@ -487,26 +497,27 @@ export const useMainStore = defineStore('main', () => {
 
   const path = ref('')
   const autoReconnectCondition = ref(null)
-  const resetRecovery = () => {
-    path.value = ''
+  const resetRecovery = (clearLogs = false) => {
     stageIndex.value = 0
     recoveryProgress.value = 0
     updateStages.value.forEach(stage => {
       stage.ended = false
     })
+    if (clearLogs) {
+      recoveryLogs.value = []
+    }
   }
-  const logCallback = (message) => {
-    if (message.type === 'exit') {
+  const logCallback = async (message) => {
+    if (message.type === 'exit' && message.code === 0) {
       flags.value.recovery = false
 
       if (!recoveryRestart.value) {
         if (!flags.value.showRecoveryLog) {
-          resetRecovery()
-
           flags.value.dialogRecovery = false
         }
         flags.value.autoReconnect = autoReconnectCondition.value
         onUpdateStage('end')
+        await asyncSleep(1000)
         return start(false, path.value)
       }
 
@@ -647,6 +658,7 @@ export const useMainStore = defineStore('main', () => {
     recoveryProgress,
     logCallback,
     recovery,
+    resetRecovery,
 
     fileToPass,
     openFileIn,

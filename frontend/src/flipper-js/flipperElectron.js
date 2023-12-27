@@ -205,12 +205,12 @@ export default class Flipper {
     this.write('start_rpc_session\r')
     await this.RPC('systemPing', { timeout: 1000 })
       .catch(async error => {
-        if (attempts >= 3) {
+        if (attempts > 3) {
           throw error
         }
         console.error(error)
         await asyncSleep(500)
-        return this.startRPCSession(attempts++)
+        return this.startRPCSession(attempts + 1)
       })
   }
 
