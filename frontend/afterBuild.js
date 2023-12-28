@@ -14,7 +14,7 @@ const cpVendor = () => {
   })
 }
 
-const packAsar = () => {
+const packAsarArm = () => {
   return new Promise((resolve, reject) => {
     exec('npx asar pack ./dist/electron/UnPackaged ./dist/electron/Packaged/mac-arm64/lab.flipper.net.app/Contents/Resources/app.asar', (err, stdout, stderr) => {
       if (err) {
@@ -24,6 +24,37 @@ const packAsar = () => {
         reject(stderr)
       }
       resolve()
+    })
+  })
+}
+
+const packAsarIntel = () => {
+  return new Promise((resolve, reject) => {
+    exec('npx asar pack ./dist/electron/UnPackaged ./dist/electron/Packaged/mac/lab.flipper.net.app/Contents/Resources/app.asar', (err, stdout, stderr) => {
+      if (err) {
+        reject(err)
+      }
+      if (stderr) {
+        reject(stderr)
+      }
+      resolve()
+    })
+  })
+}
+
+const packAsar = () => {
+  return new Promise((resolve, reject) => {
+    packAsarArm((err, result) => {
+      if (err) {
+        reject('Arm64: ', err)
+      }
+      resolve(result)
+    })
+    packAsarIntel((err, result) => {
+      if (err) {
+        reject('Intel: ', err)
+      }
+      resolve(result)
     })
   })
 }
