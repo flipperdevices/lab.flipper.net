@@ -213,6 +213,8 @@ const recovery = () => {
 }
 
 const loadFirmware = async (fromFile) => {
+  mainStore.toggleFlag('autoReconnect', true)
+
   updateStage.value = 'Loading firmware bundle...'
   if (info.value.hardware.region !== '0' || flags.value.overrideDevRegion) {
     const regions = await fetchRegions()

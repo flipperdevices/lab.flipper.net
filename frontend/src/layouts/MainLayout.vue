@@ -428,7 +428,7 @@
           </q-card-section>
         </q-card>
       </q-dialog>
-      <q-dialog v-model="flags.dialogMultiflipper">
+      <q-dialog v-model="flags.dialogMultiflipper" @hide="mainStore.autoReconnectRestore()">
         <q-card>
           <q-card-section
             v-if="!flags.multiflipper"

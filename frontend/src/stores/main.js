@@ -289,6 +289,7 @@ export const useMainStore = defineStore('main', () => {
       .catch(error => rpcErrorHandler(componentName, error, 'systemSetDatetime'))
   }
 
+  const autoReconnectCondition = ref(null)
   const autoReconnect = (path) => {
     if (reconnectLoop.value) {
       clearInterval(reconnectLoop.value)
@@ -313,6 +314,23 @@ export const useMainStore = defineStore('main', () => {
         }
       }, 1000)
     }
+  }
+
+  const toggleAutoReconnectCondition = () => {
+    if (!autoReconnectCondition.value) {
+      if (localStorage.getItem('autoReconnect') !== 'false') {
+        autoReconnectCondition.value = true
+      } else {
+        autoReconnectCondition.value = false
+      }
+    }
+  }
+
+  const autoReconnectRestore = () => {
+    toggleAutoReconnectCondition()
+    flags.value.autoReconnect = autoReconnectCondition.value
+    localStorage.setItem('autoReconnect', flags.value.autoReconnect)
+    autoReconnectCondition.value = null
   }
 
   const getDeviceInfo = async (port) => {
@@ -346,6 +364,8 @@ export const useMainStore = defineStore('main', () => {
   }
 
   const start = async (manual, path, onShowDialog) => {
+    toggleAutoReconnectCondition()
+
     if (!path) {
       let ports = await findKnownDevices()
 
@@ -395,7 +415,6 @@ export const useMainStore = defineStore('main', () => {
 
             availableFlippers.value.push(devInfo)
 
-            // devInfo.hardware.name === info.value.hardware.name
             if (devInfo.port.path !== info.value?.port?.path) {
               await flipper.value.disconnect()
               await flipper.value.defaultInfo()
@@ -417,16 +436,8 @@ export const useMainStore = defineStore('main', () => {
           reconnectLoop.value = null
         }
 
-        if (localStorage.getItem('autoReconnect') !== 'false') {
-          autoReconnectCondition.value = true
-        } else {
-          autoReconnectCondition.value = false
-        }
-
         flags.value.dialogMultiflipper = false
-        flags.value.autoReconnect = autoReconnectCondition.value
-        localStorage.setItem('autoReconnect', flags.value.autoReconnect)
-        autoReconnectCondition.value = null
+        autoReconnectRestore()
 
         if (flags.value.isElectron) {
           function onDisconnect (path) {
@@ -501,7 +512,6 @@ export const useMainStore = defineStore('main', () => {
   const recoveryRestart = ref(false)
 
   const path = ref('')
-  const autoReconnectCondition = ref(null)
   const resetRecovery = (clearLogs = false) => {
     stageIndex.value = 0
     recoveryProgress.value = 0
@@ -655,6 +665,7 @@ export const useMainStore = defineStore('main', () => {
     startRpc,
     setRpcStatus,
     autoReconnect,
+    autoReconnectRestore,
 
     updateStage,
     onUpdateStage,
