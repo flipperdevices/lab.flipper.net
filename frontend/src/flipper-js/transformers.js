@@ -24,6 +24,7 @@ export class PromptBreakTransformer {
   }
 
   transform (chunk, controller) {
+    console.log(controller)
     this.chunks += chunk
     const outputs = this.chunks.split('>:')
     this.chunks = outputs.pop()
@@ -36,10 +37,10 @@ export class PromptBreakTransformer {
 }
 
 export class ProtobufTransformer {
-  constructor () {
+  constructor (rpcStarted) {
     this.chunks = new Uint8Array(0)
     this.decoder = new TextDecoder()
-    this.rpcStarted = false
+    this.rpcStarted = rpcStarted || false
   }
 
   transform (chunk, controller) {
