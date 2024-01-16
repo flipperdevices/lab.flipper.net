@@ -2,6 +2,7 @@ import { LineBreakTransformer, PromptBreakTransformer, ProtobufTransformer } fro
 import { PB } from './protobufCompiled'
 import { createNanoEvents } from 'nanoevents'
 import { RPC_TIMEOUT } from './util'
+import asyncSleep from 'simple-async-sleep'
 
 import * as storage from './commands/storage'
 import * as system from './commands/system'
@@ -37,10 +38,12 @@ export default class Flipper {
           }
           break
         case 'getReadableStream':
+          this.emitter.emit('getReadableStream')
           this.readable = e.data.stream
           this.getReader()
           break
         case 'getWritableStream':
+          this.emitter.emit('getWritableStream')
           this.writable = e.data.stream
           this.getWriter()
           break
@@ -122,13 +125,17 @@ export default class Flipper {
     this.readingMode.type = type
     this.readingMode.transform = transform
 
-    this.reader.cancel()
+    if (this.reader) {
+      this.reader.cancel()
+    }
     if (this.readableStreamClosed) {
       await this.readableStreamClosed.catch(() => {})
     }
 
-    await this.writer.close()
-    await this.writer.releaseLock()
+    if (this.writer) {
+      await this.writer.close()
+      await this.writer.releaseLock()
+    }
 
     setTimeout(() => this.serialWorker.postMessage({ message: 'reopenPort' }), 1)
     // TODO: resolve when mode has actually changed
@@ -149,7 +156,13 @@ export default class Flipper {
       const unbind = this.emitter.on('connectStatus', status => {
         unbind()
         if (status === 'success') {
-          resolve(true)
+          const unbindReadable = this.emitter.on('getReadableStream', () => {
+            unbindReadable()
+            const unbindWritable = this.emitter.on('getWritableStream', () => {
+              unbindWritable()
+              resolve(true)
+            })
+          })
         } else {
           reject(status)
         }
@@ -225,24 +238,19 @@ export default class Flipper {
     return this.writer.write(message)
   }
 
-  async startRPCSession () {
+  async startRPCSession (attempts = 1) {
     await this.setReadingMode('raw', 'protobuf')
-    const startSession = new Promise((resolve, reject) => {
-      setTimeout(() => {
-        this.write('start_rpc_session\r')
-        resolve()
-      }, 300)
-    })
-    await startSession
-    return new Promise((resolve, reject) => {
-      this.RPC('systemPing')
-        .then(() => {
-          resolve()
-        })
-        .catch(error => {
-          reject(error)
-        })
-    })
+    await asyncSleep(300)
+    this.write('start_rpc_session\r')
+    await this.RPC('systemPing', { timeout: 1000 })
+      .catch(async error => {
+        if (attempts > 3) {
+          throw error
+        }
+        console.error(error)
+        await asyncSleep(500)
+        return this.startRPCSession(attempts + 1)
+      })
   }
 
   encodeRPCRequest (requestType, args, hasNext, commandId) {

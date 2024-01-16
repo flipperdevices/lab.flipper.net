@@ -394,7 +394,7 @@ export const useMainStore = defineStore('main', () => {
 
       if (ports.length === 1 || !flags.value.isElectron) {
         path = ports[0].path
-      } else {
+      } else if (flags.value.isElectron) {
         flags.value.multiflipper = true
 
         if (!route.meta?.canLoadWithoutFlipper || onShowDialog) {
