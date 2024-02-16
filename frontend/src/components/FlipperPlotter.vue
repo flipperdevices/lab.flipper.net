@@ -58,7 +58,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref, watch, defineProps, onBeforeUnmount } from 'vue'
+import { onMounted, ref, watch, onBeforeUnmount } from 'vue'
 import { FlipperPlotter } from 'util/flipperPlotter/flipperPlotter.js'
 import { FlipperPlotterOffscreen } from 'util/flipperPlotter/flipperPlotterOffscreen.js'
 import { useNumbersOnly } from 'composables/useNumberOnly.js'

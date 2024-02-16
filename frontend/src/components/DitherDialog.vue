@@ -36,7 +36,7 @@
 </template>
 
 <script setup>
-import { ref, defineProps, defineEmits, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { dither, emitter } from '../util/ditherpunk/monochrome'
 
 const props = defineProps({

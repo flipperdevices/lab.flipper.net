@@ -102,7 +102,7 @@
 </template>
 
 <script setup>
-import { ref, defineEmits, watch, onMounted, computed } from 'vue'
+import { ref, watch, onMounted, computed } from 'vue'
 import ProgressBar from './ProgressBar.vue'
 import { unpack } from 'util/util'
 import { fetchChannels, fetchFirmware, fetchRegions } from 'util/fetch'

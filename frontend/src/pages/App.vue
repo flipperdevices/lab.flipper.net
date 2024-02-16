@@ -289,7 +289,7 @@
 </template>
 
 <script setup>
-import { defineEmits, ref, computed, onUnmounted, onMounted, watch } from 'vue'
+import { ref, computed, onUnmounted, onMounted, watch } from 'vue'
 import Loading from 'src/components/Loading.vue'
 import { bytesToSize } from 'util/util'
 import { submitAppReport, fetchAppById } from 'util/fetch'

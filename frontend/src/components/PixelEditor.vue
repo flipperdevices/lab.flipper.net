@@ -84,7 +84,7 @@
 </template>
 
 <script setup>
-import { ref, defineExpose, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import PixelEditor from '../util/pixeleditor/pixeleditor'
 import DitherDialog from 'src/components/DitherDialog.vue'
 import { exportFile } from 'quasar'
