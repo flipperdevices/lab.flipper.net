@@ -56,6 +56,7 @@
       v-model="leftDrawer"
       class="bg-grey-2"
       style="overflow-x: hidden"
+      show-if-above
       :width="175"
       :breakpoint="900"
     >
@@ -475,7 +476,7 @@ const canLoadWithoutFlipper = [
   'apps'
 ]
 
-const leftDrawer = ref(true)
+const leftDrawer = ref(false)
 const linksMenu = ref(false)
 const reconnectLoop = ref(null)
 const connectionStatus = ref('Ready to connect')
@@ -627,9 +628,6 @@ const start = async (manual) => {
 }
 
 onMounted(async () => {
-  if ($q.screen.lt.md) {
-    leftDrawer.value = false
-  }
   if ('serial' in navigator) {
     if (localStorage.getItem('connectOnStart') !== 'false') {
       mainStore.toggleFlag('connectOnStart', true)
