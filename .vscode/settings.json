@@ -10,4 +10,8 @@
   "eslint.workingDirectories": [
     { "mode": "auto" }
   ],
+  "cSpell.words": [
+    "nfctools",
+    "subtools"
+  ],
 }
