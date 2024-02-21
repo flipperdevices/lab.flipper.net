@@ -1,74 +1,76 @@
 <template>
   <q-layout
-    view="hHr LpR lFf"
+    view="hhh LpR lFf"
     class="column items-center q-py-lg full-width"
     :style="$q.screen.width >= 404 ? 'padding: 24px 26px; max-width: 1284px' : 'padding: 24px 6px'"
   >
     <q-page-container
       class="full-width"
     >
-      <div
-        class="apps-navbar row justify-end items-center full-width q-mb-xl"
-      >
-        <q-icon
-          v-if="currentApp || flags.installedPage"
-          name="mdi-chevron-left"
-          size="56px"
-          class="cursor-pointer q-mr-md"
-          @click="appsStore.toggleFlag('installedPage', false); !appsStore.initialCategory ? router.push({ name: 'Apps' }) : router.push({ name: 'AppsCategory', params: { path: appsStore.initialCategory.name.toLowerCase() } })"
-        ></q-icon>
-        <q-icon
-          v-else
-          name="svguse:common-icons.svg#apps"
-          size="56px"
-          class="q-mr-md"
-        ></q-icon>
-        <div class="text-h4 q-mr-lg">Apps</div>
-        <q-space />
-        <div
-          class="col-grow"
-          :style="$q.screen.width <= 353 ? 'margin-top: 16px; width: 100%' : 'max-width: 300px; min-width: 140px; width: 100%; margin: 0.6rem 0;'"
+      <q-header class="bg-transparent text-black" style="padding: 24px 26px;">
+        <q-toolbar
+          class="apps-navbar row justify-end items-center full-width"
         >
-          <SearchBar/>
-        </div>
-        <div class="q-ml-md" :style="$q.screen.width <= 365 ? 'margin-top: 16px' : ''">
-          <div>
-            <q-btn
-              flat
-              rounded
-              no-caps
-              :color="flags.installedPage ? 'primary' : 'black'"
-              style="font-weight: 400"
-              icon="svguse:common-icons.svg#installed"
-              :stack="$q.screen.width <= 365"
-              @click="toggleInstalled"
-              label="Installed"
-            >
-              <q-badge
-                v-if="$q.screen.width > 365 && flags.updatabledAppsCount > 0"
-                color="positive"
-                floating
-                class="outdated-badge"
-                :label="flags.updatabledAppsCount"
+          <q-icon
+            v-if="currentApp || flags.installedPage"
+            name="mdi-chevron-left"
+            size="56px"
+            class="cursor-pointer q-mr-md"
+            @click="appsStore.toggleFlag('installedPage', false); !appsStore.initialCategory ? router.push({ name: 'Apps' }) : router.push({ name: 'AppsCategory', params: { path: appsStore.initialCategory.name.toLowerCase() } })"
+          ></q-icon>
+          <q-icon
+            v-else
+            name="svguse:common-icons.svg#apps"
+            size="56px"
+            class="q-mr-md"
+          ></q-icon>
+          <div class="text-h4 q-mr-lg">Apps</div>
+          <q-space />
+          <div
+            class="col-grow"
+            :style="$q.screen.width <= 353 ? 'margin-top: 16px; width: 100%' : 'max-width: 300px; min-width: 140px; width: 100%; margin: 0.6rem 0;'"
+          >
+            <SearchBar/>
+          </div>
+          <div class="q-ml-md" :style="$q.screen.width <= 365 ? 'margin-top: 16px' : ''">
+            <div>
+              <q-btn
+                flat
+                rounded
+                no-caps
+                :color="flags.installedPage ? 'primary' : 'black'"
+                style="font-weight: 400"
+                icon="svguse:common-icons.svg#installed"
+                :stack="$q.screen.width <= 365"
+                @click="toggleInstalled"
+                label="Installed"
+              >
+                <q-badge
+                  v-if="$q.screen.width > 365 && flags.updatabledAppsCount > 0"
+                  color="positive"
+                  floating
+                  class="outdated-badge"
+                  :label="flags.updatabledAppsCount"
+                />
+              </q-btn>
+            </div>
+            <div class="q-ml-md">
+              <q-btn
+                flat
+                rounded
+                no-caps
+                color="black"
+                style="font-weight: 400"
+                icon="mdi-github"
+                label="Contribute"
+                :stack="$q.screen.width <= 365"
+                href="https://github.com/flipperdevices/flipper-application-catalog"
+                target="_blank"
               />
-            </q-btn>
+            </div>
           </div>
-          <div class="q-ml-md">
-            <q-btn
-              flat
-              rounded
-              no-caps
-              color="black"
-              style="font-weight: 400"
-              icon="mdi-github"
-              label="Contribute"
-              :stack="$q.screen.width <= 365"
-              href="https://github.com/flipperdevices/flipper-application-catalog"
-              target="_blank"
-            />
-          </div>
-        </div>
-      </div>
+        </q-toolbar>
+      </q-header>
       <router-view
         @showDialog="$event => appsStore.toggleFlag($event, true)"
       />
