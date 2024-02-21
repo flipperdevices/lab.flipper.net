@@ -39,7 +39,8 @@ export const useAppsStore = defineStore('apps', () => {
     fetchEnd: false,
     loadingCategories: true,
     loadingInitial: true,
-    loadingInstalledApps: true
+    loadingInstalledApps: true,
+    noApplicationsInstalled: false
   })
 
   const flipperReady = computed(() => mainFlags.value.rpcActive && info.value !== null && info.value.doneReading)
@@ -230,6 +231,8 @@ export const useAppsStore = defineStore('apps', () => {
               case 'Path':
                 app.path = value
                 break
+              case 'DevCatalog':
+                app.devCatalog = value
             }
           }
           installed.push(app)
@@ -263,6 +266,20 @@ export const useAppsStore = defineStore('apps', () => {
           applications: installed.map(app => app.id)
         })
       } while (actualApps.length === params.limit)
+
+      if (!installed.length) {
+        flags.value.noApplicationsInstalled = true
+        flags.value.loadingInstalledApps = false
+        return
+      }
+
+      installed = installed.filter(installedApp => {
+        if (installedApp.devCatalog && mainFlags.value.catalogChannelProduction) {
+          return false
+        }
+
+        return true
+      })
 
       // HACK: Bind the past action state to the new list
       installed = installed.map(installedApp => {
@@ -428,7 +445,10 @@ export const useAppsStore = defineStore('apps', () => {
     }
     const dataUri = await urlContentToDataUri(app.currentVersion.iconUri)
     const base64Icon = dataUri.split(',')[1]
-    const manifestText = `Filetype: Flipper Application Installation Manifest\r\nVersion: 1\r\nFull Name: ${app.currentVersion.name}\r\nIcon: ${base64Icon}\r\nVersion Build API: ${info.value.firmware.api.major}.${info.value.firmware.api.minor}\r\nUID: ${app.id}\r\nVersion UID: ${app.currentVersion.id}\r\nPath: ${paths.appDir}/${app.alias}.fap`
+    let manifestText = `Filetype: Flipper Application Installation Manifest\r\nVersion: 1\r\nFull Name: ${app.currentVersion.name}\r\nIcon: ${base64Icon}\r\nVersion Build API: ${info.value.firmware.api.major}.${info.value.firmware.api.minor}\r\nUID: ${app.id}\r\nVersion UID: ${app.currentVersion.id}\r\nPath: ${paths.appDir}/${app.alias}.fap`
+    if (!mainFlags.value.catalogChannelProduction) {
+      manifestText = manifestText + '\r\nDevCatalog: true'
+    }
     const manifestFile = new TextEncoder().encode(manifestText)
     app.action.progress = 0.45
     if (app.action.type === 'update') {
