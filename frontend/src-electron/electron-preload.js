@@ -18,3 +18,10 @@ contextBridge.exposeInMainWorld('serial', {
   write: ({ path, message }) => ipcRenderer.invoke('serial:write', { path, message }),
   isOpen: path => ipcRenderer.invoke('serial:isOpen', path)
 })
+
+contextBridge.exposeInMainWorld('bridge', {
+  spawn: () => ipcRenderer.send('bridge:spawn'),
+  kill: () => ipcRenderer.send('bridge:kill'),
+  send: json => ipcRenderer.send('bridge:send', json),
+  onMessage: callback => ipcRenderer.on('bridge:message', (_event, value) => callback(value))
+})

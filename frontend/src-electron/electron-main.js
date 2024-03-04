@@ -4,6 +4,7 @@ import os from 'os'
 import { SerialPort } from 'serialport'
 const extraResourcesPath = process.env.WEBPACK_SERVE === 'true' ? 'extraResources' : '../extraResources'
 
+// eslint-disable-next-line no-unused-vars
 const qFlipper = {
   spawn (event, args) {
     try {
@@ -17,7 +18,61 @@ const qFlipper = {
   }
 }
 
+const bridge = {
+  process: null,
+  async spawn (event) {
+    if (this.process) {
+      await this.kill()
+    }
+
+    try {
+      const webContents = event.sender
+      this.process = utilityProcess.fork(path.resolve(__dirname, extraResourcesPath, 'serial-bridge/bridgeProcess.js'))
+      this.process.on('message', data => webContents.send('bridge:message', data))
+    } catch (error) {
+      console.error(error)
+    }
+  },
+  async kill (event) {
+    return new Promise((resolve, reject) => {
+      try {
+        if (this.process) {
+          this.process.postMessage({ type: 'kill' })
+          const killTimeout = setTimeout(() => {
+            this.process.kill()
+            console.log('killed bridge process on timeout')
+            if (event) {
+              const webContents = event.sender
+              webContents.send('bridge:message', { type: 'exit', code: null, timeout: true })
+            }
+            resolve()
+          }, 1000)
+
+          this.process.on('message', data => {
+            if (data.type === 'exit') {
+              clearTimeout(killTimeout)
+              resolve()
+            }
+          })
+        }
+      } catch (error) {
+        reject(error)
+      }
+    })
+  },
+  send (event, json) {
+    try {
+      if (this.process && json) {
+        this.process.postMessage({ type: 'stdin', json })
+      }
+    } catch (error) {
+      console.error(error)
+    }
+  }
+}
+
 let ports = []
+// eslint-disable-next-line no-unused-vars
 const serial = {
   async list (event, filter) {
     try {
@@ -178,12 +233,33 @@ async function createWindow () {
 
 app.whenReady()
   .then(() => {
+    /*
     ipcMain.on('qFlipper:spawn', qFlipper.spawn)
     ipcMain.handle('serial:list', serial.list)
     ipcMain.handle('serial:open', serial.open)
     ipcMain.handle('serial:close', serial.close)
     ipcMain.handle('serial:write', serial.write)
     ipcMain.handle('serial:isOpen', serial.isOpen)
+    */
+
+    /*
+      Usage (browser side):
+
+      bridge.onMessage(console.log)
+      bridge.spawn()
+      bridge.send({
+        id: 1,
+        type: 'write',
+        name: 'Amogus',
+        data: btoa('led bl 128\r'),
+        mode: 'cli'
+      })
+    */
+
+    ipcMain.on('bridge:spawn', bridge.spawn)
+    ipcMain.on('bridge:kill', bridge.kill)
+    ipcMain.on('bridge:send', bridge.send)
+
     createWindow()
   })
 
@@ -191,6 +267,11 @@ app.on('window-all-closed', () => {
   if (platform !== 'darwin') {
     app.quit()
   }
+})
+
+app.on('will-quit', async () => {
+  // FIXME doesn't work
+  await bridge.kill()
 })
 
 app.on('activate', () => {
