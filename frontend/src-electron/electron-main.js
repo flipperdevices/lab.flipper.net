@@ -1,178 +1,88 @@
 import { app, BrowserWindow, nativeTheme, utilityProcess, ipcMain } from 'electron'
 import path from 'path'
 import os from 'os'
-import { SerialPort } from 'serialport'
 const extraResourcesPath = process.env.WEBPACK_SERVE === 'true' ? 'extraResources' : '../extraResources'
-
-// eslint-disable-next-line no-unused-vars
-const qFlipper = {
-  spawn (event, args) {
-    try {
-      const webContents = event.sender
-      const cliProcess = utilityProcess.fork(path.resolve(__dirname, extraResourcesPath, 'qflipper/cli/process.js'))
-      cliProcess.postMessage({ args })
-      cliProcess.on('message', data => webContents.send('qFlipper:log', data))
-    } catch (error) {
-      console.error(error)
-    }
-  }
-}
 
 const bridge = {
   process: null,
-  async spawn (event) {
-    if (this.process) {
-      await this.kill()
+  queue: [],
+  processingQueue: false,
+  spawn (event) {
+    if (bridge.process) {
+      bridge.kill()
+      return
     }
 
     try {
-      const webContents = event.sender
-      this.process = utilityProcess.fork(path.resolve(__dirname, extraResourcesPath, 'serial-bridge/bridgeProcess.js'))
-      this.process.on('message', data => webContents.send('bridge:message', data))
+      bridge.webContents = event.sender
+      bridge.process = utilityProcess.fork(path.resolve(__dirname, extraResourcesPath, 'serial-bridge/bridgeProcess.js'))
+      bridge.process.on('message', message => {
+        bridge.queue.push(message)
+        if (!bridge.processingQueue) {
+          bridge.processQueue()
+        }
+      })
     } catch (error) {
       console.error(error)
     }
   },
-  async kill (event) {
-    return new Promise((resolve, reject) => {
-      try {
-        if (this.process) {
-          this.process.postMessage({ type: 'kill' })
-          const killTimeout = setTimeout(() => {
-            this.process.kill()
-            console.log('killed bridge process on timeout')
-            if (event) {
-              const webContents = event.sender
-              webContents.send('bridge:message', { type: 'exit', code: null, timeout: true })
-            }
-            resolve()
-          }, 1000)
-
-          this.process.on('message', data => {
-            if (data.type === 'exit') {
-              clearTimeout(killTimeout)
-              resolve()
-            }
-          })
-        }
-      } catch (error) {
-        reject(error)
-      }
-    })
+  kill () {
+    bridge.process.removeAllListeners()
+    bridge.process?.kill()
   },
   send (event, json) {
     try {
-      if (this.process && json) {
-        this.process.postMessage({ type: 'stdin', json })
+      if (bridge.process && json) {
+        bridge.process.postMessage({ type: 'stdin', json })
       }
     } catch (error) {
       console.error(error)
     }
-  }
-}
-
-let ports = []
-// eslint-disable-next-line no-unused-vars
-const serial = {
-  async list (event, filter) {
-    try {
-      const ports = await SerialPort.list()
-      return ports.filter(e => {
-        for (const [key, value] of Object.entries(filter)) {
-          if (e[key] !== value) {
-            return false
-          }
-        }
-        return true
-      })
-    } catch (error) {
-      console.error(error)
-    }
   },
-  open (event, path) {
-    try {
-      const webContents = event.sender
-      return new Promise((resolve, reject) => {
-        const existingPort = ports.find(e => e.path === path)
-        const port = existingPort || new SerialPort({ path, baudRate: 1, autoOpen: false, endOnClose: true })
-        port.open()
+  processQueue () {
+    bridge.processingQueue = true
+    while (bridge.queue.length > 0) {
+      const message = bridge.queue.shift()
+      bridge.handleMessage(message)
+    }
+    bridge.processingQueue = false
+  },
+  handleMessage (message) {
+    if (message.type === 'stdout') {
+      let payload = {}
 
-        port.handlers = {
-          onOpen: () => {
-            if (!existingPort) {
-              ports.push(port)
+      try {
+        payload = JSON.parse(message.data)
+      } catch (error) {
+        if (error.message.includes('Unexpected non-whitespace character after JSON')) {
+          const pos = parseInt(error.message.slice(error.message.indexOf('at position ') + 12, error.message.indexOf(' (line')))
+          if (!isNaN(pos)) {
+            const json = message.data.slice(0, pos)
+            payload = JSON.parse(json)
+            const nextMessage = {
+              type: 'stdout',
+              data: message.data.slice(pos)
             }
-            webContents.send('serial:onOpen', path)
-            resolve(port.readable)
-          },
-          onClose: () => {
-            // console.log(`onClose ${path}`)
-            webContents.send('serial:onClose', path)
-          },
-          onData: data => {
-            webContents.send('serial:onData', data)
-          },
-          onError: error => {
-            reject(error.message)
+            bridge.queue.unshift(nextMessage)
           }
+        } else {
+          console.log(error.message)
+          payload.type = 'failed to parse'
+          payload.json = message.data
         }
-        port.on('open', port.handlers.onOpen)
-        port.on('data', port.handlers.onData)
-        port.on('error', port.handlers.onError)
-        port.on('close', port.handlers.onClose)
-      })
-    } catch (error) {
-      console.error('error', error)
-      return error
-    }
-  },
-  close (event, path) {
-    try {
-      return new Promise((resolve, reject) => {
-        const port = ports.find(e => e.path === path)
-        if (!port) {
-          reject('Port not found')
-        }
-        // UNCOMMENT IF NEEDED port.removeAllListeners()
-        // port.removeListener('data', port.handlers.onData)
-        port.close(error => {
-          if (error) {
-            reject(error.message)
-          }
-          ports = ports.filter(e => e.path !== path)
-          resolve(true)
-        })
-      })
-    } catch (error) {
-      console.error(error)
-    }
-  },
-  write (event, { path, message }) {
-    try {
-      return new Promise((resolve, reject) => {
-        const port = ports.find(e => e.path === path)
-        if (!port) {
-          reject('Port not found')
-        }
-        port.write(message, error => {
-          if (error) {
-            reject(error.message)
-          }
-          resolve(true)
-        })
-      })
-    } catch (error) {
-      console.error(error)
-    }
-  },
-  isOpen (event, path) {
-    try {
-      return new Promise((resolve, reject) => {
-        const port = ports.find(e => e.path === path)
-        resolve(!!port?.isOpen)
-      })
-    } catch (error) {
-      console.error(error)
+      }
+
+      if (payload.type === 'read' && payload.data) {
+        bridge.webContents.send(`bridge:read/${payload.mode}`, payload)
+      } else if (payload.type === 'list') {
+        bridge.webContents.send('bridge:list', payload.data)
+      } else {
+        console.log(payload)
+      }
+    } else if (message.type === 'stderr') {
+      bridge.webContents.send('bridge:log', message)
+    } else if (message.type === 'exit') {
+      bridge.webContents.send('bridge:exit', message.code)
     }
   }
 }
@@ -220,28 +130,10 @@ async function createWindow () {
   mainWindow.once('ready-to-show', () => {
     mainWindow.showInactive()
   })
-
-  mainWindow.on('closed', () => {
-    ports.filter(port => port.isOpen).forEach(port => {
-      port.removeAllListeners()
-      port.close()
-    })
-    ports = []
-    mainWindow = null
-  })
 }
 
 app.whenReady()
   .then(() => {
-    /*
-    ipcMain.on('qFlipper:spawn', qFlipper.spawn)
-    ipcMain.handle('serial:list', serial.list)
-    ipcMain.handle('serial:open', serial.open)
-    ipcMain.handle('serial:close', serial.close)
-    ipcMain.handle('serial:write', serial.write)
-    ipcMain.handle('serial:isOpen', serial.isOpen)
-    */
-
     /*
       Usage (browser side):
 
@@ -264,14 +156,11 @@ app.whenReady()
   })
 
 app.on('window-all-closed', () => {
-  if (platform !== 'darwin') {
-    app.quit()
-  }
+  app.quit()
 })
 
-app.on('will-quit', async () => {
-  // FIXME doesn't work
-  await bridge.kill()
+app.on('will-quit', () => {
+  bridge.kill()
 })
 
 app.on('activate', () => {

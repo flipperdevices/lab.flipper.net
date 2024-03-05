@@ -5,11 +5,13 @@ import { log } from 'composables/useLog'
 import { rpcErrorHandler } from 'composables/useRpcUtils'
 import { useRoute, useRouter } from 'vue-router'
 import asyncSleep from 'simple-async-sleep'
+// eslint-disable-next-line no-unused-vars
 import { Notify, Platform } from 'quasar'
 const Flipper = await import(`src/flipper-js/${Platform.is.electron ? 'flipperElectron' : 'flipper'}`).then(m => m.default)
 
 export const useMainStore = defineStore('main', () => {
   const router = useRouter()
+  // eslint-disable-next-line no-unused-vars
   const route = useRoute()
 
   const flags = ref({
@@ -45,7 +47,8 @@ export const useMainStore = defineStore('main', () => {
     catalogChannelProduction: true
   })
 
-  const flipper = ref(new Flipper())
+  // TODO
+  const flipper = ref(new Flipper('Amogus'))
   const componentName = 'Main'
 
   const availableFlippers = ref([])
@@ -62,6 +65,7 @@ export const useMainStore = defineStore('main', () => {
       return await window.serial.list()
     }
   }
+  // eslint-disable-next-line no-unused-vars
   const connect = async (path) => {
     return new Promise((resolve, reject) => {
       (async () => {
@@ -140,6 +144,7 @@ export const useMainStore = defineStore('main', () => {
     const protobufVersion = getProtobufVersion()
     return protobufVersion.major === 0 && protobufVersion.minor < 14
   }
+  // eslint-disable-next-line no-unused-vars
   const readInfo = async (path) => {
     if (!flags.value.connected) {
       return
@@ -275,6 +280,7 @@ export const useMainStore = defineStore('main', () => {
       .catch(error => rpcErrorHandler(componentName, error, 'storageInfo'))
     setPropertyInfo({ doneReading: true })
   }
+  // eslint-disable-next-line no-unused-vars
   const setTime = async () => {
     if (!flags.value.connected) {
       return
@@ -333,6 +339,7 @@ export const useMainStore = defineStore('main', () => {
     autoReconnectCondition.value = null
   }
 
+  // eslint-disable-next-line no-unused-vars
   const getDeviceInfo = async (port) => {
     let info = {
       doneReading: false,
@@ -364,7 +371,15 @@ export const useMainStore = defineStore('main', () => {
   }
 
   const start = async (manual, path, onShowDialog) => {
-    toggleAutoReconnectCondition()
+    flags.value.connected = true
+    flags.value.rpcActive = true
+
+    // flipper.value.RPC('systemPing', { timeout: 5000 })
+    // console.log(await flipper.value.RPC('systemDeviceInfo'))
+    // console.log(await flipper.value.RPC('propertyGet', { key: 'devinfo' }))
+    await readInfo(flipper.value.name)
+    // await setTime()
+    /* toggleAutoReconnectCondition()
 
     if (!path) {
       let ports = await findKnownDevices()
@@ -405,6 +420,7 @@ export const useMainStore = defineStore('main', () => {
         flags.value.autoReconnect = false
         localStorage.setItem('autoReconnect', flags.value.autoReconnect)
 
+        // ============================================================
         try {
           if (info.value?.port?.path) {
             ports = ports.filter(port => port.path !== info.value.port.path)
@@ -424,6 +440,7 @@ export const useMainStore = defineStore('main', () => {
           console.error(error)
           flags.value.loadingMultiflipper = false
         }
+        // ============================================================
         flags.value.loadingMultiflipper = false
         return
       }
@@ -474,6 +491,7 @@ export const useMainStore = defineStore('main', () => {
 
         start()
       })
+    */
   }
 
   const updateStage = ref('')
