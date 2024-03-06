@@ -34,6 +34,7 @@
           <q-btn
             v-if="fwModel"
             @click="update(false)"
+            unelevated
             color="positive"
             padding="12px 30px"
             :class="!$q.screen.xs ? 'q-ml-lg' : 'q-mt-sm'"
@@ -51,7 +52,7 @@
         <span v-if="info.storage.sdcard.status">Your firmware doesn't support self-update. Install latest release with <a href="https://update.flipperzero.one" target="_blank">qFlipper desktop tool</a>.</span>
         <span v-else>Self-update is impossible without an SD card.</span>
       </template>
-      <q-btn v-if="mainFlags.isElectron" class="q-mt-md" color="primary" label="Repair" @click="recovery"/>
+      <q-btn v-if="mainFlags.isElectron" class="q-mt-md" color="primary" label="Repair" @click="recovery" unelevated/>
     </template>
     <template v-else>
       <template v-if="!(mainFlags.isElectron && mainFlags.recovery)">
