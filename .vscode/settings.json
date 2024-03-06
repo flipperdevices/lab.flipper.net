@@ -10,4 +10,10 @@
   "eslint.workingDirectories": [
     { "mode": "auto" }
   ],
+  "cSpell.words": [
+    "gpio",
+    "Multiflipper",
+    "nanoevents",
+    "protobuf"
+  ],
 }

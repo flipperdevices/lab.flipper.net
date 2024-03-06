@@ -10,7 +10,6 @@ const bridge = {
   spawn (event) {
     if (bridge.process) {
       bridge.kill()
-      return
     }
 
     try {

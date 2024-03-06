@@ -1,6 +1,5 @@
 import { ProtobufTransformer } from './transformers'
 import { PB } from './protobufCompiled'
-import { createNanoEvents } from 'nanoevents'
 import { encode, decode } from 'base64-arraybuffer'
 
 import * as storage from './commands/storage'
@@ -20,20 +19,16 @@ const RPCSubSystems = {
 }
 
 export default class Flipper {
-  constructor (name) {
+  constructor (name, emitter) {
     this.name = name
-    this.emitter = createNanoEvents()
+    this.emitter = emitter
 
     // RPC
     this.readableRPC = new ReadableStream({
       start (controller) {
-        window.bridge.onRPCRead(payload => {
-          // console.log('read/rpc', payload)
-          if (payload.name === name) {
-            const decoded = new Uint8Array(decode(payload.data))
-            controller.enqueue(decoded)
-            // console.log('payload', decoded)
-          }
+        emitter.on('RPCRead', data => {
+          const decoded = new Uint8Array(decode(data))
+          controller.enqueue(decoded)
         })
       }
     })
@@ -52,38 +47,10 @@ export default class Flipper {
     ]
 
     // CLI
-    window.bridge.onCLIRead(payload => {
-      console.log('read/cli', payload)
-      if (payload.name === name) {
-        const decoded = atob(payload.data)
-        this.emitter.emit('cli/output', decoded)
-      }
+    this.emitter.on('CLIRead', data => {
+      const decoded = atob(data)
+      this.emitter.emit('cli/output', decoded)
     })
-
-    // REMOVE
-    /* this.bridgeListener = function (message) {
-      if (message.type === 'stdout') {
-        const payload = JSON.parse(message.data)
-        if (payload.type === 'read' && payload.data) {
-          if (payload.mode === 'cli') {
-            console.log(atob(payload.data))
-          } else {
-            console.log(decode(payload.data))
-          }
-        } else if (payload.type === 'list') {
-          this.list = payload.data
-        } else {
-          console.log(payload)
-        }
-      } else {
-        console.log(message)
-      }
-    }
-    window.bridge.onMessage(this.bridgeListener) */
-    window.bridge.onLog(console.log)
-    window.bridge.onExit(console.log)
-    window.bridge.onList(console.log)
-    window.bridge.spawn()
   }
 
   async readRPC () {
@@ -118,7 +85,6 @@ export default class Flipper {
   }
 
   writeRaw (data, mode = 'rpc') {
-    console.log(data)
     const payload = {
       id: 1,
       type: 'write',
@@ -126,7 +92,6 @@ export default class Flipper {
       data: encode(data),
       mode
     }
-    console.log('write', payload)
     return window.bridge.send(payload)
   }
 
