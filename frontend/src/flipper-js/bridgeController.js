@@ -24,10 +24,23 @@ const init = async () => {
   })
 
   window.bridge.onList(payload => {
-    payload.forEach(element => {
-      element.emitter = createNanoEvents()
+    payload.forEach(currentItem => {
+      if (!bridgeController.list.length) {
+        currentItem.emitter = createNanoEvents()
+        bridgeController.list.push(currentItem)
+      }
+
+      bridgeController.list.forEach(item => {
+        if (currentItem.name !== item.name) {
+          currentItem.emitter = createNanoEvents()
+          bridgeController.list.push(currentItem)
+        }
+      })
     })
-    bridgeController.list = payload
+    // payload.forEach(element => {
+    //   element.emitter = createNanoEvents()
+    // })
+    // bridgeController.list = payload
     bridgeController.currentFlipper = payload[0]
 
     // console.log(bridgeController.list)
@@ -57,4 +70,9 @@ const getCurrentFlipper = () => {
   return bridgeController.currentFlipper
 }
 
-export { bridgeController, init, getList, getCurrentFlipper }
+const setCurrentFlipper = (name) => {
+  bridgeController.currentFlipper = findFlipper(name)
+  console.log('currentFlipper', bridgeController.currentFlipper)
+}
+
+export { bridgeController, emitter, init, getList, getCurrentFlipper, setCurrentFlipper }
