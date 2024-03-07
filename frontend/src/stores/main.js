@@ -450,7 +450,6 @@ export const useMainStore = defineStore('main', () => {
 
   const flipperConnect = async () => {
     const _currentFlipper = getCurrentFlipper()
-    console.log('getCurrentFlipper', _currentFlipper)
     flipper.value = new Flipper(_currentFlipper.name, _currentFlipper.emitter)
 
     if (flipper.value) {
