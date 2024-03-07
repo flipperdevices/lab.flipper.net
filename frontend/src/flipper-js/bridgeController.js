@@ -47,8 +47,19 @@ const init = async () => {
     emitter.emit('list', payload)
   })
 
-  window.bridge.onLog(console.log)
-  window.bridge.onExit(console.log)
+  window.bridge.onLog(e => {
+    console.log('bridge log', e)
+    emitter.emit('log')
+  })
+
+  window.bridge.onSpawn(() => {
+    console.log('bridge spawn')
+    emitter.emit('spawn')
+  })
+  window.bridge.onExit(e => {
+    console.log('bridge exit', e)
+    emitter.emit('exit', e)
+  })
 
   window.bridge.spawn()
 
