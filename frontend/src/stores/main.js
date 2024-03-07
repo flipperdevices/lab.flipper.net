@@ -2,12 +2,13 @@ import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import useSetProperty from 'composables/useSetProperty'
 import { log } from 'composables/useLog'
+import showNotif from 'composables/useShowNotif'
 import { rpcErrorHandler } from 'composables/useRpcUtils'
 import { useRouter } from 'vue-router'
 import asyncSleep from 'simple-async-sleep'
 // eslint-disable-next-line no-unused-vars
-import { Notify, Platform } from 'quasar'
-import { init as bridgeControllerInit, emitter as bridgeEmitter, getCurrentFlipper, setCurrentFlipper } from 'src/flipper-js/bridgeController'
+import { Platform } from 'quasar'
+import { init as bridgeControllerInit, emitter as bridgeEmitter, getCurrentFlipper, getList, setCurrentFlipper } from 'src/flipper-js/bridgeController'
 const Flipper = await import(`src/flipper-js/${Platform.is.electron ? 'flipperElectron' : 'flipper'}`).then(m => m.default)
 
 export const useMainStore = defineStore('main', () => {
@@ -48,6 +49,7 @@ export const useMainStore = defineStore('main', () => {
 
   // TODO
   const flipper = ref(null)
+  const autoReconnectFlipperName = ref(null)
   const componentName = 'Main'
 
   const availableFlippers = ref([])
@@ -380,8 +382,38 @@ export const useMainStore = defineStore('main', () => {
   //   return info
   // }
 
+  const reconnectTimeouts = ref([])
+  const setReconnectTimeout = () => {
+    reconnectTimeouts.value[reconnectTimeouts.value.length] = {
+      name: autoReconnectFlipperName.value,
+      timeout: setTimeout(() => {
+        showNotif({
+          message: 'Couldn\'t connect to Flipper after the update', // NOTE: ${this.name}
+          color: 'negative'
+        })
+        onUpdateStage('end')
+        connectToFirstFlipper()
+      }, 2 * 60 * 1000)
+    }
+  }
+
+  const clearReconnectTimeout = (name) => {
+    const currentTimeout = reconnectTimeouts.value.find(timeout => {
+      return timeout.name === name
+    })
+    clearTimeout(currentTimeout.timeout)
+  }
+
+  const connectToFirstFlipper = () => {
+    const _list = getList()
+    if (_list.length) {
+      setCurrentFlipper(_list[0].name)
+      flipperConnect()
+    }
+  }
+
   const listInit = () => {
-    bridgeEmitter.on('list', data => {
+    bridgeEmitter.on('list', async data => {
       availableFlippers.value = data
       console.log('availableFlippers', availableFlippers.value)
 
@@ -389,6 +421,29 @@ export const useMainStore = defineStore('main', () => {
         flags.value.multiflipper = true
       } else {
         flags.value.multiflipper = false
+      }
+
+      if (!flags.value.updateInProgress && !availableFlippers.value.find(item => flipper.value?.name === item.name)) {
+        flags.value.connected = false
+        flags.value.rpcActive = false
+        setInfo(null)
+        setCurrentFlipper(null)
+      }
+
+      if (flags.value.updateInProgress) {
+        const updatingFlipper = data.find(flipper => flipper.name === autoReconnectFlipperName.value)
+
+        if (updatingFlipper) {
+          clearReconnectTimeout(updatingFlipper.name)
+          setCurrentFlipper(updatingFlipper.name)
+          onUpdateStage('end')
+          flipperConnect()
+        }
+      } else {
+        const _currentFlipper = getCurrentFlipper()
+        if (!_currentFlipper) {
+          connectToFirstFlipper()
+        }
       }
     })
   }
@@ -401,8 +456,6 @@ export const useMainStore = defineStore('main', () => {
     if (flipper.value) {
       flags.value.connected = true
       flags.value.rpcActive = true
-      flags.value.autoReconnect = false
-      localStorage.setItem('autoReconnect', flags.value.autoReconnect)
 
       await readInfo(flipper.value.name)
       await setTime()
@@ -421,9 +474,14 @@ export const useMainStore = defineStore('main', () => {
       bridgeEmitter.on('exit', e => {
         flags.value.isBridgeReady = false
       })
-      await bridgeControllerInit()
       listInit()
-      await flipperConnect()
+      await bridgeControllerInit()
+
+      if (flags.value.autoReconnect) {
+        autoReconnectFlipperName.value = flipper.value.name
+      } else {
+        autoReconnectFlipperName.value = null
+      }
     } else {
       if (!path) {
         /* const ports = await findKnownDevices()
@@ -659,9 +717,7 @@ export const useMainStore = defineStore('main', () => {
       flags.value.updateInProgress = true
 
       stopScreenStream()
-      if (window.serial) {
-        window.serial.onOpen(e => onUpdateStage('end'))
-      } else {
+      if (!flags.value.isElectron) {
         navigator.serial.addEventListener('connect', () => {
           flags.value.updateInProgress = false
         })
@@ -706,6 +762,8 @@ export const useMainStore = defineStore('main', () => {
 
     updateStage,
     onUpdateStage,
+
+    setReconnectTimeout,
 
     recoveryLogs,
     recoveryProgress,

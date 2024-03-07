@@ -2,7 +2,7 @@ import { createNanoEvents } from 'nanoevents'
 
 const bridgeController = {
   list: [],
-  currentFlipper: {}
+  currentFlipper: null
 }
 
 const emitter = createNanoEvents()
@@ -24,27 +24,27 @@ const init = async () => {
   })
 
   window.bridge.onList(payload => {
-    payload.forEach(currentItem => {
-      if (!bridgeController.list.length) {
-        currentItem.emitter = createNanoEvents()
-        bridgeController.list.push(currentItem)
+    const finalList = []
+    const oldList = bridgeController.list
+    const newList = payload
+
+    oldList.forEach(oldFlipper => {
+      if (newList.find(newFlipper => newFlipper.name === oldFlipper.name)) {
+        finalList.push(oldFlipper)
+      } else {
+        delete oldFlipper.emitter // here we "unbind" the emitter
       }
-
-      bridgeController.list.forEach(item => {
-        if (currentItem.name !== item.name) {
-          currentItem.emitter = createNanoEvents()
-          bridgeController.list.push(currentItem)
-        }
-      })
     })
-    // payload.forEach(element => {
-    //   element.emitter = createNanoEvents()
-    // })
-    // bridgeController.list = payload
-    bridgeController.currentFlipper = payload[0]
+    newList.forEach(newFlipper => {
+      if (!oldList.find(oldFlipper => oldFlipper.name === newFlipper.name)) {
+        newFlipper.emitter = createNanoEvents() // here we "create" a new emitter
+        finalList.push(newFlipper)
+      }
+    })
 
-    // console.log(bridgeController.list)
-    emitter.emit('list', payload)
+    bridgeController.list = finalList
+
+    emitter.emit('list', bridgeController.list)
   })
 
   window.bridge.onLog(e => {
@@ -83,7 +83,6 @@ const getCurrentFlipper = () => {
 
 const setCurrentFlipper = (name) => {
   bridgeController.currentFlipper = findFlipper(name)
-  console.log('currentFlipper', bridgeController.currentFlipper)
 }
 
 export { bridgeController, emitter, init, getList, getCurrentFlipper, setCurrentFlipper }

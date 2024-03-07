@@ -384,6 +384,7 @@ const loadFirmware = async (fromFile) => {
       message: `${componentName}: Rebooting Flipper`
     })
 
+    mainStore.setReconnectTimeout()
     await flipper.value.RPC('systemReboot', { mode: 'UPDATE' })
       .catch(error => rpcErrorHandler(componentName, error, 'systemReboot'))
   } else {
