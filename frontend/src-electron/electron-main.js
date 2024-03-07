@@ -26,7 +26,7 @@ const bridge = {
     }
   },
   kill () {
-    bridge.process.removeAllListeners()
+    bridge.process?.removeAllListeners()
     bridge.process?.kill()
   },
   send (event, json) {
