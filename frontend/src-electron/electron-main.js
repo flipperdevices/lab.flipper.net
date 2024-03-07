@@ -21,6 +21,7 @@ const bridge = {
           bridge.processQueue()
         }
       })
+      bridge.webContents.send('bridge:spawn')
     } catch (error) {
       console.error(error)
     }

@@ -104,7 +104,6 @@
             </q-item>
             <q-separator style="width: 85%; margin: auto;"/>
             <q-item
-              v-if="flags.multiflipper && info"
               clickable
               class="q-px-md q-py-sm"
               @click="onSwitchFlipper"
@@ -118,7 +117,7 @@
                 </q-avatar>
               </q-item-section>
               <q-item-section>
-                <q-item-label>Switch</q-item-label>
+                <q-item-label>My Flippers</q-item-label>
               </q-item-section>
             </q-item>
             <template v-if="!flags.isElectron">
@@ -304,12 +303,20 @@
         <template v-if="flags.isElectron">
           <q-card flat>
             <q-card-section class="q-pa-none q-ma-md" align="center">
-              <q-img
-                src="../assets/flipper_alert.svg"
-                width="70px"
-              />
-              <div class="text-h6 q-my-sm">Your flipper isn't connected</div>
-              <p>Please, plug the flipper into USB.</p>
+              <template v-if="flags.isBridgeReady">
+                <q-img
+                  src="../assets/flipper_alert.svg"
+                  width="70px"
+                />
+                <div class="text-h6 q-my-sm">Flipper isn't connected</div>
+              </template>
+              <template v-else>
+                <q-spinner
+                  color="primary"
+                  size="3em"
+                  class="q-mb-md"
+                ></q-spinner>
+              </template>
             </q-card-section>
           </q-card>
         </template>
@@ -487,9 +494,9 @@
               />
             </div>
           </q-card-section>
-          <q-card-section align="center">
+          <!--<q-card-section align="center">
             <q-btn unelevated color="primary" label="Repair" @click="recovery"/>
-          </q-card-section>
+          </q-card-section>-->
         </q-card>
       </q-dialog>
       <q-dialog v-model="flags.dialogRecovery" :persistent="flags.recovery" @hide="mainStore.resetRecovery(true)">
@@ -742,6 +749,7 @@ const downloadLogs = () => {
   dl.remove()
 }
 
+// eslint-disable-next-line no-unused-vars
 const recovery = () => {
   mainStore.recovery(mainStore.logCallback)
 }

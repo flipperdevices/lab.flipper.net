@@ -413,6 +413,16 @@ export const useMainStore = defineStore('main', () => {
     toggleAutoReconnectCondition()
 
     if (flags.value.isElectron) {
+      window.bridge.onSpawn(() => {
+        console.log('bridge spawn')
+        setTimeout(() => {
+          flags.value.isBridgeReady = true
+        }, 1000)
+      })
+      window.bridge.onExit(e => {
+        console.log('bridge exit', e)
+        flags.value.isBridgeReady = false
+      })
       await bridgeControllerInit()
       listInit()
       await flipperConnect()
