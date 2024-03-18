@@ -67,6 +67,7 @@
       v-model="leftDrawer"
       class="bg-grey-2"
       style="overflow-x: hidden"
+      show-if-above
       :width="175"
       :breakpoint="900"
     >
@@ -603,7 +604,7 @@ const extLinks = [
   }
 ]
 
-const leftDrawer = ref(true)
+const leftDrawer = ref(false)
 const linksMenu = ref(false)
 const connectionStatus = ref('Ready to connect')
 
@@ -733,9 +734,6 @@ const start = async (manual, path, onShowDialog) => {
 }
 
 onMounted(async () => {
-  if ($q.screen.lt.md) {
-    leftDrawer.value = false
-  }
   if ('serial' in navigator) {
     checkConnectionRequirement()
 

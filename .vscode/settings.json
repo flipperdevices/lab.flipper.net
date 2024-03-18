@@ -10,4 +10,17 @@
   "eslint.workingDirectories": [
     { "mode": "auto" }
   ],
+  "cSpell.words": [
+    "flipperzero",
+    "gpio",
+    "Hexbuffer",
+    "nanoevents",
+    "nfctools",
+    "pbjs",
+    "proto",
+    "protobuf",
+    "protofiles",
+    "rfraw",
+    "subtools"
+  ],
 }

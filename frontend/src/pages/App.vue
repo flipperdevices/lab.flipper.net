@@ -92,7 +92,10 @@
           />
         </template>
       </div>
-      <div id="carousel" class="flex">
+      <div
+        v-if="app.currentVersion.screenshots && Object.keys(app.currentVersion.screenshots).length"
+        class="flex"
+      >
         <q-btn
           flat
           dense
@@ -237,7 +240,7 @@
           </q-card-section>
 
           <q-card-section>
-            <q-select v-model="report.type" :options="[ 'bug', 'report' ]" label="What do you want to sumbit?" />
+            <q-select v-model="report.type" :options="[ 'bug', 'report' ]" label="What do you want to submit?" />
           </q-card-section>
 
           <q-card-section v-if="report.type === 'bug'">
@@ -286,7 +289,7 @@
 </template>
 
 <script setup>
-import { defineEmits, ref, computed, onUnmounted, onMounted, watch } from 'vue'
+import { ref, computed, onUnmounted, onMounted, watch } from 'vue'
 import Loading from 'src/components/Loading.vue'
 import { bytesToSize } from 'util/util'
 import { submitAppReport, fetchAppById } from 'util/fetch'
@@ -363,22 +366,24 @@ const setCategory = () => {
 }
 
 const animateScroll = (direction) => {
-  const carousel = document.querySelector('#carousel')
-  const width = carousel.clientWidth - 2 * 32
+  const width = scrollAreaRef.value.$el.offsetWidth
+  const numberOfScreenshots = Object.keys(app.value.currentVersion.screenshots).length
+  const screenshotsOnScreen = Math.floor(width / screenshotWidth) || 1
+
   if (direction === 'forward') {
-    position.value = position.value + screenshotWidth
-    if (position.value > width) {
-      position.value = width + screenshotWidth
-    }
-  } else if (direction === 'backward') {
-    if (position.value > width) {
-      position.value = Math.round((width + screenshotWidth) / screenshotWidth) * screenshotWidth
-    }
-    position.value = position.value - screenshotWidth
-    if (position.value < 0) {
-      position.value = 0
+    if ((position.value + (screenshotWidth * screenshotsOnScreen)) < screenshotWidth * numberOfScreenshots) {
+      position.value = position.value + screenshotWidth
     }
   }
+
+  if (direction === 'backward') {
+    if (position.value < 0) {
+      position.value = 0
+    } else {
+      position.value = position.value - screenshotWidth
+    }
+  }
+
   scrollAreaRef.value.setScrollPosition('horizontal', position.value, 300)
 }
 
