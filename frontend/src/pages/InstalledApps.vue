@@ -35,6 +35,16 @@
         </q-card>
       </div>
     </template>
+    <template v-else-if="appsStore.flags.noApplicationsInstalled">
+      <div class="column items-center">
+        <q-card flat>
+          <q-card-section class="q-pa-none q-ma-md" align="center">
+            <q-icon name="mdi-alert-circle" color="primary" size="64px" />
+            <div class="text-h6 q-my-sm">You haven't installed any apps yet</div>
+          </q-card-section>
+        </q-card>
+      </div>
+    </template>
     <template v-else>
       <div v-if="updatableApps.length" style="width: 140px">
         <template v-if="batch.totalCount">

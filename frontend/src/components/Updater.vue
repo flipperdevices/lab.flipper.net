@@ -38,7 +38,7 @@
             color="positive"
             padding="12px 30px"
             :class="!$q.screen.xs ? 'q-ml-lg' : 'q-mt-sm'"
-          >Install</q-btn>
+          >{{ getTextButton }}</q-btn>
         </div>
         <q-btn
           v-if="mainFlags.installFromFile && flags.uploadEnabled"
@@ -162,6 +162,13 @@ const uploadedFile = ref(null)
 
 watch(fwModel, (newModel) => {
   localStorage.setItem('selectedFwChannel', newModel.value)
+})
+
+const getTextButton = computed(() => {
+  if (fwModel.value.version === info.value.firmware.version) {
+    return 'Reinstall'
+  }
+  return 'Install'
 })
 
 const update = async (fromFile) => {

@@ -11,11 +11,19 @@
     { "mode": "auto" }
   ],
   "cSpell.words": [
-    "gpio",
     "mfkey",
     "Multiflipper",
-    "nanoevents",
     "pixeleditor",
-    "protobuf"
+    "flipperzero",
+    "gpio",
+    "Hexbuffer",
+    "nanoevents",
+    "nfctools",
+    "pbjs",
+    "proto",
+    "protobuf",
+    "protofiles",
+    "rfraw",
+    "subtools"
   ],
 }

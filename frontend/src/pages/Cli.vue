@@ -1,5 +1,5 @@
 <template>
-  <q-page class="column items-center bg-black q-pl-sm full-width">
+  <q-page class="column items-center bg-black q-pl-sm full-width" :style-fn="myTweak">
     <div
       v-if="!mainFlags.connected"
       class="column flex-center q-my-xl"
@@ -11,7 +11,11 @@
       ></q-spinner>
       <p class="text-white">Waiting for Flipper...</p>
     </div>
-    <div v-if="mainFlags.connected && !flags.rpcActive" class="full-width" style="height: calc(100vh - 50px)">
+    <div
+      ref="terminalWrapper"
+      v-if="mainFlags.connected && !flags.rpcActive"
+      class="full-width"
+    >
       <div id="terminal-container" class="fit bg-black"></div>
 
       <q-btn
@@ -86,6 +90,7 @@
 
 <script setup>
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { dom } from 'quasar'
 import { Terminal } from 'xterm'
 import 'xterm/css/xterm.css'
 import { FitAddon } from 'xterm-addon-fit'
@@ -121,6 +126,7 @@ const clientsCount = ref(0)
 const clientsPollingInterval = ref(null)
 const fontSize = ref(14)
 let serializeAddon = null
+let fitAddon = null
 const dump = ref('')
 
 const init = () => {
@@ -129,7 +135,7 @@ const init = () => {
     fontSize: fontSize.value,
     allowProposedApi: true
   })
-  const fitAddon = new FitAddon()
+  fitAddon = new FitAddon()
   terminal.value.loadAddon(fitAddon)
   serializeAddon = new SerializeAddon()
   terminal.value.loadAddon(serializeAddon)
@@ -153,6 +159,10 @@ const init = () => {
     }, 500)
     write(data)
   })
+
+  window.onresize = () => {
+    fitAddon.fit()
+  }
 }
 const write = (data) => {
   flipper.value.write(data)
@@ -308,8 +318,21 @@ watch(fontSize, (newSize) => {
   if (terminal.value) {
     terminal.value.options.fontSize = Number(newSize)
     localStorage.setItem('cli-fontSize', newSize)
+
+    fitAddon.fit()
   }
 })
+
+const terminalWrapper = ref(null)
+const myTweak = (offset) => {
+  const height = offset ? `calc(100vh - ${offset}px)` : '100vh'
+  if (terminalWrapper.value) {
+    dom.css(terminalWrapper.value, {
+      minHeight: height
+    })
+  }
+  return { minHeight: height }
+}
 
 onMounted(() => {
   dump.value = localStorage.getItem('cli-dump')
