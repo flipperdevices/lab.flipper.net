@@ -147,12 +147,12 @@ import Loading from 'src/components/Loading.vue'
 import { useRouter } from 'vue-router'
 const router = useRouter()
 
-import { useMainStore } from 'src/stores/main'
+import { useMainStore } from 'stores/global/main'
 const mainStore = useMainStore()
 
 const mainFlags = computed(() => mainStore.flags)
 
-import { useAppsStore } from 'stores/apps'
+import { useAppsStore } from 'stores/global/apps'
 const appsStore = useAppsStore()
 
 const flags = computed(() => appsStore.flags)

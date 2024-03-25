@@ -300,7 +300,7 @@ import { exportFile } from 'quasar'
 import { log } from 'composables/useLog'
 import { rpcErrorHandler } from 'composables/useRpcUtils'
 
-import { useMainStore } from 'src/stores/main'
+import { useMainStore } from 'stores/global/main'
 const mainStore = useMainStore()
 
 const mainFlags = computed(() => mainStore.flags)

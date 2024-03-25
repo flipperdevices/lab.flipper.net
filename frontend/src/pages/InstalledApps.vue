@@ -347,13 +347,13 @@ import { ref, computed, watch, onMounted } from 'vue'
 import Loading from 'src/components/Loading.vue'
 // import semver from 'semver'
 
-import { useMainStore } from 'src/stores/main'
+import { useMainStore } from 'stores/global/main'
 const mainStore = useMainStore()
 
 const mainFlags = computed(() => mainStore.flags)
 const info = computed(() => mainStore.info)
 
-import { useAppsStore } from 'stores/apps'
+import { useAppsStore } from 'stores/global/apps'
 const appsStore = useAppsStore()
 
 const batch = computed(() => appsStore.batch)

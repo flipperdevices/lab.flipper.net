@@ -129,25 +129,8 @@ let serializeAddon = null
 let fitAddon = null
 const dump = ref('')
 
-const init = () => {
-  terminal.value = new Terminal({
-    scrollback: 10_000,
-    fontSize: fontSize.value,
-    allowProposedApi: true
-  })
-  fitAddon = new FitAddon()
-  terminal.value.loadAddon(fitAddon)
-  serializeAddon = new SerializeAddon()
-  terminal.value.loadAddon(serializeAddon)
-  if (dump.value) {
-    flags.value.foundDumpOnStartup = true
-  }
-  terminal.value.open(document.getElementById('terminal-container'))
-  document.querySelector('.xterm').setAttribute('style', 'height:' + getComputedStyle(document.querySelector('.xterm')).height)
-  terminal.value.focus()
-  fitAddon.fit()
-
-  write('\r\n\x01\r\n')
+import { useMainStore } from 'stores/global/main'
+const mainStore = useMainStore()
 
   let dumpTimeout
   terminal.value.onData(async data => {
