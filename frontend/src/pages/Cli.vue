@@ -116,6 +116,7 @@ const stopServer = computed(() => CliMainStore.stopServer)
 const startServer = computed(() => CliMainStore.startServer)
 const downloadDump = computed(() => CliMainStore.downloadDump)
 const clearDump = computed(() => CliMainStore.clearDump)
+const unbind = computed(() => CliMainStore.unbind)
 
 watch(fontSize, (newSize) => {
   if (terminal.value) {
@@ -144,9 +145,9 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   localStorage.setItem('cli-dump', serializeAddon.value.serialize())
-  CliMainStore.unbind.value()
+  unbind.value()
   if (flags.value.serverActive) {
-    CliMainStore.stopServer()
+    stopServer()
   }
 })
 </script>
