@@ -5,7 +5,7 @@ import PixelEditor from 'shared/lib/utils/pixeleditor/pixeleditor'
 
 export const usePaintStore = defineStore('paint', () => {
   const flags = reactive({
-    checkerboard: false,
+    checkerboard: true,
     imageFileLoading: false,
     ditherDialog: false
   })
