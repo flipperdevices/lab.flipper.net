@@ -1,28 +1,54 @@
 <template>
-  <q-page class="column">
-    <div class="col fit column items-center paint" @mouseup="mouseUp">
-      <q-page-sticky position="top" :offset="[16, 16]">
-        <PaintPixelControls />
-      </q-page-sticky>
+  <GenericPageLayout
+    title="Paint"
+    icon="flipper:paint"
+    description="Pixel editor for Flipper, streamed to the device"
+    class="relative-position"
+  >
+    <div class="column fit">
+      <div class="col fit column items-center paint" @mouseup="mouseUp">
+        <q-page-sticky position="top" :offset="[16, 40]">
+          <PaintPixelControls />
+        </q-page-sticky>
 
-      <PaintPixelEditor class="col" />
+        <PaintPixelEditor class="col" />
 
-      <q-page-sticky position="bottom-right" :offset="[8, 8]">
-        <PaintMirror />
-      </q-page-sticky>
+        <q-page-sticky position="bottom-right" :offset="[8, 8]">
+          <PaintMirror />
+        </q-page-sticky>
 
-      <q-dialog v-model="paintStore.flags.ditherDialog">
-        <PaintDitherCard
-          :img="paintStore.uploadedImage"
-          @cancel="paintStore.flags.ditherDialog = false"
-          @select="drawImage"
-        />
-      </q-dialog>
+        <q-dialog v-model="paintStore.flags.ditherDialog">
+          <PaintDitherCard
+            :img="paintStore.uploadedImage"
+            @cancel="paintStore.flags.ditherDialog = false"
+            @select="drawImage"
+          />
+        </q-dialog>
+      </div>
     </div>
-  </q-page>
+
+    <template #info>
+      <h6 class="q-mt-none q-mb-sm">About Paint</h6>
+      <p>
+        Draw pixel art or test UI elements right on your Flipper's screen. The
+        editor is streamed to the device in real-time. Use basic drawing tools,
+        upload images and export the Paint canvas to a PNG when you're done.
+      </p>
+      <p>
+        The bottom right corner shows the canvas in real size (128x64 pixels).
+        Saved images will have the same resolution. The checkerboard background
+        is not part of the image and serves as a visual aid.
+      </p>
+      <p class="q-mb-none">
+        Note that Flipper has to be unlocked to be able to show the image on the
+        screen.
+      </p>
+    </template>
+  </GenericPageLayout>
 </template>
 
 <script setup lang="ts">
+import { GenericPageLayout } from 'shared/components/GenericPageLayout'
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 
 import { showNotif } from 'shared/lib/utils/useShowNotif'
@@ -230,8 +256,7 @@ onBeforeUnmount(() => {
 <style src="shared/lib/utils/pixeleditor/pixeleditor.css"></style>
 <style lang="scss" scoped>
 .paint {
-  // background: #00000014;
-  background: $grey-3;
+  // background: $grey-3;
 }
 
 :deep(.paint .pE) {
