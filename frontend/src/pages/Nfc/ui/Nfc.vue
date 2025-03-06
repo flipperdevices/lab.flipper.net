@@ -7,7 +7,7 @@
     <NfcMfkey32 />
 
     <template #info>
-      <h6 class="q-mt-none q-mb-sm">Mfkey32 attack</h6>
+      <h6 class="q-mt-none q-mb-sm">About the Mfkey32 attack</h6>
       <p>
         The mfkey32 attack is a method to retrieve the keys of MF Classic cards
         by using the nonces gathered during the communication between the card
@@ -22,6 +22,12 @@
         be available for future cracks.
       </p>
       <p>You can also run the attack by entering the nonce manually.</p>
+      <p class="q-mb-none">
+        <a href="https://docs.flipper.net/nfc/mfkey32" target="_blank"
+          >Read more about mfkey32</a
+        >
+        on Flipper Docs
+      </p>
     </template>
   </GenericPageLayout>
 </template>
