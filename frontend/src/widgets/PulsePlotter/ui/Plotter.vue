@@ -58,7 +58,7 @@ const notifyForWrongFile = () => {
   Notify.create({
     type: 'negative',
     message:
-      'Wrong file type. Only <b>SubGhz RAW</b>, <b>Infrared RAW</b> and <b>RFID RAW</b> files are accepted.',
+      'Wrong file type. Only <b>SubGhz RAW</b>, <b>RFID RAW</b> and <b>Infrared signals</b> files are accepted.',
     html: true
   })
 }
@@ -92,14 +92,13 @@ const switchFiletype = async (
     return processRfid(new Uint8Array(buffer))
   }
 
-  switch (text[0]) {
-    case 'Filetype: Flipper SubGhz RAW File':
-      return processSubGhz(text)
-    case 'Filetype: IR signals file':
-      return processIr(text)
-    default:
-      notifyForWrongFile()
-      break
+  const firstLine = text[0]!.trim()
+  if (firstLine.includes('Flipper SubGhz RAW File')) {
+    return processSubGhz(text)
+  } else if (firstLine.includes('IR signals file')) {
+    return processIr(text)
+  } else {
+    notifyForWrongFile()
   }
 }
 
