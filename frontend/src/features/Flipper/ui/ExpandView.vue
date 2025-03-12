@@ -1,6 +1,9 @@
 <template>
-  <q-dialog class="expandView" maximized @show="showDialog" @hide="hideDialog">
-    <q-card class="fit column expandView__wrapper">
+  <q-dialog class="expandView" @show="showDialog" @hide="hideDialog">
+    <q-card
+      class="fit column expandView__wrapper"
+      style="min-width: min(100vw, 1000px)"
+    >
       <span class="scanLine absolute fit" />
       <canvas
         id="gridBackground"
@@ -167,7 +170,12 @@
         />
         <div class="column items-end">
           <q-btn flat padding="sm" icon="flipper:info-big" color="primary">
-            <q-tooltip class="bg-black" style="border: 1px solid #662c00">
+            <q-tooltip
+              anchor="top left"
+              self="bottom left"
+              class="bg-black"
+              style="border: 1px solid #662c00"
+            >
               <q-icon
                 name="flipper:steaming-help-mac"
                 style="width: 207px; height: 102px"
