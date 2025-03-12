@@ -7,7 +7,7 @@
   >
     <div class="column fit">
       <div class="col fit column items-center paint" @mouseup="mouseUp">
-        <q-page-sticky position="top" :offset="[16, 40]">
+        <q-page-sticky position="bottom" :offset="[16, 40]">
           <PaintPixelControls />
         </q-page-sticky>
 
