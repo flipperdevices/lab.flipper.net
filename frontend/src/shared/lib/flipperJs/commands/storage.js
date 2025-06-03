@@ -45,7 +45,7 @@ function read ({ path }) {
     }
     return buffer
   }
-  return createRPCPromise.bind(this)('storageReadRequest', { path }, format, this.emitter, 2000)
+  return createRPCPromise.bind(this)('storageReadRequest', { path }, format, this.emitter, 60 * 60 * 1000)
 }
 
 async function write ({ path, buffer }) {
@@ -56,7 +56,7 @@ async function write ({ path, buffer }) {
   for (let i = 0; i <= file.byteLength; i += 512) {
     const chunk = file.slice(i, i + 512)
     const writeChunk = new Promise((resolve, reject) => {
-      setTimeout(() => reject(`RPC timeout: ${requestType}`), 2000)
+      setTimeout(() => reject(`RPC timeout: ${requestType}`), 60 * 60 * 1000)
       const [data, currentCommand] = this.encodeRPCRequest(
         requestType,
         { path, file: { data: chunk } },
