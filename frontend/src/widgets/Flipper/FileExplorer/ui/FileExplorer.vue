@@ -162,8 +162,9 @@
                 <q-item
                   clickable
                   @click="
-                    download({
-                      file: item
+                    read({
+                      file: item,
+                      preventDownload: false
                     })
                   "
                 >
