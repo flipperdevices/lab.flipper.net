@@ -1,208 +1,57 @@
-name: 'Deploy'
+name: Deploy
 
 on:
   push:
     branches:
-      - dev
-    tags:
-      - '*'
-  workflow_dispatch:
-
-env:
-  IMAGE_NAME: 'ghcr.io/flipperdevices/lab.flipper.net'
-  USE_SYSTEM_FPM: true
+      - main
 
 jobs:
-  build-electron:
-    name: ${{ matrix.config.description }} build
-    runs-on: ${{ matrix.config.runner_os }}
-
-    strategy:
-      fail-fast: false
-      matrix:
-        config:
-          - {
-              description: 'linux/arm64',
-              artifact_name: 'Linux-arm',
-              runner_os: ubuntu-24.04-arm
-            }
-          - {
-              description: 'linux/amd64',
-              artifact_name: 'Linux-amd',
-              runner_os: ubuntu-24.04
-            }
-          - {
-              description: 'mac/amd64',
-              artifact_name: 'Macos-amd',
-              runner_os: macos-13
-            }
-          - {
-              description: 'mac/arm64',
-              artifact_name: 'Macos-arm',
-              runner_os: macos-14
-            }
-          - {
-              description: 'win/amd64',
-              artifact_name: 'Windows-amd',
-              runner_os: windows-2022
-            }
+  build:
+    name: Build
+    runs-on: ubuntu-latest
 
     steps:
-      - name: 'Checkout code'
-        uses: actions/checkout@v4
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
-          fetch-depth: 0
-          submodules: true
+          node-version: 18
+          cache: 'pnpm'
 
-      - name: install fpm & bsdtar
-        if: startsWith(matrix.config.runner_os,'ubuntu-')
-        run: |
-          sudo gem install fpm
-          sudo apt update && sudo apt install libarchive-tools
+      - name: Install pnpm
+        run: npm install -g pnpm
 
-      - name: 'Set image tag and name'
-        id: tag
-        shell: bash
-        run: |
-          IMAGE_TAG="0.0.0"
-          IMAGE_TAG_DEV="dev-${GITHUB_SHA:0:7}-$(date +%s)"
-          if [[ "${{ github.ref }}" == "refs/tags/"* ]]; then
-            REF=${{ github.ref }};
-            TAG_FULL=${REF#refs/*/};
-            IMAGE_TAG=${TAG_FULL//\//_};
-          fi
-          echo "IMAGE_TAG=${IMAGE_TAG}" >> $GITHUB_ENV
-          echo "image_tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
-          echo "image_tag_dev=${IMAGE_TAG_DEV}" >> $GITHUB_OUTPUT
-          echo "image_name=${IMAGE_NAME}" >> $GITHUB_OUTPUT
-
-      - name: yarn install
-        shell: bash
+      - name: Install dependencies
         working-directory: ./frontend
-        run: yarn install
+        run: pnpm install
 
-      - name: Build
-        shell: bash
+      - name: Build project
         working-directory: ./frontend
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CSC_LINK: ${{ secrets.MAC_CERT_P12_BASE64 }}
-          CSC_KEY_PASSWORD: ${{ secrets.MAC_CERT_P12_PASSWORD }}
-          WIN_CSC_LINK: ${{ secrets.WIN_CERT_P12_BASE64 }}
-          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CERT_P12_PASSWORD }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-        run: |
-          if [ -z "$CSC_LINK" ] ; then unset CSC_LINK ; fi
-          if [ -z "$CSC_KEY_PASSWORD" ] ; then unset CSC_KEY_PASSWORD ; fi
-          if [ -z "$WIN_CSC_LINK" ] ; then unset WIN_CSC_LINK ; fi
-          if [ -z "$WIN_CSC_KEY_PASSWORD" ] ; then unset WIN_CSC_KEY_PASSWORD ; fi
-          if [ -z "$APPLE_ID" ] ; then unset APPLE_ID ; fi
-          if [ -z "$APPLE_TEAM_ID" ] ; then unset APPLE_TEAM_ID ; fi
-          if [ -z "$APPLE_APP_SPECIFIC_PASSWORD" ] ; then unset APPLE_APP_SPECIFIC_PASSWORD ; fi
+        run: pnpm run build/web/dev
 
-          if [ "$IMAGE_TAG" == "0.0.0" ] ; then
-            DEV=TRUE yarn run build/electron/dev
-          else
-            PRODUCTION=TRUE yarn run build/electron
-          fi
-
-      - name: Upload Linux
-        if: startsWith(matrix.config.runner_os, 'ubuntu-')
-        uses: actions/upload-artifact@v4
+      - name: Upload production-ready build files
+        uses: actions/upload-artifact@v3
         with:
-          name: 'Flipper-Lab-${{ matrix.config.artifact_name }}'
-          path: |
-            frontend/dist/electron/Packaged/*.AppImage
-            frontend/dist/electron/Packaged/*.deb
-            frontend/dist/electron/Packaged/*.rpm
-            frontend/dist/electron/Packaged/*.pacman
+          name: production-files
+          path: ./frontend/dist/spa
 
-      - name: Upload macOS
-        if: startsWith(matrix.config.runner_os, 'macos-')
-        uses: actions/upload-artifact@v4
-        with:
-          name: 'Flipper-Lab-${{ matrix.config.artifact_name }}'
-          path: 'frontend/dist/electron/Packaged/*.dmg'
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
 
-      - name: Upload Windows
-        if: startsWith(matrix.config.runner_os, 'windows-')
-        uses: actions/upload-artifact@v4
-        with:
-          name: 'Flipper-Lab-${{ matrix.config.artifact_name }}'
-          path: 'frontend/dist/electron/Packaged/*.exe'
-
-  build-docker:
-    runs-on: ubuntu-24.04
     steps:
-      - name: 'Checkout code'
-        uses: actions/checkout@v4
+      - name: Download artifact
+        uses: actions/download-artifact@v3
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
-          fetch-depth: 0
-          submodules: true
+          name: production-files
+          path: ./dist
 
-      - name: 'Set image tag and name'
-        id: tag
-        run: |
-          IMAGE_TAG="0.0.0"
-          IMAGE_TAG_DEV="dev-${GITHUB_SHA:0:7}-$(date +%s)"
-          if [[ "${{ github.ref }}" == "refs/tags/"* ]]; then
-            REF=${{ github.ref }};
-            TAG_FULL=${REF#refs/*/};
-            IMAGE_TAG=${TAG_FULL//\//_};
-          fi
-          echo "IMAGE_TAG=${IMAGE_TAG}" >> $GITHUB_ENV
-          echo "image_tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
-          echo "image_tag_dev=${IMAGE_TAG_DEV}" >> $GITHUB_OUTPUT
-          echo "image_name=${IMAGE_NAME}" >> $GITHUB_OUTPUT
-
-      - name: 'Login to Docker Hub'
-        uses: docker/login-action@v2
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.CR_PAT }}
-
-      - name: 'Set up Docker Buildx'
-        uses: docker/setup-buildx-action@v2
-
-      - name: 'Build and push dev'
-        if: ${{ steps.tag.outputs.image_tag == '0.0.0' }}
-        id: docker_build_dev
-        uses: docker/build-push-action@v4
-        with:
-          push: true
-          file: Dockerfile-dev
-          tags: |
-            ${{steps.tag.outputs.image_name}}:${{steps.tag.outputs.image_tag}}
-            ${{steps.tag.outputs.image_name}}:${{steps.tag.outputs.image_tag_dev}}
-
-      - name: 'Build and push prod'
-        if: ${{ steps.tag.outputs.image_tag != '0.0.0' }}
-        id: docker_build_prod
-        uses: docker/build-push-action@v4
-        with:
-          push: true
-          tags: ${{steps.tag.outputs.image_name}}:${{steps.tag.outputs.image_tag}}
-          file: Dockerfile-prod
-
-      - name: 'Show dev image digest'
-        if: ${{ steps.tag.outputs.image_tag == '0.0.0' }}
-        run: |
-          echo ${{ steps.docker_build_dev.outputs.digest }}
-
-      - name: 'Show prod image digest'
-        if: ${{ steps.tag.outputs.image_tag != '0.0.0' }}
-        run: |
-          echo ${{ steps.docker_build_prod.outputs.digest }}
-
-      - name: 'Trigger k8s to use new image'
-        uses: peter-evans/repository-dispatch@v2
-        with:
-          repository: ${{ secrets.INFRASTRUCTURE_REPO }}
-          token: ${{ secrets.K8S_GITHUB_PAT }}
-          event-type: lab-flipper-net-deploy
-          client-payload: '{"image_tag": "${{steps.tag.outputs.image_tag}}"}'
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
