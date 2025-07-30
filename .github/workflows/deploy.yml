@@ -28,7 +28,7 @@ jobs:
 
       - name: Build project
         working-directory: ./frontend
-        run: pnpm run build/web/dev
+        run: npm run build/web/dev
 
       - name: Upload production-ready build files
         uses: actions/upload-artifact@v4
