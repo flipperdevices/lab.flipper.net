@@ -54,23 +54,26 @@ export class ProtobufTransformer {
       return
     }
 
+    const reader = protobuf.Reader.create(this.chunks)
+    const results = []
+    let lastPos = 0
     try {
-      const reader = protobuf.Reader.create(this.chunks)
-      const results = []
       while (reader.pos < reader.len) {
         const res = PB.Main.decodeDelimited(reader)
         results.push(res)
+        lastPos = reader.pos
       }
-      this.chunks = this.chunks.slice(reader.pos)
-      results.forEach(res => controller.enqueue(res))
-      this.decodeInProgress = false
     } catch (error) {
       if (!error.message.includes('index out of range')) {
         if (!this.rpcStarted) {
           this.chunks = new Uint8Array(0)
+          return
         }
       }
     }
+    this.chunks = this.chunks.slice(lastPos)
+    results.forEach(res => controller.enqueue(res))
+    this.decodeInProgress = false
   }
 
   flush (controller) {
