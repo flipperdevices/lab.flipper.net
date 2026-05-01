@@ -162,8 +162,9 @@
                 <q-item
                   clickable
                   @click="
-                    download({
-                      file: item
+                    read({
+                      file: item,
+                      preventDownload: false
                     })
                   "
                 >
@@ -842,9 +843,7 @@ const read = async ({
   preventDownload?: boolean
 }) => {
   blockingOperationDialog.value = true
-  selectedFile.value.name = fullPath.value.slice(
-    fullPath.value.lastIndexOf('/') + 1
-  )
+  selectedFile.value.name = file.name
   const localFile = dirs.value.find(
     (e) => e.name === selectedFile.value.name && !e.type
   )
@@ -864,7 +863,7 @@ const read = async ({
   }
 
   if (!preventDownload) {
-    download({ file })
+    await download({ file })
   }
 
   if (unbind) {
@@ -991,8 +990,6 @@ const download = async ({ file }: { file: FlipperModel.File }) => {
   const filePath = `${unref(fullPath.value)}/${file.name}`
 
   if (file.type === 1) {
-    blockingOperationDialog.value = true
-
     const folderStructure = await createStructure({
       file: {
         name: file.name,
@@ -1017,8 +1014,6 @@ const download = async ({ file }: { file: FlipperModel.File }) => {
         })
       }
     })
-
-    blockingOperationDialog.value = false
     return
   }
 
